@@ -1,0 +1,153 @@
+[project]
+name = "investment-assistant"
+version = "0.1.0"
+description = "CFD instrument technical and fundamental analysis application"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = {text = "MIT"}
+
+dependencies = [
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.32.0,<1.0.0",
+    "pydantic>=2.10.0,<3.0.0",
+    "pydantic-settings>=2.7.0,<3.0.0",
+    "sqlalchemy>=2.0.0,<3.0.0",
+    "alembic>=1.14.0,<2.0.0",
+    "pandas>=2.2.0,<3.0.0",
+    "pandas-ta>=0.3.14b1,<1.0.0",
+    "TA-Lib>=0.4.32,<1.0.0",
+    "yfinance>=0.2.48,<1.0.0",
+    "httpx>=0.28.0,<1.0.0",
+    "cachetools>=5.5.0,<6.0.0",
+    "fredapi>=0.5.2,<1.0.0",
+    "websockets>=14.0,<15.0",
+    "slowapi>=0.1.9,<1.0.0",
+    "aiosqlite>=0.20.0,<1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0,<9.0.0",
+    "pytest-asyncio>=0.24.0,<1.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "mypy>=1.13.0,<2.0.0",
+    "ruff>=0.8.0,<1.0.0",
+    "mutmut>=2.5.0,<3.0.0",
+    "import-linter>=2.1,<3.0",
+    "httpx",
+]
+
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "S",     # flake8-bandit
+    "A",     # flake8-builtins
+    "C4",    # flake8-comprehensions
+    "RET",   # flake8-return
+    "SIM",   # flake8-simplify
+    "TCH",   # flake8-type-checking
+    "PTH",   # flake8-use-pathlib
+    "RUF",   # ruff-specific
+]
+ignore = [
+    "S101",  # assert used — OK in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas_ta.*",
+    "talib.*",
+    "yfinance.*",
+    "fredapi.*",
+    "cachetools.*",
+    "slowapi.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "integration: marks tests as integration tests",
+    "architecture: marks tests as architecture tests",
+]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+]
+
+[tool.importlinter]
+root_packages = ["app"]
+
+[[tool.importlinter.contracts]]
+name = "Domain modules do not import from each other"
+type = "independence"
+modules = [
+    "app.modules.data_acquisition",
+    "app.modules.technical_analysis",
+    "app.modules.pattern_recognition",
+    "app.modules.fundamental_analysis",
+    "app.modules.signal_aggregation",
+    "app.modules.strategy_generator",
+]
+
+[[tool.importlinter.contracts]]
+name = "Core does not import from modules or API"
+type = "forbidden"
+source_modules = ["app.core"]
+forbidden_modules = ["app.modules", "app.api"]
+
+[[tool.importlinter.contracts]]
+name = "Modules do not import from API"
+type = "forbidden"
+source_modules = ["app.modules"]
+forbidden_modules = ["app.api"]
