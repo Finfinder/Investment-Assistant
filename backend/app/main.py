@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    from app.api.v1.fundamental import router as fundamental_router
     from app.api.v1.health import router as health_router
     from app.api.v1.market_data import router as market_data_router
     from app.api.v1.patterns import router as patterns_router
@@ -31,6 +32,7 @@ def create_app() -> FastAPI:
     app.include_router(market_data_router, prefix=settings.API_V1_PREFIX)
     app.include_router(ta_router, prefix=settings.API_V1_PREFIX)
     app.include_router(patterns_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(fundamental_router, prefix=settings.API_V1_PREFIX)
 
     return app
 

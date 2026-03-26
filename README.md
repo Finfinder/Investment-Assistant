@@ -50,6 +50,7 @@ The API is available at `http://localhost:8000`. Health check: `GET /api/v1/heal
 | GET | `/api/v1/market-data/{symbol}` | Fetch OHLCV data for a CFD symbol |
 | POST | `/api/v1/technical-analysis` | Run full technical analysis |
 | POST | `/api/v1/patterns` | Detect chart and candlestick patterns |
+| POST | `/api/v1/fundamental-analysis` | Run fundamental analysis for a symbol |
 
 ### Market Data
 
@@ -77,6 +78,15 @@ POST /api/v1/patterns
 
 Detects candlestick patterns (15 types via TA-Lib), support/resistance levels with strength scoring, Fibonacci retracement levels, IKI (Impulse-Correction-Impulse) patterns, and geometric chart patterns (triangle, wedge, flag, pennant).
 
+### Fundamental Analysis
+
+```
+POST /api/v1/fundamental-analysis
+{"symbol": "EURUSD"}
+```
+
+Automatically routes to the correct analyzer based on instrument type. Forex pairs compare interest rate and inflation differentials between base and quote currencies. Commodities analyze COT positioning, USD strength, and rate environment. Indices evaluate regional macro data (rates, unemployment). Data sourced from FRED API and Financial Modeling Prep.
+
 ## Configuration
 
 Copy `backend/.env.example` to `backend/.env`. Key settings:
@@ -85,6 +95,7 @@ Copy `backend/.env.example` to `backend/.env`. Key settings:
 |----------|-------------|---------|
 | `TWELVE_DATA_API_KEY` | Twelve Data API key (optional) | — |
 | `FMP_API_KEY` | Financial Modeling Prep API key (optional) | — |
+| `FRED_API_KEY` | FRED API key (optional) | — |
 | `CACHE_TTL_INTRADAY` | Cache TTL for intraday data (seconds) | 300 |
 | `CACHE_TTL_DAILY` | Cache TTL for daily data (seconds) | 3600 |
 

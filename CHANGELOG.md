@@ -29,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - IKI (Impulse-Correction-Impulse) detector: impulse > 2×ATR, correction 38.2–61.8% Fibonacci, second impulse confirmation
   - Geometric chart pattern detector: ascending/descending/symmetric triangle, wedge, flag, pennant via trendline regression
 - Pattern recognition REST endpoint: `POST /api/v1/patterns`
+- Fundamental analysis module
+  - FRED data source: 18 macro series (interest rates, CPI, employment) with 24h TTL cache
+  - FMP economic data source: treasury rates, economic indicators, economic calendar with shared rate limiting
+  - FMP COT reports: commitment of traders parsing with net positions and weekly changes
+  - Forex fundamental analyzer: currency pair macro comparison (interest rate and inflation differentials), score -100..+100
+  - Commodities fundamental analyzer: COT positioning, USD strength, rate environment scoring
+  - Indices fundamental analyzer: regional macro analysis (US, EU, UK, JP, AU, CA) with rate/unemployment scoring
+- Fundamental analysis REST endpoint: `POST /api/v1/fundamental-analysis` with auto-routing by instrument type
 - README and CHANGELOG documentation
 
 ## [0.1.0] - 2025-03-26
