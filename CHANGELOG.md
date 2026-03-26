@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 5 pivot point types: Classic, Fibonacci, Camarilla, Woodie, DeMark
   - Signal summary aggregation with strong_buy/buy/neutral/sell/strong_sell thresholds
 - Technical analysis REST endpoint: `POST /api/v1/technical-analysis`
+- Pattern recognition module
+  - Candlestick pattern detector: 15 patterns via TA-Lib (engulfing, hammer, doji, shooting star, morning/evening star, etc.) with bearish engulfing marked as "nóż"
+  - Support/resistance level detector: local extrema via scipy, level clustering, touch-count strength scoring, EMA 50/200 bounce detection
+  - Fibonacci retracement calculator: 5 levels (23.6–78.6%) with automatic swing high/low identification and active level marking
+  - IKI (Impulse-Correction-Impulse) detector: impulse > 2×ATR, correction 38.2–61.8% Fibonacci, second impulse confirmation
+  - Geometric chart pattern detector: ascending/descending/symmetric triangle, wedge, flag, pennant via trendline regression
+- Pattern recognition REST endpoint: `POST /api/v1/patterns`
 - README and CHANGELOG documentation
 
 ## [0.1.0] - 2025-03-26

@@ -49,6 +49,7 @@ The API is available at `http://localhost:8000`. Health check: `GET /api/v1/heal
 | GET | `/api/v1/health` | Health check |
 | GET | `/api/v1/market-data/{symbol}` | Fetch OHLCV data for a CFD symbol |
 | POST | `/api/v1/technical-analysis` | Run full technical analysis |
+| POST | `/api/v1/patterns` | Detect chart and candlestick patterns |
 
 ### Market Data
 
@@ -66,6 +67,15 @@ POST /api/v1/technical-analysis
 ```
 
 Returns 9 oscillator/momentum indicators (RSI, MACD, Stochastic, CCI, ADX, AO, Momentum, Williams %R, Ultimate Oscillator), 12 moving averages (SMA + EMA for periods 5–200), 5 pivot point types (Classic, Fibonacci, Camarilla, Woodie, DeMark), and an aggregated signal summary.
+
+### Pattern Recognition
+
+```
+POST /api/v1/patterns
+{"symbol": "EURUSD", "timeframe": "H1", "period": "180d"}
+```
+
+Detects candlestick patterns (15 types via TA-Lib), support/resistance levels with strength scoring, Fibonacci retracement levels, IKI (Impulse-Correction-Impulse) patterns, and geometric chart patterns (triangle, wedge, flag, pennant).
 
 ## Configuration
 

@@ -19,6 +19,7 @@ dependencies = [
     "yfinance>=0.2.48,<1.0.0",
     "httpx>=0.28.0,<1.0.0",
     "cachetools>=5.5.0,<6.0.0",
+    "scipy>=1.14.0,<2.0.0",
     "fredapi>=0.5.2,<1.0.0",
     "websockets>=14.0,<15.0",
     "slowapi>=0.1.9,<1.0.0",
