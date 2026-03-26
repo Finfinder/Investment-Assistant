@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fallback chain manager with priority-based provider selection and timing logs
   - In-memory TTL cache for OHLCV data (intraday 300s, daily 3600s)
 - Market data REST endpoint: `GET /api/v1/market-data/{symbol}`
+- Technical analysis engine
+  - 9 oscillator/momentum indicators with signal rating (RSI, Stochastic, CCI, ADX, AO, Momentum, MACD, Williams %R, Ultimate Oscillator)
+  - Moving averages calculator: SMA and EMA for periods 5, 10, 20, 50, 100, 200
+  - 5 pivot point types: Classic, Fibonacci, Camarilla, Woodie, DeMark
+  - Signal summary aggregation with strong_buy/buy/neutral/sell/strong_sell thresholds
+- Technical analysis REST endpoint: `POST /api/v1/technical-analysis`
 - README and CHANGELOG documentation
 
 ## [0.1.0] - 2025-03-26

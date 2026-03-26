@@ -1,5 +1,6 @@
+import math
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -62,4 +63,30 @@ def sample_ohlcv_data() -> list[OHLCVData]:
             )
         )
         price = c
+    return data
+
+
+@pytest.fixture
+def sample_ohlcv_data_long() -> list[OHLCVData]:
+    """Generate 250 OHLCV candles with mixed trends for indicator testing."""
+    base_time = datetime(2024, 1, 1, tzinfo=UTC)
+    data: list[OHLCVData] = []
+    for i in range(250):
+        trend = 100.0 + i * 0.04 + 10 * math.sin(i * 0.04)
+        oscillation = 2 * math.sin(i * 0.5)
+        c = round(trend + oscillation, 2)
+        o = round(trend + oscillation * 0.7, 2)
+        h = round(max(o, c) + abs(oscillation * 0.3) + 0.5, 2)
+        low = round(min(o, c) - abs(oscillation * 0.3) - 0.5, 2)
+        v = round(1000.0 + 500 * abs(math.sin(i * 0.2)), 2)
+        data.append(
+            OHLCVData(
+                timestamp=base_time + timedelta(hours=i),
+                open=o,
+                high=h,
+                low=low,
+                close=c,
+                volume=v,
+            )
+        )
     return data

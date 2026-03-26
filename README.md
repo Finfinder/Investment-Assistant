@@ -48,6 +48,7 @@ The API is available at `http://localhost:8000`. Health check: `GET /api/v1/heal
 |--------|------|-------------|
 | GET | `/api/v1/health` | Health check |
 | GET | `/api/v1/market-data/{symbol}` | Fetch OHLCV data for a CFD symbol |
+| POST | `/api/v1/technical-analysis` | Run full technical analysis |
 
 ### Market Data
 
@@ -56,6 +57,15 @@ GET /api/v1/market-data/EURUSD?timeframe=H1&period=30d
 ```
 
 Supported symbols include forex pairs (EURUSD, GBPUSD, …), commodities (GOLD, SILVER, …), indices (US500, US30, …), and more. Timeframes: M15, H1, H4, D1. Period format: `{n}d`, `{n}m`, `{n}y`.
+
+### Technical Analysis
+
+```
+POST /api/v1/technical-analysis
+{"symbol": "EURUSD", "timeframe": "H1", "period": "90d"}
+```
+
+Returns 9 oscillator/momentum indicators (RSI, MACD, Stochastic, CCI, ADX, AO, Momentum, Williams %R, Ultimate Oscillator), 12 moving averages (SMA + EMA for periods 5–200), 5 pivot point types (Classic, Fibonacci, Camarilla, Woodie, DeMark), and an aggregated signal summary.
 
 ## Configuration
 

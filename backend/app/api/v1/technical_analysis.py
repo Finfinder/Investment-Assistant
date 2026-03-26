@@ -1,0 +1,67 @@
+import logging
+import re
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from app.api.v1.market_data import get_fallback_chain
+from app.core.models import IndicatorValue, MovingAverage, PivotPoints, SignalSummary, Timeframe
+from app.modules.data_acquisition.fallback_chain import DataProviderError
+from app.modules.technical_analysis.indicators import calculate_indicators
+from app.modules.technical_analysis.moving_averages import calculate_moving_averages
+from app.modules.technical_analysis.pivot_points import calculate_pivot_points
+from app.modules.technical_analysis.summary import calculate_summaries
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(tags=["technical-analysis"])
+
+SYMBOL_PATTERN = re.compile(r"^[A-Za-z0-9]{2,20}$")
+
+
+class TechnicalAnalysisRequest(BaseModel):
+    symbol: str
+    timeframe: Timeframe = Timeframe.H1
+    period: str = "90d"
+
+
+class TechnicalAnalysisResponse(BaseModel):
+    symbol: str
+    timeframe: Timeframe
+    indicators: list[IndicatorValue]
+    moving_averages: list[MovingAverage]
+    pivot_points: list[PivotPoints]
+    summary: SignalSummary
+
+
+@router.post("/technical-analysis", response_model=TechnicalAnalysisResponse)
+async def run_technical_analysis(body: TechnicalAnalysisRequest) -> TechnicalAnalysisResponse:
+    if not SYMBOL_PATTERN.match(body.symbol):
+        raise HTTPException(status_code=400, detail="Invalid symbol format")
+
+    chain = get_fallback_chain()
+    try:
+        ohlcv = await chain.fetch_ohlcv(body.symbol, body.timeframe, body.period)
+    except DataProviderError as exc:
+        logger.error("All providers failed for %s: %s", body.symbol, exc)
+        raise HTTPException(status_code=502, detail="Unable to fetch market data from any provider") from exc
+
+    if not ohlcv:
+        raise HTTPException(status_code=404, detail="No data returned for the given symbol")
+
+    indicators = calculate_indicators(ohlcv)
+    moving_avgs = calculate_moving_averages(ohlcv)
+
+    last = ohlcv[-1]
+    pivots = calculate_pivot_points(last.high, last.low, last.close, last.open)
+
+    summary = calculate_summaries(indicators, moving_avgs)
+
+    return TechnicalAnalysisResponse(
+        symbol=body.symbol.upper(),
+        timeframe=body.timeframe,
+        indicators=indicators,
+        moving_averages=moving_avgs,
+        pivot_points=pivots,
+        summary=summary,
+    )
