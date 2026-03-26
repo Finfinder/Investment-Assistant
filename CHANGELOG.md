@@ -49,6 +49,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Analysis REST API: `POST /api/v1/analysis`, `GET /api/v1/analysis/{id}`, `GET /api/v1/analysis/{id}/status`
 - Analysis WebSocket: `WS /api/v1/ws/analysis/{id}` for live progress updates
 - README and CHANGELOG documentation
+- Frontend application (Next.js 14, TypeScript, TailwindCSS)
+  - Analysis form with symbol autocomplete and timeframe selector
+  - Real-time WebSocket progress indicator with pipeline step tracking
+  - Interactive candlestick chart (lightweight-charts v5) with EMA, pivot, Fibonacci overlays and pattern markers
+  - Signal summary gauges (MA, Indicators, Overall) with buy/neutral/sell counts
+  - Oscillator and Moving Average indicator tables with color-coded signal badges
+  - Pivot points table (Classic, Fibonacci, Camarilla, Woodie, DeMark)
+  - Pattern list with confidence bars, bullish/bearish badges, and chart marker integration
+  - Fundamental analysis panel with score bar and macro indicators
+  - Strategy table with entry, SL, TP1, TP2, direction, and confidence
+  - Collapsible accordion sections with ARIA accessibility
+  - Scroll-spy navigation bar with IntersectionObserver
+  - Responsive layout: mobile (360px+), tablet, desktop
+  - Docker multi-stage build (node:20-alpine, non-root user)
+  - Docker Compose integration with backend service
 
 ## [0.1.0] - 2025-03-26
 

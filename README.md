@@ -4,11 +4,19 @@ CFD instrument technical and fundamental analysis application. Provides market d
 
 ## Tech Stack
 
+### Backend
+
 - **Python 3.13** / FastAPI / Pydantic 2
 - **SQLAlchemy 2** (async, SQLite for MVP)
 - **Data providers**: yfinance (primary), Twelve Data, Financial Modeling Prep
 - **Analysis**: pandas-ta, TA-Lib
-- **Docker Compose** for deployment
+
+### Frontend
+
+- **Next.js 14** (App Router) / TypeScript 5
+- **TailwindCSS 3.4** with CSS custom properties (dark theme)
+- **lightweight-charts v5** for interactive candlestick charts
+- **Docker Compose** for full-stack deployment
 
 ## Quick Start
 
@@ -34,13 +42,23 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend is available at `http://localhost:3000`.
+
 ### Docker
 
 ```bash
 docker compose up --build
 ```
 
-The API is available at `http://localhost:8000`. Health check: `GET /api/v1/health`.
+Backend API: `http://localhost:8000`. Frontend: `http://localhost:3000`. Health check: `GET /api/v1/health`.
 
 ## API Endpoints
 
@@ -115,8 +133,14 @@ Copy `backend/.env.example` to `backend/.env`. Key settings:
 ## Testing
 
 ```bash
+# Backend
 cd backend
 python -m pytest tests/ -v
+
+# Frontend lint & type-check
+cd frontend
+npm run lint
+npm run build
 ```
 
 ## License
