@@ -1,10 +1,15 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.core.logging_config import setup_logging
 
 
 def create_app() -> FastAPI:
+    setup_logging()
+    logger = logging.getLogger(__name__)
     settings = get_settings()
 
     app = FastAPI(
@@ -21,6 +26,19 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Log available API keys (names only, never values)
+    configured_keys = [
+        name for name, val in [
+            ("TWELVE_DATA_API_KEY", settings.TWELVE_DATA_API_KEY),
+            ("FMP_API_KEY", settings.FMP_API_KEY),
+            ("FRED_API_KEY", settings.FRED_API_KEY),
+        ] if val
+    ]
+    if configured_keys:
+        logger.info("Configured API keys: %s", ", ".join(configured_keys))
+    else:
+        logger.warning("No optional API keys configured — only yfinance provider available")
 
     from app.api.v1.analysis import router as analysis_router
     from app.api.v1.fundamental import router as fundamental_router

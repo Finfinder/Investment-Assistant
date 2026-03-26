@@ -7,8 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Nginx reverse proxy with Docker Compose integration (port 80), health checks, and log volume
+- Enhanced health endpoint returning application version and uptime (`GET /api/v1/health`)
+- Dependency health endpoint checking database, yfinance, and API key status (`GET /api/v1/health/dependencies`)
+- Structured logging configuration with configurable `LOG_LEVEL` setting
+- Production environment example (`.env.production.example`)
+- E2E test suite with Playwright (`frontend/e2e/analysis.spec.ts`)
+- Architecture boundary tests (`backend/tests/architecture/test_import_boundaries.py`)
+- Full pipeline integration test (`backend/tests/integration/test_full_pipeline.py`)
+- Performance tests with k6 (`tests/performance/analysis.k6.js`)
+
 ### Changed
 
+- Docker Compose: backend and frontend use `expose` instead of `ports`, traffic routed through nginx
+- Frontend WebSocket URL resolution supports relative paths for nginx proxy
+- README updated with architecture diagram, Docker setup instructions, configuration reference, and testing commands
 - Extract shared instrument classifier to `app.core.instrument_classifier` removing duplication from `fundamental.py` and `pipeline.py`
 - Move signal aggregation from `report_builder` to `pipeline.py` step 5, fixing domain module independence contract
 - Replace unbounded `analysis_tasks` dict with `TTLCache(maxsize=1000, ttl=3600)` in pipeline and analysis API to prevent memory leak

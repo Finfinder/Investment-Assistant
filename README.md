@@ -52,13 +52,50 @@ npm run dev
 
 The frontend is available at `http://localhost:3000`.
 
-### Docker
+### Docker (recommended)
 
 ```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env with your API keys
+
 docker compose up --build
 ```
 
-Backend API: `http://localhost:8000`. Frontend: `http://localhost:3000`. Health check: `GET /api/v1/health`.
+The application is available at `http://localhost` (nginx reverse proxy). Health check: `GET /api/v1/health`. API documentation: `http://localhost/api/v1/docs`.
+
+## Architecture
+
+```
+┌──────────────┐      ┌──────────────┐
+│   Frontend   │      │   Backend    │
+│  Next.js 14  │◄────►│  FastAPI     │
+│  :3000       │      │  :8000       │
+└──────┬───────┘      └──────┬───────┘
+       │                     │
+       └────────┬────────────┘
+                │
+         ┌──────▼──────┐
+         │   nginx     │
+         │   :80       │
+         └─────────────┘
+```
+
+The backend is organized into independent domain modules that communicate through core models:
+
+```
+backend/app/
+├── api/v1/          # REST + WebSocket endpoints
+├── core/            # Settings, database, shared models, logging
+└── modules/
+    ├── data_acquisition/      # Multi-provider market data (yfinance, Twelve Data, FMP)
+    ├── technical_analysis/    # 9 oscillators, 12 MAs, 5 pivot types
+    ├── pattern_recognition/   # Candlestick, S/R, Fibonacci, IKI, geometric
+    ├── fundamental_analysis/  # Forex/commodity/index macro analysis (FRED, FMP)
+    ├── signal_aggregation/    # Weighted signal scoring and consolidation
+    └── strategy_generator/    # Entry/exit scenarios with SL/TP levels
+```
+
+Import boundaries are enforced by `import-linter` contracts defined in `pyproject.toml`.
 
 ## API Endpoints
 
@@ -120,27 +157,41 @@ Triggers an asynchronous 6-step pipeline: data fetch → technical analysis → 
 
 ## Configuration
 
-Copy `backend/.env.example` to `backend/.env`. Key settings:
+Copy `backend/.env.example` to `backend/.env`. For production see `.env.production.example`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `DEBUG` | Enable debug mode | `true` |
+| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` |
+| `DATABASE_URL` | SQLAlchemy database URL | `sqlite+aiosqlite:///./data/investment.db` |
+| `CORS_ORIGINS` | Allowed CORS origins (JSON array) | `["http://localhost:3000"]` |
 | `TWELVE_DATA_API_KEY` | Twelve Data API key (optional) | — |
 | `FMP_API_KEY` | Financial Modeling Prep API key (optional) | — |
 | `FRED_API_KEY` | FRED API key (optional) | — |
-| `CACHE_TTL_INTRADAY` | Cache TTL for intraday data (seconds) | 300 |
-| `CACHE_TTL_DAILY` | Cache TTL for daily data (seconds) | 3600 |
+| `CACHE_TTL_INTRADAY` | Cache TTL for intraday data (seconds) | `300` |
+| `CACHE_TTL_DAILY` | Cache TTL for daily data (seconds) | `3600` |
 
 ## Testing
 
 ```bash
-# Backend
+# Backend — unit & integration tests
 cd backend
 python -m pytest tests/ -v
+
+# Architecture boundary checks
+lint-imports
 
 # Frontend lint & type-check
 cd frontend
 npm run lint
 npm run build
+
+# E2E tests (requires running frontend)
+cd frontend
+npm run test:e2e
+
+# Performance tests (requires k6 CLI)
+k6 run tests/performance/analysis.k6.js
 ```
 
 ## License

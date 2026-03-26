@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Investment Assistant"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
+    LOG_LEVEL: str = "INFO"
 
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/investment_assistant.db"
 
