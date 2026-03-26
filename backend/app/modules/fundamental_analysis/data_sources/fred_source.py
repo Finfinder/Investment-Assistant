@@ -63,7 +63,7 @@ class FredSource:
         cache_key = f"fred:{series_id}"
         cached = self._cache.get(cache_key)
         if cached is not None:
-            return cached
+            return float(cached)
 
         try:
             fred = self._get_fred()

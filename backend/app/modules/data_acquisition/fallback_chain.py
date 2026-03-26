@@ -21,9 +21,7 @@ class FallbackChainManager:
     def providers(self) -> list[DataProvider]:
         return list(self._providers)
 
-    async def fetch_ohlcv(
-        self, symbol: str, timeframe: Timeframe, period: str
-    ) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
         errors: list[str] = []
 
         for provider in self._providers:
@@ -61,7 +59,4 @@ class FallbackChainManager:
                 )
                 errors.append(f"{provider.name}: {exc}")
 
-        raise DataProviderError(
-            f"All providers failed for {symbol}/{timeframe}/{period}: "
-            + "; ".join(errors)
-        )
+        raise DataProviderError(f"All providers failed for {symbol}/{timeframe}/{period}: " + "; ".join(errors))

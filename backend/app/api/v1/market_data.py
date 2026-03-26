@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException
 
@@ -10,6 +11,9 @@ from app.modules.data_acquisition.fallback_chain import DataProviderError, Fallb
 from app.modules.data_acquisition.providers.fmp_provider import FMPProvider
 from app.modules.data_acquisition.providers.twelve_data_provider import TwelveDataProvider
 from app.modules.data_acquisition.providers.yfinance_provider import YFinanceProvider
+
+if TYPE_CHECKING:
+    from app.modules.data_acquisition.interfaces import DataProvider
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +42,7 @@ def _get_chain() -> FallbackChainManager:
     global _chain
     if _chain is None:
         settings = get_settings()
-        providers = [YFinanceProvider()]
+        providers: list[DataProvider] = [YFinanceProvider()]
         if settings.TWELVE_DATA_API_KEY:
             providers.append(TwelveDataProvider(api_key=settings.TWELVE_DATA_API_KEY))
         if settings.FMP_API_KEY:

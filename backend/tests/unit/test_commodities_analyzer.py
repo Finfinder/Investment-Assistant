@@ -29,14 +29,16 @@ class TestCommodityBullish:
     """Large net long speculative + low rates -> bullish."""
 
     async def test_bullish_gold(self, mock_fred: MagicMock, mock_fmp: MagicMock):
-        mock_fmp.fetch_cot_report = AsyncMock(return_value={
-            "date": "2024-01-15",
-            "net_non_commercial": 100000,
-            "non_commercial_long": 200000,
-            "non_commercial_short": 100000,
-            "net_commercial": -50000,
-            "net_non_commercial_change": 10000,
-        })
+        mock_fmp.fetch_cot_report = AsyncMock(
+            return_value={
+                "date": "2024-01-15",
+                "net_non_commercial": 100000,
+                "non_commercial_long": 200000,
+                "non_commercial_short": 100000,
+                "net_commercial": -50000,
+                "net_non_commercial_change": 10000,
+            }
+        )
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "fed_funds_rate": 1.5,
             "cpi_us": 280.0,
@@ -53,14 +55,16 @@ class TestCommodityBearish:
     """Net short speculative + strong USD -> bearish."""
 
     async def test_bearish_oil(self, mock_fred: MagicMock, mock_fmp: MagicMock):
-        mock_fmp.fetch_cot_report = AsyncMock(return_value={
-            "date": "2024-01-15",
-            "net_non_commercial": -80000,
-            "non_commercial_long": 60000,
-            "non_commercial_short": 140000,
-            "net_commercial": 50000,
-            "net_non_commercial_change": -20000,
-        })
+        mock_fmp.fetch_cot_report = AsyncMock(
+            return_value={
+                "date": "2024-01-15",
+                "net_non_commercial": -80000,
+                "non_commercial_long": 60000,
+                "non_commercial_short": 140000,
+                "net_commercial": 50000,
+                "net_non_commercial_change": -20000,
+            }
+        )
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "fed_funds_rate": 6.0,
             "cpi_us": 310.0,

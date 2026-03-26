@@ -4,6 +4,7 @@ import asyncio
 import logging
 import re
 
+from cachetools import TTLCache
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
@@ -49,9 +50,9 @@ async def trigger_analysis(body: AnalysisRequest) -> AnalysisResponse:
     return AnalysisResponse(analysis_id=pipeline.analysis_id, status="pending")
 
 
-# Store completed reports and background task refs
-_analysis_results: dict[str, AnalysisReport] = {}
-_background_tasks: dict[str, asyncio.Task] = {}
+# Store completed reports and background task refs (TTL=1h, bounded)
+_analysis_results: TTLCache[str, AnalysisReport] = TTLCache(maxsize=1000, ttl=3600)
+_background_tasks: TTLCache[str, asyncio.Task[None]] = TTLCache(maxsize=1000, ttl=3600)
 
 
 async def _run_pipeline(pipeline: AnalysisPipeline) -> None:
@@ -67,12 +68,12 @@ async def get_analysis(analysis_id: str) -> AnalysisReport | AnalysisStatus:
 
     Returns AnalysisReport when completed, AnalysisStatus otherwise.
     """
-    status = analysis_tasks.get(analysis_id)
+    status: AnalysisStatus | None = analysis_tasks.get(analysis_id)
     if status is None:
         raise HTTPException(status_code=404, detail="Analiza nie znaleziona")
 
     if status.status == AnalysisStatusType.COMPLETED:
-        report = _analysis_results.get(analysis_id)
+        report: AnalysisReport | None = _analysis_results.get(analysis_id)
         if report is not None:
             return report
         # Report was persisted but not in memory — return status
@@ -84,7 +85,7 @@ async def get_analysis(analysis_id: str) -> AnalysisReport | AnalysisStatus:
 @router.get("/analysis/{analysis_id}/status", response_model=AnalysisStatus)
 async def get_analysis_status(analysis_id: str) -> AnalysisStatus:
     """Get current analysis status (progress, steps)."""
-    status = analysis_tasks.get(analysis_id)
+    status: AnalysisStatus | None = analysis_tasks.get(analysis_id)
     if status is None:
         raise HTTPException(status_code=404, detail="Analiza nie znaleziona")
     return status

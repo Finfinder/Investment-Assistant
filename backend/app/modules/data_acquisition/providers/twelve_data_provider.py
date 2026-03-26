@@ -53,23 +53,40 @@ class TwelveDataProvider:
     def _map_symbol(self, symbol: str) -> str:
         key = symbol.upper().replace("/", "")
         forex_pairs = {
-            "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD",
-            "USDCAD", "NZDUSD", "EURGBP", "EURJPY", "GBPJPY",
+            "EURUSD",
+            "GBPUSD",
+            "USDJPY",
+            "USDCHF",
+            "AUDUSD",
+            "USDCAD",
+            "NZDUSD",
+            "EURGBP",
+            "EURJPY",
+            "GBPJPY",
         }
         if key in forex_pairs:
             return f"{key[:3]}/{key[3:]}"
 
         commodity_map = {
-            "GOLD": "XAU/USD", "XAUUSD": "XAU/USD",
-            "SILVER": "XAG/USD", "XAGUSD": "XAG/USD",
-            "OIL": "CL", "WTIUSD": "CL", "BRENT": "BZ", "NATGAS": "NG",
+            "GOLD": "XAU/USD",
+            "XAUUSD": "XAU/USD",
+            "SILVER": "XAG/USD",
+            "XAGUSD": "XAG/USD",
+            "OIL": "CL",
+            "WTIUSD": "CL",
+            "BRENT": "BZ",
+            "NATGAS": "NG",
         }
         if key in commodity_map:
             return commodity_map[key]
 
         index_map = {
-            "US500": "SPX", "US30": "DJI", "US100": "IXIC",
-            "DE40": "DAX", "UK100": "FTSE", "JP225": "NI225",
+            "US500": "SPX",
+            "US30": "DJI",
+            "US100": "IXIC",
+            "DE40": "DAX",
+            "UK100": "FTSE",
+            "JP225": "NI225",
         }
         if key in index_map:
             return index_map[key]
@@ -88,9 +105,7 @@ class TwelveDataProvider:
             logger.warning("Twelve Data availability check failed", exc_info=True)
             return False
 
-    async def fetch_ohlcv(
-        self, symbol: str, timeframe: Timeframe, period: str
-    ) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
         self._check_rate_limit()
 
         td_symbol = self._map_symbol(symbol)
@@ -99,7 +114,7 @@ class TwelveDataProvider:
 
         logger.info("TwelveData: fetching %s interval=%s outputsize=%d", td_symbol, td_interval, outputsize)
 
-        params = {
+        params: dict[str, str | int] = {
             "symbol": td_symbol,
             "interval": td_interval,
             "outputsize": outputsize,

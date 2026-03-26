@@ -1,6 +1,7 @@
 """Support and Resistance level detection."""
 
 import numpy as np
+import numpy.typing as npt
 from scipy.signal import argrelextrema
 
 from app.core.models import OHLCVData, PatternDetection
@@ -103,7 +104,7 @@ def _cluster_levels(
     return result
 
 
-def _detect_ema_bounces(closes: np.ndarray, current_price: float) -> list[PatternDetection]:
+def _detect_ema_bounces(closes: npt.NDArray[np.float64], current_price: float) -> list[PatternDetection]:
     """Detect if price is near EMA 50 or EMA 200."""
     results: list[PatternDetection] = []
     n = len(closes)
@@ -129,8 +130,7 @@ def _detect_ema_bounces(closes: np.ndarray, current_price: float) -> list[Patter
                     pattern_type=f"EMA {period} Bounce",
                     confidence=round(0.6 + (1.0 - distance_pct) * 0.3, 2),
                     description=(
-                        f"Price near EMA {period} ({ema_val:.2f}), "
-                        f"potential {'support' if bullish else 'resistance'}"
+                        f"Price near EMA {period} ({ema_val:.2f}), potential {'support' if bullish else 'resistance'}"
                     ),
                     location=f"ema_{period}",
                     bullish=bullish,

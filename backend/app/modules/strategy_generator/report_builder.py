@@ -13,8 +13,6 @@ from app.core.models import (
     StrategyEntry,
     Timeframe,
 )
-from app.modules.signal_aggregation.aggregator import SignalAggregator
-from app.modules.signal_aggregation.scoring import calculate_weighted_score, determine_direction
 from app.modules.strategy_generator.confidence_scorer import calculate_confidence
 from app.modules.strategy_generator.entry_calculator import calculate_entry_points
 from app.modules.strategy_generator.sl_tp_calculator import calculate_sl_tp
@@ -30,23 +28,14 @@ def build_report(
     patterns: list[PatternDetection],
     signal_summary: SignalSummary | None = None,
     fundamental: FundamentalData | None = None,
+    direction: Direction | None = None,
 ) -> AnalysisReport:
     """Build a complete AnalysisReport with strategies.
 
-    Composes results from all modules, determines direction, calculates
-    entry/SL/TP for 2-3 scenarios, and attaches confidence scores.
+    Composes results from all modules, calculates entry/SL/TP for 2-3
+    scenarios, and attaches confidence scores. Direction is determined
+    externally by the signal aggregation module and passed in.
     """
-    # Signal aggregation
-    aggregator = SignalAggregator(
-        indicators=indicators,
-        moving_averages=moving_averages,
-        signal_summary=signal_summary,
-        patterns=patterns,
-        fundamental=fundamental,
-    )
-    score = calculate_weighted_score(aggregator)
-    direction = determine_direction(score)
-
     # Separate S/R and Fibonacci patterns
     sr_patterns = [p for p in patterns if p.pattern_type.startswith("S/R")]
     fib_patterns = [p for p in patterns if p.pattern_type.startswith("Fibonacci")]
@@ -93,7 +82,7 @@ def _build_strategies(
     strategies: list[StrategyEntry] = []
 
     for entry in entries:
-        entry_price = float(entry["price"])
+        entry_price = float(entry["price"])  # type: ignore[arg-type]
         sl_tp = calculate_sl_tp(ohlcv, direction, entry_price, sr_patterns)
         confidence = calculate_confidence(
             direction=direction,

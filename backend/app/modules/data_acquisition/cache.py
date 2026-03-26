@@ -22,7 +22,7 @@ class InMemoryCache:
     def __init__(self, default_ttl: int = 300, maxsize: int = 256) -> None:
         self._default_ttl = default_ttl
         self._maxsize = maxsize
-        self._cache = TTLCache(maxsize=maxsize, ttl=default_ttl)  # type: ignore[type-arg]
+        self._cache: TTLCache[str, object] = TTLCache(maxsize=maxsize, ttl=default_ttl)
 
     def get(self, key: str) -> Any | None:
         value = self._cache.get(key)

@@ -25,17 +25,21 @@ def calculate_entry_points(
 
     # Aggressive entry — at current market price
     if direction == Direction.LONG:
-        entries.append({
-            "type": "aggressive",
-            "price": current_price,
-            "condition": f"Wejscie po cenie rynkowej {current_price:.5f} (long)",
-        })
+        entries.append(
+            {
+                "type": "aggressive",
+                "price": current_price,
+                "condition": f"Wejscie po cenie rynkowej {current_price:.5f} (long)",
+            }
+        )
     else:
-        entries.append({
-            "type": "aggressive",
-            "price": current_price,
-            "condition": f"Wejscie po cenie rynkowej {current_price:.5f} (short)",
-        })
+        entries.append(
+            {
+                "type": "aggressive",
+                "price": current_price,
+                "condition": f"Wejscie po cenie rynkowej {current_price:.5f} (short)",
+            }
+        )
 
     # Conservative entry — at nearest S/R level
     sr_levels = support_resistance or []
@@ -65,9 +69,8 @@ def _find_conservative_sr_entry(
         if level_price is None:
             continue
 
-        if (
-            (direction == Direction.LONG and level_price < current_price)
-            or (direction == Direction.SHORT and level_price > current_price)
+        if (direction == Direction.LONG and level_price < current_price) or (
+            direction == Direction.SHORT and level_price > current_price
         ):
             candidates.append(level_price)
 
@@ -103,9 +106,8 @@ def _find_conservative_fib_entry(
         if level_price is None:
             continue
 
-        if (
-            (direction == Direction.LONG and level_price < current_price)
-            or (direction == Direction.SHORT and level_price > current_price)
+        if (direction == Direction.LONG and level_price < current_price) or (
+            direction == Direction.SHORT and level_price > current_price
         ):
             candidates.append((level_price, p.description))
 

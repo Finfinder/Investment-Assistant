@@ -46,7 +46,7 @@ def test_long_entry_with_sr():
     ohlcv = _make_ohlcv(20, base_price=100.0)
     entry_price = 120.0
     sr = [
-        _make_sr(115.0, bullish=True),   # Support below
+        _make_sr(115.0, bullish=True),  # Support below
         _make_sr(130.0, bullish=False),  # Resistance above (TP1 candidate)
         _make_sr(145.0, bullish=False),  # Resistance further (TP2 candidate)
     ]
@@ -66,8 +66,8 @@ def test_short_entry_with_sr():
     ohlcv = _make_ohlcv(20, base_price=100.0)
     entry_price = 110.0
     sr = [
-        _make_sr(105.0, bullish=True),   # Support below (TP1 candidate)
-        _make_sr(95.0, bullish=True),    # Support further below (TP2 candidate)
+        _make_sr(105.0, bullish=True),  # Support below (TP1 candidate)
+        _make_sr(95.0, bullish=True),  # Support further below (TP2 candidate)
         _make_sr(115.0, bullish=False),  # Resistance above
     ]
 
@@ -99,7 +99,7 @@ def test_tight_sr_levels():
     ohlcv = _make_ohlcv(20, base_price=100.0)
     entry_price = 115.0
     sr = [
-        _make_sr(114.5, bullish=True),   # Very close support
+        _make_sr(114.5, bullish=True),  # Very close support
         _make_sr(115.5, bullish=False),  # Very close resistance
     ]
 

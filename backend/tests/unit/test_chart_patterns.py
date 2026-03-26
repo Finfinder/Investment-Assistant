@@ -8,24 +8,28 @@ from tests.helpers import make_ohlcv
 
 
 def _make_ascending_triangle(n: int = 80) -> list[OHLCVData]:
-    """Flat highs, rising lows → ascending triangle."""
+    """Flat highs with oscillating lows that trend upward → ascending triangle."""
     data = []
     resistance = 120.0
     for i in range(n):
-        low_val = 100.0 + i * 0.2  # Rising lows
-        high_val = resistance + (0.5 * math.sin(i * 0.3))  # Roughly flat highs
+        # Rising lows with oscillation so argrelextrema can find troughs
+        low_base = 100.0 + i * 0.15
+        low_val = low_base + 3.0 * math.sin(i * 0.5)
+        high_val = resistance + 0.5 * math.sin(i * 0.5)  # Roughly flat highs
         mid = (low_val + high_val) / 2
         data.append(make_ohlcv(mid - 1, high_val, low_val, mid + 0.5, i))
     return data
 
 
 def _make_descending_triangle(n: int = 80) -> list[OHLCVData]:
-    """Flat lows, falling highs → descending triangle."""
+    """Flat lows with oscillating highs that trend downward → descending triangle."""
     data = []
     support = 80.0
     for i in range(n):
-        high_val = 120.0 - i * 0.3  # Falling highs
-        low_val = support - (0.5 * math.sin(i * 0.3))  # Roughly flat lows
+        # Falling highs with oscillation so argrelextrema can find peaks
+        high_base = 120.0 - i * 0.3
+        high_val = high_base + 3.0 * math.sin(i * 0.5)
+        low_val = support + 0.5 * math.sin(i * 0.5)  # Roughly flat lows
         mid = (low_val + high_val) / 2
         data.append(make_ohlcv(mid + 1, high_val, low_val, mid - 0.5, i))
     return data
@@ -69,22 +73,22 @@ class TestChartPatterns:
     def test_ascending_triangle(self):
         data = _make_ascending_triangle()
         results = detect_chart_patterns(data, lookback=60)
-        if results:
-            assert results[0].pattern_type in ("Ascending Triangle", "Symmetric Triangle", "Pennant", "Rising Wedge")
-            assert isinstance(results[0], PatternDetection)
+        assert len(results) >= 1
+        assert results[0].pattern_type in ("Ascending Triangle", "Symmetric Triangle", "Pennant", "Rising Wedge")
+        assert isinstance(results[0], PatternDetection)
 
     def test_descending_triangle(self):
         data = _make_descending_triangle()
         results = detect_chart_patterns(data, lookback=60)
-        if results:
-            assert isinstance(results[0], PatternDetection)
-            assert results[0].confidence > 0
+        assert len(results) >= 1
+        assert isinstance(results[0], PatternDetection)
+        assert results[0].confidence > 0
 
     def test_symmetric_triangle(self):
         data = _make_symmetric_triangle()
         results = detect_chart_patterns(data, lookback=60)
-        if results:
-            assert any("Triangle" in r.pattern_type or "Wedge" in r.pattern_type for r in results)
+        assert len(results) >= 1
+        assert any("Triangle" in r.pattern_type or "Wedge" in r.pattern_type for r in results)
 
     def test_flag_pattern(self):
         data = _make_flag_after_impulse()

@@ -141,9 +141,7 @@ class YFinanceProvider:
             logger.warning("yfinance availability check failed", exc_info=True)
             return False
 
-    async def fetch_ohlcv(
-        self, symbol: str, timeframe: Timeframe, period: str
-    ) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
         yf_symbol = _map_symbol(symbol)
         yf_interval = TIMEFRAME_MAP[timeframe]
         yf_period = _clamp_period(period, yf_interval)
@@ -151,9 +149,7 @@ class YFinanceProvider:
         logger.info("yfinance: fetching %s interval=%s period=%s", yf_symbol, yf_interval, yf_period)
 
         ticker = yf.Ticker(yf_symbol)
-        df = await asyncio.to_thread(
-            ticker.history, period=yf_period, interval=yf_interval
-        )
+        df = await asyncio.to_thread(ticker.history, period=yf_period, interval=yf_interval)
 
         if df is None or df.empty:
             logger.warning("yfinance returned no data for %s", yf_symbol)
@@ -161,7 +157,7 @@ class YFinanceProvider:
 
         result: list[OHLCVData] = []
         for ts, row in df.iterrows():
-            ts_dt = ts.to_pydatetime()  # type: ignore[union-attr]
+            ts_dt = ts.to_pydatetime()
             if ts_dt.tzinfo is None:
                 ts_dt = ts_dt.replace(tzinfo=UTC)
             result.append(

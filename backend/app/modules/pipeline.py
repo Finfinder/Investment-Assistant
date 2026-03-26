@@ -2,24 +2,39 @@
 
 import logging
 import uuid
+from typing import TYPE_CHECKING
+
+from cachetools import TTLCache
 
 from app.core.config import get_settings
 from app.core.database import get_session_factory
+from app.core.instrument_classifier import classify_instrument
 from app.core.models import (
     AnalysisReport,
     AnalysisStatus,
     AnalysisStatusType,
     FundamentalData,
+    IndicatorValue,
     InstrumentType,
+    MovingAverage,
+    OHLCVData,
+    PatternDetection,
+    PivotPoints,
+    SignalSummary,
     Timeframe,
 )
 from app.modules.data_acquisition.fallback_chain import FallbackChainManager
 from app.modules.data_acquisition.providers.yfinance_provider import YFinanceProvider
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from app.modules.data_acquisition.interfaces import DataProvider
+
 logger = logging.getLogger(__name__)
 
-# In-memory task tracking
-analysis_tasks: dict[str, AnalysisStatus] = {}
+# In-memory task tracking (TTL=1h, max 1000 entries to prevent memory leak)
+analysis_tasks: TTLCache[str, AnalysisStatus] = TTLCache(maxsize=1000, ttl=3600)
 
 PIPELINE_STEPS = [
     "Pobieranie danych",
@@ -30,49 +45,21 @@ PIPELINE_STEPS = [
     "Generowanie strategii",
 ]
 
-# Instrument classification sets (reuse from fundamental endpoint)
-FOREX_PAIRS: set[str] = {
-    "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD",
-    "EURGBP", "EURJPY", "GBPJPY", "NZDUSD", "AUDCAD", "AUDCHF",
-    "AUDJPY", "CADJPY", "CHFJPY", "EURCHF", "EURAUD", "EURCAD",
-    "GBPCAD", "GBPCHF",
-}
-COMMODITY_SYMBOLS: set[str] = {
-    "GOLD", "XAUUSD", "SILVER", "XAGUSD", "OIL", "WTIUSD",
-    "BRENT", "NATGAS", "COPPER", "PLATINUM", "PALLADIUM",
-}
-INDEX_SYMBOLS: set[str] = {
-    "US500", "US30", "US100", "SPX", "NDX", "DJI",
-    "DE40", "DAX", "EU50", "UK100", "FTSE",
-    "JP225", "NIKKEI", "AU200", "CA60",
-}
-
-
-def _classify_instrument(symbol: str) -> InstrumentType | None:
-    clean = symbol.upper().replace("/", "").replace("-", "")
-    if clean in FOREX_PAIRS:
-        return InstrumentType.FOREX
-    if clean in COMMODITY_SYMBOLS:
-        return InstrumentType.COMMODITY
-    if clean in INDEX_SYMBOLS:
-        return InstrumentType.INDEX
-    if len(clean) == 6 and clean.isalpha():
-        return InstrumentType.FOREX
-    return None
-
 
 def _build_chain() -> FallbackChainManager:
     """Build a fallback chain from configured providers."""
     settings = get_settings()
-    providers = [YFinanceProvider()]
+    providers: list[DataProvider] = [YFinanceProvider()]
     try:
         from app.modules.data_acquisition.providers.twelve_data_provider import TwelveDataProvider
+
         if settings.TWELVE_DATA_API_KEY:
             providers.append(TwelveDataProvider(api_key=settings.TWELVE_DATA_API_KEY))
     except ImportError:
         pass
     try:
         from app.modules.data_acquisition.providers.fmp_provider import FMPProvider
+
         if settings.FMP_API_KEY:
             providers.append(FMPProvider(api_key=settings.FMP_API_KEY))
     except ImportError:
@@ -150,7 +137,18 @@ class AnalysisPipeline:
 
             # Step 5: Signal Aggregation
             self._update_status(4, PIPELINE_STEPS[4])
-            # aggregation is handled inside report builder
+            from app.modules.signal_aggregation.aggregator import SignalAggregator
+            from app.modules.signal_aggregation.scoring import calculate_weighted_score, determine_direction
+
+            aggregator = SignalAggregator(
+                indicators=indicators,
+                moving_averages=moving_averages,
+                signal_summary=signal_summary,
+                patterns=patterns,
+                fundamental=fundamental,
+            )
+            score = calculate_weighted_score(aggregator)
+            direction = determine_direction(score)
             self._complete_step(PIPELINE_STEPS[4])
 
             # Step 6: Strategy Generation & Report
@@ -167,6 +165,7 @@ class AnalysisPipeline:
                 patterns=patterns,
                 signal_summary=signal_summary,
                 fundamental=fundamental,
+                direction=direction,
             )
             self._complete_step(PIPELINE_STEPS[5])
 
@@ -185,14 +184,16 @@ class AnalysisPipeline:
             self._fail(str(exc))
             return None
 
-    async def _step_fetch_data(self):
+    async def _step_fetch_data(self) -> list[OHLCVData]:
         try:
             return await self._chain.fetch_ohlcv(self.symbol, self.timeframe, "90d")
         except Exception as exc:
             logger.warning("Data fetch failed: %s", exc)
             return []
 
-    def _step_technical_analysis(self, ohlcv):
+    def _step_technical_analysis(
+        self, ohlcv: list[OHLCVData]
+    ) -> tuple[list[IndicatorValue], list[MovingAverage], list[PivotPoints], SignalSummary | None]:
         from app.modules.technical_analysis.indicators import calculate_indicators
         from app.modules.technical_analysis.moving_averages import calculate_moving_averages
         from app.modules.technical_analysis.pivot_points import calculate_pivot_points
@@ -225,21 +226,22 @@ class AnalysisPipeline:
 
         return indicators, moving_averages, pivot_points, signal_summary
 
-    def _step_pattern_recognition(self, ohlcv):
+    def _step_pattern_recognition(self, ohlcv: list[OHLCVData]) -> list[PatternDetection]:
         from app.modules.pattern_recognition.candlestick import detect_candlestick_patterns
         from app.modules.pattern_recognition.chart_patterns import detect_chart_patterns
         from app.modules.pattern_recognition.fibonacci import calculate_fibonacci_levels
         from app.modules.pattern_recognition.iki_detector import detect_iki_pattern
         from app.modules.pattern_recognition.support_resistance import detect_support_resistance
 
-        patterns = []
-        for func in [
+        patterns: list[PatternDetection] = []
+        funcs: list[Callable[[list[OHLCVData]], list[PatternDetection]]] = [
             detect_candlestick_patterns,
             detect_support_resistance,
             calculate_fibonacci_levels,
             detect_chart_patterns,
             detect_iki_pattern,
-        ]:
+        ]
+        for func in funcs:
             try:
                 patterns.extend(func(ohlcv))
             except Exception as exc:
@@ -247,18 +249,21 @@ class AnalysisPipeline:
         return patterns
 
     async def _step_fundamental_analysis(self) -> FundamentalData | None:
-        instrument_type = _classify_instrument(self.symbol)
+        instrument_type = classify_instrument(self.symbol)
         if instrument_type is None:
             return None
 
         try:
             if instrument_type == InstrumentType.FOREX:
                 from app.modules.fundamental_analysis.forex import analyze_forex
+
                 return analyze_forex(self.symbol)
             if instrument_type == InstrumentType.COMMODITY:
                 from app.modules.fundamental_analysis.commodities import analyze_commodity
+
                 return await analyze_commodity(self.symbol)
             from app.modules.fundamental_analysis.indices import analyze_index
+
             return analyze_index(self.symbol)
         except Exception as exc:
             logger.warning("Fundamental analysis failed for %s: %s", self.symbol, exc)

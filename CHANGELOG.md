@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Extract shared instrument classifier to `app.core.instrument_classifier` removing duplication from `fundamental.py` and `pipeline.py`
+- Move signal aggregation from `report_builder` to `pipeline.py` step 5, fixing domain module independence contract
+- Replace unbounded `analysis_tasks` dict with `TTLCache(maxsize=1000, ttl=3600)` in pipeline and analysis API to prevent memory leak
+- Add full type annotations to pipeline helper methods (`_step_fetch_data`, `_step_technical_analysis`, `_step_pattern_recognition`)
+- Replace soft assertions (`if results:`) with hard assertions in chart pattern tests
+- Reorganize test files: move 6 unit tests from `tests/` root to `tests/unit/`, move `test_database.py` to `tests/integration/`
+
+### Fixed
+
+- Resolve 36 mypy strict-mode errors: list variance, nullable arithmetic, NDArray types, unused type:ignore suppressions
+- Fix chart pattern test data generators to produce oscillating data for `argrelextrema` peak/trough detection
+- Fix `fred_source.py` returning untyped cached value (`Any`) instead of `float`
+
 ### Added
 
 - Data acquisition module with multi-provider fallback chain

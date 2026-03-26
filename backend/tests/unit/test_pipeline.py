@@ -16,8 +16,11 @@ def _make_ohlcv(n: int = 20) -> list[OHLCVData]:
         data.append(
             OHLCVData(
                 timestamp=datetime(2024, 1, 1, hour=i % 24, tzinfo=UTC),
-                open=price, high=price + 2.0, low=price - 1.0,
-                close=price + 1.0, volume=1000.0,
+                open=price,
+                high=price + 2.0,
+                low=price - 1.0,
+                close=price + 1.0,
+                volume=1000.0,
             )
         )
         price += 1.0

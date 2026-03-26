@@ -88,9 +88,7 @@ class FMPProvider:
             logger.warning("FMP availability check failed", exc_info=True)
             return False
 
-    async def fetch_ohlcv(
-        self, symbol: str, timeframe: Timeframe, period: str
-    ) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
         self._check_rate_limit()
 
         fmp_symbol = self._map_symbol(symbol)

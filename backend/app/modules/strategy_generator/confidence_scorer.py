@@ -63,9 +63,7 @@ def _ta_agreement(
     """Return ratio of TA indicators agreeing with direction (0..1)."""
     if signal_summary:
         total = (
-            signal_summary.overall_buy_count
-            + signal_summary.overall_sell_count
-            + signal_summary.overall_neutral_count
+            signal_summary.overall_buy_count + signal_summary.overall_sell_count + signal_summary.overall_neutral_count
         )
         if total == 0:
             return 0.0

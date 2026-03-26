@@ -1,6 +1,7 @@
 """Geometric chart pattern detection: wedge, flag, pennant, triangle."""
 
 import numpy as np
+import numpy.typing as npt
 from scipy.signal import argrelextrema
 
 from app.core.models import OHLCVData, PatternDetection
@@ -41,6 +42,8 @@ def detect_chart_patterns(
 
     if upper_slope is None or lower_slope is None:
         return []
+    if upper_intercept is None or lower_intercept is None:
+        return []
 
     results: list[PatternDetection] = []
 
@@ -77,7 +80,7 @@ def detect_chart_patterns(
     return results
 
 
-def _fit_line(x: np.ndarray, y: np.ndarray) -> tuple[float | None, float | None]:
+def _fit_line(x: npt.NDArray[np.intp], y: npt.NDArray[np.float64]) -> tuple[float | None, float | None]:
     """Fit a linear regression line. Returns (slope, intercept) or (None, None)."""
     if len(x) < 2:
         return None, None
@@ -87,7 +90,7 @@ def _fit_line(x: np.ndarray, y: np.ndarray) -> tuple[float | None, float | None]
     return float(coeffs[0]), float(coeffs[1])
 
 
-def _has_prior_impulse(closes: np.ndarray, lookback: int) -> bool:
+def _has_prior_impulse(closes: npt.NDArray[np.float64], lookback: int) -> bool:
     """Check if there was a strong impulse move before the pattern window."""
     if len(closes) <= lookback:
         return False
@@ -97,8 +100,8 @@ def _has_prior_impulse(closes: np.ndarray, lookback: int) -> bool:
         return False
 
     last_10 = pre_data[-10:]
-    move_pct = abs(last_10[-1] - last_10[0]) / last_10[0] * 100
-    return move_pct > 3.0
+    move_pct = abs(float(last_10[-1]) - float(last_10[0])) / float(last_10[0]) * 100
+    return bool(move_pct > 3.0)
 
 
 def _classify_pattern(

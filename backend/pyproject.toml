@@ -91,14 +91,19 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = [
+    "pandas",
+    "pandas.*",
     "pandas_ta.*",
     "talib.*",
     "yfinance.*",
     "fredapi.*",
     "cachetools.*",
     "slowapi.*",
+    "scipy",
+    "scipy.*",
 ]
 ignore_missing_imports = true
+follow_untyped_imports = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

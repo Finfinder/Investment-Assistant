@@ -7,9 +7,7 @@ from app.modules.strategy_generator.entry_calculator import calculate_entry_poin
 
 
 def _make_ohlcv(close: float = 1.1000) -> list[OHLCVData]:
-    return [
-        OHLCVData(timestamp=datetime(2024, 1, 1, tzinfo=UTC), open=1.0900, high=1.1100, low=1.0800, close=close)
-    ]
+    return [OHLCVData(timestamp=datetime(2024, 1, 1, tzinfo=UTC), open=1.0900, high=1.1100, low=1.0800, close=close)]
 
 
 def _make_sr(price: float, bullish: bool) -> PatternDetection:
@@ -60,8 +58,8 @@ def test_conservative_entry_at_support():
     """Long entry should find nearest support level below current price."""
     ohlcv = _make_ohlcv(1.1000)
     sr = [
-        _make_sr(1.0800, bullish=True),   # Support below
-        _make_sr(1.1200, bullish=False),   # Resistance above
+        _make_sr(1.0800, bullish=True),  # Support below
+        _make_sr(1.1200, bullish=False),  # Resistance above
     ]
     entries = calculate_entry_points(ohlcv, Direction.LONG, support_resistance=sr)
 

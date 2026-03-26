@@ -107,9 +107,7 @@ def _calculate_tp(
 
     if direction == Direction.LONG:
         # Look for resistance levels above entry
-        targets = sorted(
-            [price for price, is_res in sr_levels if is_res and price > entry_price]
-        )
+        targets = sorted([price for price, is_res in sr_levels if is_res and price > entry_price])
         min_tp1 = entry_price + risk  # R:R 1:1
         min_tp2 = entry_price + risk * 2  # R:R 1:2
 

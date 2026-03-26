@@ -55,9 +55,7 @@ class TestFallbackChainManager:
 
     @pytest.mark.asyncio
     async def test_primary_fail_secondary_success(self) -> None:
-        primary = _make_mock_provider(
-            "primary", DataProviderPriority.PRIMARY, side_effect=RuntimeError("timeout")
-        )
+        primary = _make_mock_provider("primary", DataProviderPriority.PRIMARY, side_effect=RuntimeError("timeout"))
         secondary = _make_mock_provider("secondary", DataProviderPriority.SECONDARY, _SAMPLE_DATA)
 
         chain = FallbackChainManager([secondary, primary])  # order shouldn't matter
@@ -79,12 +77,8 @@ class TestFallbackChainManager:
 
     @pytest.mark.asyncio
     async def test_all_fail_raises(self) -> None:
-        primary = _make_mock_provider(
-            "primary", DataProviderPriority.PRIMARY, side_effect=RuntimeError("fail1")
-        )
-        secondary = _make_mock_provider(
-            "secondary", DataProviderPriority.SECONDARY, side_effect=RuntimeError("fail2")
-        )
+        primary = _make_mock_provider("primary", DataProviderPriority.PRIMARY, side_effect=RuntimeError("fail1"))
+        secondary = _make_mock_provider("secondary", DataProviderPriority.SECONDARY, side_effect=RuntimeError("fail2"))
 
         chain = FallbackChainManager([primary, secondary])
 

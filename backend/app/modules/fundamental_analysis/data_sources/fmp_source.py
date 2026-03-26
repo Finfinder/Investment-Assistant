@@ -150,13 +150,9 @@ class FmpEconomicSource:
             }
 
             if previous:
-                prev_net_nc = (previous.get("nonCommercialLong", 0) or 0) - (
-                    previous.get("nonCommercialShort", 0) or 0
-                )
+                prev_net_nc = (previous.get("nonCommercialLong", 0) or 0) - (previous.get("nonCommercialShort", 0) or 0)
                 result["net_non_commercial_change"] = net_non_commercial - prev_net_nc
-                prev_net_c = (previous.get("commercialLong", 0) or 0) - (
-                    previous.get("commercialShort", 0) or 0
-                )
+                prev_net_c = (previous.get("commercialLong", 0) or 0) - (previous.get("commercialShort", 0) or 0)
                 result["net_commercial_change"] = net_commercial - prev_net_c
 
             return result

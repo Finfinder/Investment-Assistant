@@ -69,6 +69,7 @@ def test_bullish_report():
         patterns=patterns,
         signal_summary=summary,
         fundamental=fundamental,
+        direction=Direction.LONG,
     )
 
     assert report.symbol == "EURUSD"
@@ -113,6 +114,7 @@ def test_bearish_report():
         patterns=patterns,
         signal_summary=summary,
         fundamental=fundamental,
+        direction=Direction.SHORT,
     )
 
     assert len(report.strategies) >= 1

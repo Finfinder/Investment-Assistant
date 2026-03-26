@@ -1,6 +1,7 @@
 """IKI (Impuls-Korekta-Impuls) pattern detector."""
 
 import numpy as np
+import numpy.typing as npt
 
 from app.core.models import OHLCVData, PatternDetection
 
@@ -62,9 +63,9 @@ def detect_iki_pattern(
 
 
 def _find_iki(
-    closes: np.ndarray,
-    highs: np.ndarray,
-    lows: np.ndarray,
+    closes: npt.NDArray[np.float64],
+    highs: npt.NDArray[np.float64],
+    lows: npt.NDArray[np.float64],
     start: int,
     impulse_threshold: float,
     bullish: bool,
@@ -113,10 +114,8 @@ def _find_iki(
         if retrace_ratio > FIBO_RETRACEMENT_MAX:
             return None
 
-    if correction_end is None:
+    if correction_end is None or correction_price is None:
         return None
-
-    # Phase 3: Second impulse in the same direction
     remaining = min(correction_end + max_impulse_len, n)
     for m in range(correction_end + 1, remaining):
         second_move = float(highs[m]) - correction_price if bullish else correction_price - float(lows[m])
@@ -138,7 +137,12 @@ def _find_iki(
     return None
 
 
-def _calculate_atr(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray, period: int) -> float:
+def _calculate_atr(
+    highs: npt.NDArray[np.float64],
+    lows: npt.NDArray[np.float64],
+    closes: npt.NDArray[np.float64],
+    period: int,
+) -> float:
     """Calculate the current ATR (Average True Range) value."""
     n = len(closes)
     if n < period + 1:
