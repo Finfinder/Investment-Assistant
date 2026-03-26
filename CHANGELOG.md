@@ -37,6 +37,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Commodities fundamental analyzer: COT positioning, USD strength, rate environment scoring
   - Indices fundamental analyzer: regional macro analysis (US, EU, UK, JP, AU, CA) with rate/unemployment scoring
 - Fundamental analysis REST endpoint: `POST /api/v1/fundamental-analysis` with auto-routing by instrument type
+- Signal aggregation module
+  - Signal aggregator: normalizes TA, pattern, and fundamental signals to -1.0..+1.0 scale
+  - Weighted scoring system: configurable weights (TA 50%, patterns 30%, fundamental 20%) with direction thresholds
+- Strategy generator module
+  - Entry calculator: aggressive (market price) and conservative (S/R level, Fibonacci level) entry scenarios
+  - SL/TP calculator: stop loss via nearest S/R with ATR buffer, TP1 (R:R ≥ 1:1), TP2 (R:R ≥ 1:2) with ATR fallbacks
+  - Confidence scorer: 0-100% scoring from TA agreement, pattern confirmation, fundamental alignment, ADX trend strength
+  - Report builder: composes full AnalysisReport with 2-3 strategy scenarios per direction
+- Asynchronous analysis pipeline with 6-step orchestration, in-memory status tracking, and graceful degradation
+- Analysis REST API: `POST /api/v1/analysis`, `GET /api/v1/analysis/{id}`, `GET /api/v1/analysis/{id}/status`
+- Analysis WebSocket: `WS /api/v1/ws/analysis/{id}` for live progress updates
 - README and CHANGELOG documentation
 
 ## [0.1.0] - 2025-03-26

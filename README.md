@@ -51,6 +51,10 @@ The API is available at `http://localhost:8000`. Health check: `GET /api/v1/heal
 | POST | `/api/v1/technical-analysis` | Run full technical analysis |
 | POST | `/api/v1/patterns` | Detect chart and candlestick patterns |
 | POST | `/api/v1/fundamental-analysis` | Run fundamental analysis for a symbol |
+| POST | `/api/v1/analysis` | Trigger full analysis pipeline (async) |
+| GET | `/api/v1/analysis/{id}` | Get analysis result or status |
+| GET | `/api/v1/analysis/{id}/status` | Get analysis progress status |
+| WS | `/api/v1/ws/analysis/{id}` | WebSocket for live status updates |
 
 ### Market Data
 
@@ -86,6 +90,15 @@ POST /api/v1/fundamental-analysis
 ```
 
 Automatically routes to the correct analyzer based on instrument type. Forex pairs compare interest rate and inflation differentials between base and quote currencies. Commodities analyze COT positioning, USD strength, and rate environment. Indices evaluate regional macro data (rates, unemployment). Data sourced from FRED API and Financial Modeling Prep.
+
+### Full Analysis Pipeline
+
+```
+POST /api/v1/analysis
+{"symbol": "EURUSD", "timeframe": "H1"}
+```
+
+Triggers an asynchronous 6-step pipeline: data fetch → technical analysis → pattern recognition → fundamental analysis → signal aggregation → strategy generation. Returns an `analysis_id` to poll via `GET /api/v1/analysis/{id}` or subscribe via `WS /api/v1/ws/analysis/{id}` for live progress updates. The final report includes weighted signal scoring, entry point scenarios (aggressive and conservative), SL/TP levels, and confidence percentages.
 
 ## Configuration
 
