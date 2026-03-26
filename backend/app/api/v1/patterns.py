@@ -1,12 +1,12 @@
 """REST API endpoints for pattern recognition."""
 
 import logging
-import re
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.api.v1.market_data import get_fallback_chain
+from app.api.v1.validators import validate_period, validate_symbol
 from app.core.models import PatternDetection, Timeframe
 from app.modules.data_acquisition.fallback_chain import DataProviderError
 from app.modules.pattern_recognition.candlestick import detect_candlestick_patterns
@@ -18,8 +18,6 @@ from app.modules.pattern_recognition.support_resistance import detect_support_re
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["patterns"])
-
-SYMBOL_PATTERN = re.compile(r"^[A-Za-z0-9]{2,20}$")
 
 
 class PatternsRequest(BaseModel):
@@ -36,8 +34,8 @@ class PatternsResponse(BaseModel):
 
 @router.post("/patterns", response_model=PatternsResponse)
 async def detect_patterns(body: PatternsRequest) -> PatternsResponse:
-    if not SYMBOL_PATTERN.match(body.symbol):
-        raise HTTPException(status_code=400, detail="Invalid symbol format")
+    validate_symbol(body.symbol)
+    validate_period(body.period)
 
     chain = get_fallback_chain()
     try:

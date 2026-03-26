@@ -20,8 +20,6 @@ class Settings(BaseSettings):
     # Data provider API keys
     TWELVE_DATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
-    CURRENCYLAYER_API_KEY: str = ""
-    MARKETSTACK_API_KEY: str = ""
     FRED_API_KEY: str = ""
 
     # Cache

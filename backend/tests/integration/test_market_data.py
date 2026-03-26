@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.api.v1.market_data import _get_caches, _get_chain
 from app.core.models import OHLCVData
 from app.main import app
 from app.modules.data_acquisition.fallback_chain import DataProviderError
@@ -29,14 +30,15 @@ def mock_chain() -> AsyncMock:
 
 @pytest.fixture
 async def api_client(mock_chain: AsyncMock):
-    with (
-        patch("app.api.v1.market_data.get_fallback_chain", return_value=mock_chain),
-        patch("app.api.v1.market_data._intraday_cache", None),
-        patch("app.api.v1.market_data._daily_cache", None),
-    ):
+    # Clear lru_cache singletons so each test starts fresh
+    _get_caches.cache_clear()
+    _get_chain.cache_clear()
+    with patch("app.api.v1.market_data.get_fallback_chain", return_value=mock_chain):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac
+    _get_caches.cache_clear()
+    _get_chain.cache_clear()
 
 
 class TestMarketDataEndpoint:

@@ -1,12 +1,5 @@
 import type { SignalType } from "@/types";
-
-const SIGNAL_LABELS: Record<SignalType, string> = {
-  strong_buy: "Mocne Kup",
-  buy: "Kup",
-  neutral: "Neutralny",
-  sell: "Sprzedaj",
-  strong_sell: "Mocne Sprzedaj",
-};
+import { SIGNAL_LABELS } from "@/lib/signals";
 
 const SIGNAL_COLORS: Record<SignalType, string> = {
   strong_buy: "text-green-400 bg-green-400/10",

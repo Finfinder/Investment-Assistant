@@ -92,7 +92,7 @@ class TestTwelveDataProvider:
     @pytest.mark.asyncio
     async def test_fetch_ohlcv_daily_counter_exceeded(self) -> None:
         provider = TwelveDataProvider(api_key="test_key")
-        provider._request_count = DAILY_RATE_LIMIT
+        provider._rate_limiter._request_count = DAILY_RATE_LIMIT
 
         with pytest.raises(RuntimeError, match="rate limit"):
             await provider.fetch_ohlcv("EURUSD", Timeframe.H1, "30d")

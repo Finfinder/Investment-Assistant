@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from cachetools import TTLCache
 
-from app.core.config import get_settings
 from app.core.database import get_session_factory
 from app.core.instrument_classifier import classify_instrument
 from app.core.models import (
@@ -23,13 +22,11 @@ from app.core.models import (
     SignalSummary,
     Timeframe,
 )
-from app.modules.data_acquisition.fallback_chain import FallbackChainManager
-from app.modules.data_acquisition.providers.yfinance_provider import YFinanceProvider
+from app.modules.data_acquisition.fallback_chain import FallbackChainManager, build_fallback_chain
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from app.modules.data_acquisition.interfaces import DataProvider
 
 logger = logging.getLogger(__name__)
 
@@ -46,27 +43,6 @@ PIPELINE_STEPS = [
 ]
 
 
-def _build_chain() -> FallbackChainManager:
-    """Build a fallback chain from configured providers."""
-    settings = get_settings()
-    providers: list[DataProvider] = [YFinanceProvider()]
-    try:
-        from app.modules.data_acquisition.providers.twelve_data_provider import TwelveDataProvider
-
-        if settings.TWELVE_DATA_API_KEY:
-            providers.append(TwelveDataProvider(api_key=settings.TWELVE_DATA_API_KEY))
-    except ImportError:
-        pass
-    try:
-        from app.modules.data_acquisition.providers.fmp_provider import FMPProvider
-
-        if settings.FMP_API_KEY:
-            providers.append(FMPProvider(api_key=settings.FMP_API_KEY))
-    except ImportError:
-        pass
-    return FallbackChainManager(providers)
-
-
 class AnalysisPipeline:
     """Runs through all analysis steps, tracks progress, and persists results."""
 
@@ -74,7 +50,7 @@ class AnalysisPipeline:
         self.analysis_id = str(uuid.uuid4())
         self.symbol = symbol
         self.timeframe = timeframe
-        self._chain = chain or _build_chain()
+        self._chain = chain or build_fallback_chain()
         self._status = AnalysisStatus(
             id=self.analysis_id,
             status=AnalysisStatusType.PENDING,
@@ -257,14 +233,14 @@ class AnalysisPipeline:
             if instrument_type == InstrumentType.FOREX:
                 from app.modules.fundamental_analysis.forex import analyze_forex
 
-                return analyze_forex(self.symbol)
+                return await analyze_forex(self.symbol)
             if instrument_type == InstrumentType.COMMODITY:
                 from app.modules.fundamental_analysis.commodities import analyze_commodity
 
                 return await analyze_commodity(self.symbol)
             from app.modules.fundamental_analysis.indices import analyze_index
 
-            return analyze_index(self.symbol)
+            return await analyze_index(self.symbol)
         except Exception as exc:
             logger.warning("Fundamental analysis failed for %s: %s", self.symbol, exc)
             return None

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { Timeframe } from "@/types";
 
 const POPULAR_INSTRUMENTS = [
@@ -47,14 +47,17 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
   const [timeframe, setTimeframe] = useState<Timeframe>("H1");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLUListElement>(null);
+  const listboxId = "symbol-suggestions";
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
+        setActiveIndex(-1);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -65,6 +68,7 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
     const upper = value.toUpperCase().replaceAll(/[^A-Z0-9/-]/g, "");
     setSymbol(upper);
     setError("");
+    setActiveIndex(-1);
     if (upper.length >= 1) {
       const filtered = POPULAR_INSTRUMENTS.filter((s) => s.startsWith(upper));
       setSuggestions(filtered);
@@ -77,8 +81,37 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
   function selectSuggestion(s: string) {
     setSymbol(s);
     setShowSuggestions(false);
+    setActiveIndex(-1);
     inputRef.current?.focus();
   }
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!showSuggestions || suggestions.length === 0) return;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setActiveIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setActiveIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+          break;
+        case "Enter":
+          if (activeIndex >= 0 && activeIndex < suggestions.length) {
+            e.preventDefault();
+            selectSuggestion(suggestions[activeIndex]);
+          }
+          break;
+        case "Escape":
+          setShowSuggestions(false);
+          setActiveIndex(-1);
+          break;
+      }
+    },
+    [showSuggestions, suggestions, activeIndex],
+  );
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -93,6 +126,8 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
     onSubmit(symbol.trim(), timeframe);
   }
 
+  const activeDescendant = activeIndex >= 0 ? `suggestion-${suggestions[activeIndex]}` : undefined;
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
       <div className="relative flex-1">
@@ -103,11 +138,17 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
           ref={inputRef}
           id="symbol"
           type="text"
+          role="combobox"
+          aria-expanded={showSuggestions}
+          aria-autocomplete="list"
+          aria-controls={showSuggestions ? listboxId : undefined}
+          aria-activedescendant={activeDescendant}
           value={symbol}
           onChange={(e) => handleSymbolChange(e.target.value)}
           onFocus={() => {
             if (suggestions.length > 0) setShowSuggestions(true);
           }}
+          onKeyDown={handleKeyDown}
           placeholder="np. EURUSD, GOLD, US500"
           disabled={isLoading}
           className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
@@ -116,14 +157,20 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
         {showSuggestions && (
           <ul
             ref={suggestionsRef}
+            id={listboxId}
+            role="listbox"
+            aria-label="Sugestie instrumentów"
             className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg"
           >
-            {suggestions.map((s) => (
-              <li key={s}>
+            {suggestions.map((s, i) => (
+              <li key={s} id={`suggestion-${s}`} role="option" aria-selected={i === activeIndex}>
                 <button
                   type="button"
                   onClick={() => selectSuggestion(s)}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-border"
+                  tabIndex={-1}
+                  className={`w-full px-4 py-2 text-left text-sm hover:bg-border ${
+                    i === activeIndex ? "bg-border" : ""
+                  }`}
                 >
                   {s}
                 </button>

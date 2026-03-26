@@ -106,50 +106,7 @@ class TestFMPProvider:
     @pytest.mark.asyncio
     async def test_fetch_ohlcv_rate_limit_counter(self) -> None:
         provider = FMPProvider(api_key="test_key")
-        provider._request_count = DAILY_RATE_LIMIT
+        provider._rate_limiter._request_count = DAILY_RATE_LIMIT
 
         with pytest.raises(RuntimeError, match="rate limit"):
             await provider.fetch_ohlcv("EURUSD", Timeframe.H1, "30d")
-
-    @pytest.mark.asyncio
-    async def test_fetch_economic_calendar(self) -> None:
-        provider = FMPProvider(api_key="test_key")
-
-        mock_response = httpx.Response(
-            200,
-            json=[{"event": "CPI", "date": "2024-01-15"}],
-            request=httpx.Request("GET", "https://financialmodelingprep.com/api/v3/economic_calendar"),
-        )
-
-        with patch("app.modules.data_acquisition.providers.fmp_provider.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            result = await provider.fetch_economic_calendar()
-
-        assert len(result) == 1
-        assert result[0]["event"] == "CPI"
-
-    @pytest.mark.asyncio
-    async def test_fetch_treasury_rates(self) -> None:
-        provider = FMPProvider(api_key="test_key")
-
-        mock_response = httpx.Response(
-            200,
-            json=[{"date": "2024-01-15", "month1": "5.5"}],
-            request=httpx.Request("GET", "https://financialmodelingprep.com/api/v3/treasury"),
-        )
-
-        with patch("app.modules.data_acquisition.providers.fmp_provider.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            result = await provider.fetch_treasury_rates()
-
-        assert len(result) == 1

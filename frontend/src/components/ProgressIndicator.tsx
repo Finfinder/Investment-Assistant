@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { AnalysisStatus } from "@/types";
 import { connectAnalysisWebSocket } from "@/lib/api";
+
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 const PIPELINE_STEPS = [
   "Pobieranie danych",
@@ -52,6 +54,8 @@ export default function ProgressIndicator({ analysisId, onComplete, onError }: R
   const wsRef = useRef<WebSocket | null>(null);
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
+  const reconnectAttempt = useRef(0);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -61,10 +65,11 @@ export default function ProgressIndicator({ analysisId, onComplete, onError }: R
     onErrorRef.current = onError;
   }, [onError]);
 
-  useEffect(() => {
+  const connect = useCallback(() => {
     const ws = connectAnalysisWebSocket(
       analysisId,
       (s) => {
+        reconnectAttempt.current = 0;
         setStatus(s);
         if (s.status === "completed") {
           onCompleteRef.current();
@@ -73,15 +78,26 @@ export default function ProgressIndicator({ analysisId, onComplete, onError }: R
         }
       },
       () => {
-        onErrorRef.current("Utracono połączenie z serwerem");
+        if (reconnectAttempt.current < MAX_RECONNECT_ATTEMPTS) {
+          const delay = Math.min(1000 * 2 ** reconnectAttempt.current, 16000);
+          reconnectAttempt.current += 1;
+          reconnectTimer.current = setTimeout(connect, delay);
+        } else {
+          onErrorRef.current("Utracono połączenie z serwerem");
+        }
       },
     );
     wsRef.current = ws;
+  }, [analysisId]);
+
+  useEffect(() => {
+    connect();
 
     return () => {
-      ws.close();
+      clearTimeout(reconnectTimer.current);
+      wsRef.current?.close();
     };
-  }, [analysisId]);
+  }, [connect]);
 
   const completedSteps = status?.steps_completed ?? [];
   const currentStep = status?.current_step ?? "";

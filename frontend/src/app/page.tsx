@@ -151,12 +151,12 @@ export default function HomePage() {
 
         {/* Error */}
         {state === "error" && (
-          <div className="mb-8 rounded-xl border border-danger/30 bg-danger/10 p-4 text-center text-danger">{error}</div>
+          <div role="alert" className="mb-8 rounded-xl border border-danger/30 bg-danger/10 p-4 text-center text-danger">{error}</div>
         )}
 
         {/* Progress */}
         {state === "analyzing" && analysisId && (
-          <div className="mb-8">
+          <div className="mb-8" aria-live="polite">
             <ProgressIndicator
               analysisId={analysisId}
               onComplete={handleAnalysisComplete}

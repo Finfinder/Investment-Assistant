@@ -2,6 +2,7 @@ import pandas as pd
 import pandas_ta as ta
 
 from app.core.models import IndicatorValue, OHLCVData
+from app.modules.technical_analysis._helpers import safe_last as _safe_last
 from app.modules.technical_analysis.signal_rating import (
     rate_adx,
     rate_awesome_oscillator,
@@ -13,17 +14,6 @@ from app.modules.technical_analysis.signal_rating import (
     rate_ultimate_oscillator,
     rate_williams_r,
 )
-
-
-def _safe_last(data: pd.Series | pd.DataFrame | None, col: int = 0) -> float | None:
-    """Extract the last value from a Series or the given column of a DataFrame."""
-    if data is None:
-        return None
-    series = data.iloc[:, col] if isinstance(data, pd.DataFrame) else data
-    if series.empty:
-        return None
-    val = series.iloc[-1]
-    return None if pd.isna(val) else float(val)
 
 
 def calculate_indicators(ohlcv: list[OHLCVData]) -> list[IndicatorValue]:

@@ -44,6 +44,7 @@ export default function PivotTable({ pivotPoints }: Readonly<PivotTableProps>) {
       <h3 className="border-b border-border px-4 py-3 text-lg font-semibold">Pivot Points</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
+          <caption className="sr-only">Pivot Points – poziomy wsparcia i oporu</caption>
           <thead>
             <tr className="border-b border-border text-left text-muted">
               <th className="px-4 py-2 font-medium">Poziom</th>

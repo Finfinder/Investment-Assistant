@@ -1,8 +1,12 @@
 """Stop Loss / Take Profit calculator using ATR and S/R levels."""
 
+import re
+
 import numpy as np
 
 from app.core.models import Direction, OHLCVData, PatternDetection
+
+_SR_PRICE_RE = re.compile(r"at\s+(\d+\.?\d*)")
 
 ATR_MULTIPLIER_SL = 1.5
 ATR_MULTIPLIER_TP_FALLBACK = 3.0
@@ -31,11 +35,9 @@ def calculate_atr(ohlcv: list[OHLCVData], period: int = ATR_PERIOD) -> float:
 
 def _extract_sr_prices(patterns: list[PatternDetection]) -> list[tuple[float, bool]]:
     """Extract (price, is_resistance) from S/R PatternDetection list."""
-    import re
-
     results: list[tuple[float, bool]] = []
     for p in patterns:
-        match = re.search(r"at\s+(\d+\.?\d*)", p.description)
+        match = _SR_PRICE_RE.search(p.description)
         if match:
             price = float(match.group(1))
             is_resistance = not p.bullish

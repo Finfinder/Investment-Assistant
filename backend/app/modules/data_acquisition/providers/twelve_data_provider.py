@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 import httpx
 
+from app.core.daily_rate_limiter import DailyRateLimiter
 from app.core.models import OHLCVData, Timeframe
 from app.modules.data_acquisition.interfaces import DataProviderPriority
 
@@ -27,8 +28,7 @@ class TwelveDataProvider:
         self._name = "twelve_data"
         self._priority = DataProviderPriority.SECONDARY
         self._api_key = api_key
-        self._request_count = 0
-        self._count_reset_date: str = datetime.now(UTC).strftime("%Y-%m-%d")
+        self._rate_limiter = DailyRateLimiter(DAILY_RATE_LIMIT, "Twelve Data")
 
     @property
     def name(self) -> str:
@@ -40,15 +40,6 @@ class TwelveDataProvider:
 
     def get_supported_symbols(self) -> list[str]:
         return ["EURUSD", "GBPUSD", "USDJPY", "GOLD", "SILVER", "OIL", "US500", "US30", "US100"]
-
-    def _check_rate_limit(self) -> None:
-        today = datetime.now(UTC).strftime("%Y-%m-%d")
-        if today != self._count_reset_date:
-            self._request_count = 0
-            self._count_reset_date = today
-
-        if self._request_count >= DAILY_RATE_LIMIT:
-            raise RuntimeError(f"Twelve Data daily rate limit ({DAILY_RATE_LIMIT}) exceeded")
 
     def _map_symbol(self, symbol: str) -> str:
         key = symbol.upper().replace("/", "")
@@ -97,7 +88,7 @@ class TwelveDataProvider:
         if not self._api_key:
             return False
         try:
-            self._check_rate_limit()
+            self._rate_limiter.check()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(f"{BASE_URL}/api_usage", params={"apikey": self._api_key})
                 return resp.status_code == 200
@@ -106,7 +97,7 @@ class TwelveDataProvider:
             return False
 
     async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
-        self._check_rate_limit()
+        self._rate_limiter.check()
 
         td_symbol = self._map_symbol(symbol)
         td_interval = TIMEFRAME_MAP[timeframe]
@@ -124,7 +115,7 @@ class TwelveDataProvider:
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(f"{BASE_URL}/time_series", params=params)
-            self._request_count += 1
+            self._rate_limiter.increment()
 
             if resp.status_code == 429:
                 raise RuntimeError("Twelve Data rate limit (429 Too Many Requests)")

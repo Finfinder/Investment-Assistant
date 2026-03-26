@@ -1,10 +1,10 @@
 import logging
-import re
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.api.v1.market_data import get_fallback_chain
+from app.api.v1.validators import validate_period, validate_symbol
 from app.core.models import IndicatorValue, MovingAverage, PivotPoints, SignalSummary, Timeframe
 from app.modules.data_acquisition.fallback_chain import DataProviderError
 from app.modules.technical_analysis.indicators import calculate_indicators
@@ -15,8 +15,6 @@ from app.modules.technical_analysis.summary import calculate_summaries
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["technical-analysis"])
-
-SYMBOL_PATTERN = re.compile(r"^[A-Za-z0-9]{2,20}$")
 
 
 class TechnicalAnalysisRequest(BaseModel):
@@ -36,8 +34,8 @@ class TechnicalAnalysisResponse(BaseModel):
 
 @router.post("/technical-analysis", response_model=TechnicalAnalysisResponse)
 async def run_technical_analysis(body: TechnicalAnalysisRequest) -> TechnicalAnalysisResponse:
-    if not SYMBOL_PATTERN.match(body.symbol):
-        raise HTTPException(status_code=400, detail="Invalid symbol format")
+    validate_symbol(body.symbol)
+    validate_period(body.period)
 
     chain = get_fallback_chain()
     try:

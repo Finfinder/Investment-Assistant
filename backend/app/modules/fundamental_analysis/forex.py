@@ -85,7 +85,7 @@ def _compute_inflation_differential(base_cpi: float | None, quote_cpi: float | N
     return base_cpi - quote_cpi
 
 
-def analyze_forex(symbol: str, fred: FredSource | None = None) -> FundamentalData:
+async def analyze_forex(symbol: str, fred: FredSource | None = None) -> FundamentalData:
     """Run fundamental analysis for a forex pair.
 
     Compares interest rates, inflation between base and quote currencies.
@@ -100,10 +100,10 @@ def analyze_forex(symbol: str, fred: FredSource | None = None) -> FundamentalDat
     base_cpi_name = CURRENCY_CPI_MAP.get(base)
     quote_cpi_name = CURRENCY_CPI_MAP.get(quote)
 
-    base_rate = source.fetch_indicator(base_rate_name) if base_rate_name else None
-    quote_rate = source.fetch_indicator(quote_rate_name) if quote_rate_name else None
-    base_cpi = source.fetch_indicator(base_cpi_name) if base_cpi_name else None
-    quote_cpi = source.fetch_indicator(quote_cpi_name) if quote_cpi_name else None
+    base_rate = await source.fetch_indicator(base_rate_name) if base_rate_name else None
+    quote_rate = await source.fetch_indicator(quote_rate_name) if quote_rate_name else None
+    base_cpi = await source.fetch_indicator(base_cpi_name) if base_cpi_name else None
+    quote_cpi = await source.fetch_indicator(quote_cpi_name) if quote_cpi_name else None
 
     rate_diff = _compute_rate_differential(base_rate, quote_rate)
     inflation_diff = _compute_inflation_differential(base_cpi, quote_cpi)

@@ -13,6 +13,7 @@ export default function MovingAverageTable({ movingAverages }: Readonly<MovingAv
       <h3 className="border-b border-border px-4 py-3 text-lg font-semibold">Średnie kroczące</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
+          <caption className="sr-only">Średnie kroczace – SMA i EMA</caption>
           <thead>
             <tr className="border-b border-border text-left text-muted">
               <th className="px-4 py-2 font-medium">Okres</th>

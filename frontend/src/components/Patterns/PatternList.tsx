@@ -1,14 +1,9 @@
 import type { PatternDetection } from "@/types";
+import { confidenceBarClass } from "@/lib/format";
 
 interface PatternListProps {
   patterns: PatternDetection[];
   onPatternClick?: (patternType: string) => void;
-}
-
-function confidenceBarClass(confidence: number): string {
-  if (confidence >= 0.7) return "bg-green-400";
-  if (confidence >= 0.4) return "bg-yellow-400";
-  return "bg-red-400";
 }
 
 export default function PatternList({ patterns, onPatternClick }: Readonly<PatternListProps>) {
@@ -56,7 +51,7 @@ export default function PatternList({ patterns, onPatternClick }: Readonly<Patte
               <div className="mb-1 text-right text-xs text-muted">{Math.round(pattern.confidence * 100)}%</div>
               <div className="h-1.5 overflow-hidden rounded-full bg-border">
                 <div
-                  className={`h-full rounded-full ${confidenceBarClass(pattern.confidence)}`}
+                  className={`h-full rounded-full ${confidenceBarClass(pattern.confidence * 100)}`}
                   style={{ width: `${pattern.confidence * 100}%` }}
                 />
               </div>

@@ -36,7 +36,7 @@ async def analyze_fundamental(request: FundamentalRequest) -> FundamentalData:
         if instrument_type == InstrumentType.FOREX:
             from app.modules.fundamental_analysis.forex import analyze_forex
 
-            return analyze_forex(request.symbol)
+            return await analyze_forex(request.symbol)
 
         if instrument_type == InstrumentType.COMMODITY:
             from app.modules.fundamental_analysis.commodities import analyze_commodity
@@ -46,7 +46,7 @@ async def analyze_fundamental(request: FundamentalRequest) -> FundamentalData:
         # INDEX
         from app.modules.fundamental_analysis.indices import analyze_index
 
-        return analyze_index(request.symbol)
+        return await analyze_index(request.symbol)
 
     except Exception:
         logger.exception("Fundamental analysis failed for %s", request.symbol)

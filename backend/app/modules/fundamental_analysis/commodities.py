@@ -57,12 +57,12 @@ def _score_cot(cot_data: dict[str, Any] | None) -> tuple[float, str]:
     return score, desc
 
 
-def _score_usd_strength(fred: FredSource) -> tuple[float, str]:
+async def _score_usd_strength(fred: FredSource) -> tuple[float, str]:
     """Assess USD strength via Fed Funds rate and DXY proxy.
 
     Strong USD is generally bearish for dollar-denominated commodities.
     """
-    fed_rate = fred.fetch_indicator("fed_funds_rate")
+    fed_rate = await fred.fetch_indicator("fed_funds_rate")
     if fed_rate is None:
         return 0.0, "Brak danych o stopach Fed"
 
@@ -76,13 +76,13 @@ def _score_usd_strength(fred: FredSource) -> tuple[float, str]:
     return score, desc
 
 
-def _score_rates_environment(fred: FredSource) -> tuple[float, str]:
+async def _score_rates_environment(fred: FredSource) -> tuple[float, str]:
     """Real rates environment effect on commodities.
 
     Low/negative real rates -> bullish for hard assets (gold, silver).
     """
-    fed_rate = fred.fetch_indicator("fed_funds_rate")
-    cpi = fred.fetch_indicator("cpi_us")
+    fed_rate = await fred.fetch_indicator("fed_funds_rate")
+    cpi = await fred.fetch_indicator("cpi_us")
 
     if fed_rate is None or cpi is None:
         return 0.0, "Brak danych o stopach realnych"
@@ -114,8 +114,8 @@ async def analyze_commodity(
     cot_data = await fmp_src.fetch_cot_report(cot_symbol)
 
     cot_score, cot_desc = _score_cot(cot_data)
-    usd_score, usd_desc = _score_usd_strength(fred_src)
-    rates_score, rates_desc = _score_rates_environment(fred_src)
+    usd_score, usd_desc = await _score_usd_strength(fred_src)
+    rates_score, rates_desc = await _score_rates_environment(fred_src)
 
     total_score = cot_score + usd_score + rates_score
     total_score = max(-100.0, min(100.0, total_score))

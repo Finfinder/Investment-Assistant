@@ -51,8 +51,8 @@ export function connectAnalysisWebSocket(
     try {
       const data = JSON.parse(event.data) as AnalysisStatus;
       onMessage(data);
-    } catch {
-      // Ignore malformed messages
+    } catch (e) {
+      console.error("Failed to parse WebSocket message", e);
     }
   };
 

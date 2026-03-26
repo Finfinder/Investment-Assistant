@@ -1,17 +1,17 @@
 """Integration tests for fundamental analysis REST API endpoint."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestFundamentalEndpointForex:
     async def test_post_forex_analysis(self, client):
         mock_fred = MagicMock()
-        mock_fred.fetch_indicator.side_effect = lambda name: {
+        mock_fred.fetch_indicator = AsyncMock(side_effect=lambda name: {
             "ecb_rate": 4.0,
             "fed_funds_rate": 5.25,
             "cpi_eu": 110.0,
             "cpi_us": 305.0,
-        }.get(name)
+        }.get(name))
 
         with patch(
             "app.modules.fundamental_analysis.forex.FredSource",

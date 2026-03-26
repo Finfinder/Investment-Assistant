@@ -92,7 +92,7 @@ class TestFmpCotReports:
 
 class TestFmpRateLimit:
     async def test_rate_limit_raises_on_get(self, fmp_source: FmpEconomicSource):
-        fmp_source._request_count = 250
+        fmp_source._rate_limiter._request_count = 250
 
         with pytest.raises(RuntimeError, match="rate limit"):
             await fmp_source._get("/v4/treasury")

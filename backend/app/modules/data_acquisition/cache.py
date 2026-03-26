@@ -1,19 +1,9 @@
 import logging
-from typing import Any, Protocol
+from typing import Any
 
 from cachetools import TTLCache
 
 logger = logging.getLogger(__name__)
-
-
-class DataCache(Protocol):
-    """Contract for cache implementations."""
-
-    def get(self, key: str) -> Any | None: ...
-
-    def set(self, key: str, value: Any, ttl: int | None = None) -> None: ...
-
-    def invalidate(self, key: str) -> None: ...
 
 
 class InMemoryCache:

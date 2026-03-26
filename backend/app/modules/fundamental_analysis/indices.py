@@ -102,7 +102,7 @@ def _score_inflation(cpi: float | None, rate: float | None) -> tuple[float, str]
     return 0.0, f"CPI (indeks): {cpi:.1f}"
 
 
-def analyze_index(symbol: str, fred: FredSource | None = None) -> FundamentalData:
+async def analyze_index(symbol: str, fred: FredSource | None = None) -> FundamentalData:
     """Run fundamental analysis for a stock index.
 
     Evaluates regional macro: interest rates, unemployment, GDP.
@@ -123,12 +123,12 @@ def analyze_index(symbol: str, fred: FredSource | None = None) -> FundamentalDat
     region_keys = REGION_INDICATORS.get(region, {})
 
     # Fetch regional indicators
-    rate = source.fetch_indicator(region_keys["interest_rate"]) if "interest_rate" in region_keys else None
-    cpi = source.fetch_indicator(region_keys["cpi"]) if "cpi" in region_keys else None
+    rate = await source.fetch_indicator(region_keys["interest_rate"]) if "interest_rate" in region_keys else None
+    cpi = await source.fetch_indicator(region_keys["cpi"]) if "cpi" in region_keys else None
     unemp_key = region_keys.get("unemployment", "")
-    unemployment = source.fetch_indicator(unemp_key) if "unemployment" in region_keys else None
+    unemployment = await source.fetch_indicator(unemp_key) if "unemployment" in region_keys else None
     gdp_key = region_keys.get("gdp", "")
-    gdp = source.fetch_indicator(gdp_key) if "gdp" in region_keys else None
+    gdp = await source.fetch_indicator(gdp_key) if "gdp" in region_keys else None
 
     rate_score, rate_desc = _score_interest_rate(rate)
     unemp_score, unemp_desc = _score_unemployment(unemployment)

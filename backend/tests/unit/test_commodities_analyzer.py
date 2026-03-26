@@ -13,10 +13,10 @@ from app.modules.fundamental_analysis.data_sources.fred_source import FredSource
 @pytest.fixture
 def mock_fred():
     fred = MagicMock(spec=FredSource)
-    fred.fetch_indicator.side_effect = lambda name: {
+    fred.fetch_indicator = AsyncMock(side_effect=lambda name: {
         "fed_funds_rate": 5.25,
         "cpi_us": 300.0,
-    }.get(name)
+    }.get(name))
     return fred
 
 
@@ -39,10 +39,10 @@ class TestCommodityBullish:
                 "net_non_commercial_change": 10000,
             }
         )
-        mock_fred.fetch_indicator.side_effect = lambda name: {
+        mock_fred.fetch_indicator = AsyncMock(side_effect=lambda name: {
             "fed_funds_rate": 1.5,
             "cpi_us": 280.0,
-        }.get(name)
+        }.get(name))
 
         result = await analyze_commodity("GOLD", fred=mock_fred, fmp=mock_fmp)
 
@@ -65,10 +65,10 @@ class TestCommodityBearish:
                 "net_non_commercial_change": -20000,
             }
         )
-        mock_fred.fetch_indicator.side_effect = lambda name: {
+        mock_fred.fetch_indicator = AsyncMock(side_effect=lambda name: {
             "fed_funds_rate": 6.0,
             "cpi_us": 310.0,
-        }.get(name)
+        }.get(name))
 
         result = await analyze_commodity("OIL", fred=mock_fred, fmp=mock_fmp)
 

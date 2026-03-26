@@ -1,5 +1,6 @@
 """FRED API integration for macroeconomic data."""
 
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -55,7 +56,7 @@ class FredSource:
             self._fred = Fred(api_key=self._api_key)
         return self._fred
 
-    def fetch_series(self, series_id: str, lookback_days: int = 365) -> float | None:
+    async def fetch_series(self, series_id: str, lookback_days: int = 365) -> float | None:
         """Fetch the latest value for a FRED series.
 
         Returns the most recent observation value, or None if unavailable.
@@ -69,7 +70,9 @@ class FredSource:
             fred = self._get_fred()
             end = datetime.now(UTC)
             start = end - timedelta(days=lookback_days)
-            data = fred.get_series(series_id, observation_start=start, observation_end=end)
+            data = await asyncio.to_thread(
+                fred.get_series, series_id, observation_start=start, observation_end=end
+            )
 
             if data is None or data.empty:
                 logger.warning("FRED: no data for series %s", series_id)
@@ -84,17 +87,17 @@ class FredSource:
             logger.warning("FRED: failed to fetch series %s", series_id, exc_info=True)
             return None
 
-    def fetch_indicator(self, indicator_name: str, lookback_days: int = 365) -> float | None:
+    async def fetch_indicator(self, indicator_name: str, lookback_days: int = 365) -> float | None:
         """Fetch a macro indicator by its friendly name (e.g. 'fed_funds_rate')."""
         series_id = FRED_SERIES.get(indicator_name)
         if not series_id:
             logger.warning("FRED: unknown indicator name '%s'", indicator_name)
             return None
-        return self.fetch_series(series_id, lookback_days)
+        return await self.fetch_series(series_id, lookback_days)
 
-    def fetch_multiple(self, indicator_names: list[str]) -> dict[str, float | None]:
+    async def fetch_multiple(self, indicator_names: list[str]) -> dict[str, float | None]:
         """Fetch multiple indicators at once, returning a dict of results."""
         results: dict[str, float | None] = {}
         for name in indicator_names:
-            results[name] = self.fetch_indicator(name)
+            results[name] = await self.fetch_indicator(name)
         return results

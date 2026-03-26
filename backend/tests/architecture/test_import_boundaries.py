@@ -16,7 +16,7 @@ _BACKEND_ROOT = str(Path(__file__).resolve().parents[2])
 @pytest.mark.architecture
 def test_import_linter_contracts():
     """All import-linter contracts defined in pyproject.toml must pass."""
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(
         [sys.executable, "-c", "from importlinter.cli import lint_imports_command; lint_imports_command()"],
         capture_output=True,
         text=True,

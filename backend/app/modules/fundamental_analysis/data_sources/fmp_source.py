@@ -1,13 +1,13 @@
 """FMP API integration for economic data and COT reports."""
 
 import logging
-from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 from cachetools import TTLCache
 
 from app.core.config import get_settings
+from app.core.daily_rate_limiter import DailyRateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -22,21 +22,12 @@ class FmpEconomicSource:
 
     def __init__(self, api_key: str | None = None) -> None:
         self._api_key = api_key or get_settings().FMP_API_KEY
-        self._request_count = 0
-        self._count_reset_date: str = datetime.now(UTC).strftime("%Y-%m-%d")
+        self._rate_limiter = DailyRateLimiter(DAILY_RATE_LIMIT, "FMP")
         self._cache: TTLCache[str, Any] = TTLCache(maxsize=CACHE_MAX_SIZE, ttl=CACHE_TTL_SECONDS)
-
-    def _check_rate_limit(self) -> None:
-        today = datetime.now(UTC).strftime("%Y-%m-%d")
-        if today != self._count_reset_date:
-            self._request_count = 0
-            self._count_reset_date = today
-        if self._request_count >= DAILY_RATE_LIMIT:
-            raise RuntimeError(f"FMP daily rate limit ({DAILY_RATE_LIMIT}) exceeded")
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """Perform a GET request to FMP API with rate limiting and caching."""
-        self._check_rate_limit()
+        self._rate_limiter.check()
 
         cache_key = f"fmp:{path}:{params}"
         cached = self._cache.get(cache_key)
@@ -49,7 +40,7 @@ class FmpEconomicSource:
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(f"{FMP_BASE_URL}{path}", params=request_params)
-            self._request_count += 1
+            self._rate_limiter.increment()
 
             if resp.status_code == 429:
                 raise RuntimeError("FMP rate limit (429 Too Many Requests)")

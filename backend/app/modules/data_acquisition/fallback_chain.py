@@ -60,3 +60,27 @@ class FallbackChainManager:
                 errors.append(f"{provider.name}: {exc}")
 
         raise DataProviderError(f"All providers failed for {symbol}/{timeframe}/{period}: " + "; ".join(errors))
+
+
+def build_fallback_chain() -> FallbackChainManager:
+    """Build a FallbackChainManager from configured API keys.
+
+    Provider priority: YFinance (primary) -> TwelveData (secondary) -> FMP (tertiary).
+    """
+    from app.core.config import get_settings
+    from app.modules.data_acquisition.providers.yfinance_provider import YFinanceProvider
+
+    settings = get_settings()
+    providers: list[DataProvider] = [YFinanceProvider()]
+
+    if settings.TWELVE_DATA_API_KEY:
+        from app.modules.data_acquisition.providers.twelve_data_provider import TwelveDataProvider
+
+        providers.append(TwelveDataProvider(api_key=settings.TWELVE_DATA_API_KEY))
+
+    if settings.FMP_API_KEY:
+        from app.modules.data_acquisition.providers.fmp_provider import FMPProvider
+
+        providers.append(FMPProvider(api_key=settings.FMP_API_KEY))
+
+    return FallbackChainManager(providers)

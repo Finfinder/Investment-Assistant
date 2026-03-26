@@ -1,10 +1,7 @@
-import logging
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
 from app.core.models import OHLCVData, Timeframe
-
-logger = logging.getLogger(__name__)
 
 
 class DataProviderPriority(StrEnum):

@@ -1,6 +1,10 @@
 """Entry point calculator — aggressive and conservative entry scenarios."""
 
+import re
+
 from app.core.models import Direction, OHLCVData, PatternDetection
+
+_PRICE_RE = re.compile(r"(?:at|Level|level)\s+(\d+\.?\d*)")
 
 
 def calculate_entry_points(
@@ -131,9 +135,7 @@ def _extract_price_from_description(description: str) -> float | None:
 
     Looks for patterns like "at 1.12345" or "Level 1.12345".
     """
-    import re
-
-    match = re.search(r"(?:at|Level|level)\s+(\d+\.?\d*)", description)
+    match = _PRICE_RE.search(description)
     if match:
         return float(match.group(1))
     return None

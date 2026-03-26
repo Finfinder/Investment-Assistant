@@ -2,6 +2,7 @@ import pandas as pd
 import pandas_ta as ta
 
 from app.core.models import MovingAverage, OHLCVData, SignalType
+from app.modules.technical_analysis._helpers import safe_last as _safe_last
 
 MA_PERIODS = (5, 10, 20, 50, 100, 200)
 
@@ -47,10 +48,3 @@ def _ma_signal(close: float, ma_value: float | None) -> SignalType:
     if close < ma_value:
         return SignalType.SELL
     return SignalType.NEUTRAL
-
-
-def _safe_last(series: pd.Series | None) -> float | None:
-    if series is None or series.empty:
-        return None
-    val = series.iloc[-1]
-    return None if pd.isna(val) else float(val)

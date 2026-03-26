@@ -6,10 +6,12 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import get_settings
-from app.core.database import Base
 
 # Ensure all models are imported so Base.metadata is populated
-from app.core.database import AnalysisResult  # noqa: F401
+from app.core.database import (
+    AnalysisResult,  # noqa: F401
+    Base,
+)
 
 config = context.config
 

@@ -1,6 +1,6 @@
 """Tests for Forex fundamental analyzer."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -11,7 +11,9 @@ from app.modules.fundamental_analysis.forex import _parse_pair, analyze_forex
 
 @pytest.fixture
 def mock_fred():
-    return MagicMock(spec=FredSource)
+    mock = MagicMock(spec=FredSource)
+    mock.fetch_indicator = AsyncMock()
+    return mock
 
 
 class TestParsePair:
@@ -34,7 +36,8 @@ class TestParsePair:
 class TestForexAnalyzerEurStronger:
     """EUR has higher rates and lower inflation -> bullish EURUSD."""
 
-    def test_eur_stronger_than_usd(self, mock_fred: MagicMock):
+    @pytest.mark.asyncio
+    async def test_eur_stronger_than_usd(self, mock_fred: MagicMock):
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "ecb_rate": 4.5,
             "fed_funds_rate": 2.0,
@@ -42,7 +45,7 @@ class TestForexAnalyzerEurStronger:
             "cpi_us": 105.0,
         }.get(name)
 
-        result = analyze_forex("EURUSD", fred=mock_fred)
+        result = await analyze_forex("EURUSD", fred=mock_fred)
 
         assert result.instrument_type == InstrumentType.FOREX
         assert result.score > 0  # bullish for EUR
@@ -53,7 +56,8 @@ class TestForexAnalyzerEurStronger:
 class TestForexAnalyzerUsdStronger:
     """USD has higher rates -> bearish EURUSD."""
 
-    def test_usd_stronger_than_eur(self, mock_fred: MagicMock):
+    @pytest.mark.asyncio
+    async def test_usd_stronger_than_eur(self, mock_fred: MagicMock):
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "ecb_rate": 1.0,
             "fed_funds_rate": 5.5,
@@ -61,7 +65,7 @@ class TestForexAnalyzerUsdStronger:
             "cpi_us": 100.0,
         }.get(name)
 
-        result = analyze_forex("EURUSD", fred=mock_fred)
+        result = await analyze_forex("EURUSD", fred=mock_fred)
 
         assert result.score < 0  # bearish for pair
         assert result.indicators["interest_rate_differential"] == -4.5
@@ -71,7 +75,8 @@ class TestForexAnalyzerUsdStronger:
 class TestForexAnalyzerBalanced:
     """Similar rates and inflation -> neutral."""
 
-    def test_balanced_macro(self, mock_fred: MagicMock):
+    @pytest.mark.asyncio
+    async def test_balanced_macro(self, mock_fred: MagicMock):
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "ecb_rate": 3.0,
             "fed_funds_rate": 3.0,
@@ -79,7 +84,7 @@ class TestForexAnalyzerBalanced:
             "cpi_us": 102.0,
         }.get(name)
 
-        result = analyze_forex("EURUSD", fred=mock_fred)
+        result = await analyze_forex("EURUSD", fred=mock_fred)
 
         assert -10 <= result.score <= 10
         assert "neutralna" in result.summary
@@ -88,10 +93,11 @@ class TestForexAnalyzerBalanced:
 class TestForexAnalyzerMissingData:
     """Missing macro data -> score 0, appropriate summary."""
 
-    def test_missing_data_scores_zero(self, mock_fred: MagicMock):
+    @pytest.mark.asyncio
+    async def test_missing_data_scores_zero(self, mock_fred: MagicMock):
         mock_fred.fetch_indicator.return_value = None
 
-        result = analyze_forex("EURUSD", fred=mock_fred)
+        result = await analyze_forex("EURUSD", fred=mock_fred)
 
         assert result.score == 0.0
         assert "Brak danych" in result.summary

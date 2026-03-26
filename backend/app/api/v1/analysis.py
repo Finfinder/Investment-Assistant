@@ -2,20 +2,23 @@
 
 import asyncio
 import logging
-import re
 
 from cachetools import TTLCache
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
+from app.api.v1.validators import validate_symbol
 from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, Timeframe
+from app.core.rate_limit import limiter
 from app.modules.pipeline import AnalysisPipeline, analysis_tasks
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["analysis"])
 
-SYMBOL_PATTERN = re.compile(r"^[A-Za-z0-9/\-]{2,20}$")
+# Limit concurrent pipeline executions to avoid exhausting external API rate limits
+_MAX_CONCURRENT_ANALYSES = 5
+_analysis_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_ANALYSES)
 
 
 class AnalysisRequest(BaseModel):
@@ -29,18 +32,13 @@ class AnalysisResponse(BaseModel):
 
 
 @router.post("/analysis", response_model=AnalysisResponse)
-async def trigger_analysis(body: AnalysisRequest) -> AnalysisResponse:
+@limiter.limit("10/minute")
+async def trigger_analysis(request: Request, body: AnalysisRequest) -> AnalysisResponse:
     """Trigger a full analysis pipeline for a given symbol and timeframe.
 
     Returns an analysis_id to poll for status/results.
     """
-    if not SYMBOL_PATTERN.match(body.symbol):
-        raise HTTPException(status_code=400, detail="Nieprawidlowy format symbolu")
-
-    valid_timeframes = {t.value for t in Timeframe}
-    if body.timeframe not in valid_timeframes:
-        allowed = ", ".join(valid_timeframes)
-        raise HTTPException(status_code=400, detail=f"Nieprawidlowy timeframe. Dozwolone: {allowed}")
+    validate_symbol(body.symbol)
 
     pipeline = AnalysisPipeline(symbol=body.symbol, timeframe=body.timeframe)
 
@@ -57,9 +55,10 @@ _background_tasks: TTLCache[str, asyncio.Task[None]] = TTLCache(maxsize=1000, tt
 
 async def _run_pipeline(pipeline: AnalysisPipeline) -> None:
     """Execute pipeline and store result."""
-    report = await pipeline.run()
-    if report is not None:
-        _analysis_results[pipeline.analysis_id] = report
+    async with _analysis_semaphore:
+        report = await pipeline.run()
+        if report is not None:
+            _analysis_results[pipeline.analysis_id] = report
 
 
 @router.get("/analysis/{analysis_id}")
@@ -70,7 +69,7 @@ async def get_analysis(analysis_id: str) -> AnalysisReport | AnalysisStatus:
     """
     status: AnalysisStatus | None = analysis_tasks.get(analysis_id)
     if status is None:
-        raise HTTPException(status_code=404, detail="Analiza nie znaleziona")
+        raise HTTPException(status_code=404, detail="Analysis not found")
 
     if status.status == AnalysisStatusType.COMPLETED:
         report: AnalysisReport | None = _analysis_results.get(analysis_id)
@@ -87,7 +86,7 @@ async def get_analysis_status(analysis_id: str) -> AnalysisStatus:
     """Get current analysis status (progress, steps)."""
     status: AnalysisStatus | None = analysis_tasks.get(analysis_id)
     if status is None:
-        raise HTTPException(status_code=404, detail="Analiza nie znaleziona")
+        raise HTTPException(status_code=404, detail="Analysis not found")
     return status
 
 
@@ -101,7 +100,7 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str) -> None:
         while True:
             status = analysis_tasks.get(analysis_id)
             if status is None:
-                await websocket.send_json({"error": "Analiza nie znaleziona"})
+                await websocket.send_json({"error": "Analysis not found"})
                 break
 
             status_json = status.model_dump_json()

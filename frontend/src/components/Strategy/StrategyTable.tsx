@@ -1,14 +1,9 @@
 import type { StrategyEntry } from "@/types";
 import { formatValue } from "../IndicatorTable/shared";
+import { confidenceBarClass } from "@/lib/format";
 
 interface StrategyTableProps {
   strategies: StrategyEntry[];
-}
-
-function confidenceBarClass(pct: number): string {
-  if (pct >= 70) return "bg-green-400";
-  if (pct >= 40) return "bg-yellow-400";
-  return "bg-red-400";
 }
 
 export default function StrategyTable({ strategies }: Readonly<StrategyTableProps>) {
@@ -25,6 +20,7 @@ export default function StrategyTable({ strategies }: Readonly<StrategyTableProp
       <h3 className="border-b border-border px-4 py-3 text-lg font-semibold">Strategie wejścia</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
+          <caption className="sr-only">Strategie wejścia – parametry pozycji</caption>
           <thead>
             <tr className="border-b border-border text-left text-muted">
               <th className="px-4 py-2 font-medium">Kierunek</th>

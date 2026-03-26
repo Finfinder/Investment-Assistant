@@ -1,4 +1,5 @@
 import type { SignalType } from "@/types";
+import { SIGNAL_LABELS } from "@/lib/signals";
 
 interface SignalGaugeProps {
   label: string;
@@ -14,14 +15,6 @@ const SIGNAL_POSITION: Record<SignalType, number> = {
   neutral: 50,
   buy: 75,
   strong_buy: 100,
-};
-
-const SIGNAL_LABEL: Record<SignalType, string> = {
-  strong_sell: "Mocne Sprzedaj",
-  sell: "Sprzedaj",
-  neutral: "Neutralny",
-  buy: "Kup",
-  strong_buy: "Mocne Kup",
 };
 
 const SIGNAL_COLOR: Record<SignalType, string> = {
@@ -48,7 +41,7 @@ export default function SignalGauge({ label, signal, buyCount, sellCount, neutra
           style={{ left: `${position}%`, backgroundColor: color }}
         />
       </div>
-      <span className="sr-only">{label}: {SIGNAL_LABEL[signal]}</span>
+      <span className="sr-only">{label}: {SIGNAL_LABELS[signal]}</span>
 
       {/* Labels */}
       <div className="mb-3 flex justify-between text-xs text-muted">
@@ -59,7 +52,7 @@ export default function SignalGauge({ label, signal, buyCount, sellCount, neutra
 
       {/* Signal label */}
       <div className="mb-3 text-center text-lg font-bold" style={{ color }}>
-        {SIGNAL_LABEL[signal]}
+        {SIGNAL_LABELS[signal]}
       </div>
 
       {/* Counts */}

@@ -76,6 +76,7 @@ export default function FundamentalPanel({ fundamental }: Readonly<FundamentalPa
         {indicators.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
+              <caption className="sr-only">Wskaźniki fundamentalne</caption>
               <thead>
                 <tr className="border-b border-border text-left text-muted">
                   <th className="px-3 py-2 font-medium">Wskaźnik</th>

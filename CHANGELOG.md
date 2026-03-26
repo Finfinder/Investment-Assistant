@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rate limiting via `slowapi` on `/analysis` (10/min) and `/market-data` (30/min) endpoints
+- Centralized `rate_limit.py` module with shared `Limiter` instance
+- Centralized `validators.py` with canonical `SYMBOL_PATTERN` and `PERIOD_PATTERN` used by all API endpoints
+- Shared `DailyRateLimiter` in `app.core.daily_rate_limiter` replacing duplicated rate-limit logic in providers
+- Shared `_helpers.py` in `technical_analysis` module with `safe_last()` and `ohlcv_to_dataframe()` helpers
+- Shared frontend utilities: `lib/format.ts` (confidence bar classes), `lib/signals.ts` (signal labels/colors)
+- Concurrency control: `asyncio.Semaphore` limiting concurrent pipeline executions to 5
+- Centralized `build_fallback_chain()` factory in `fallback_chain.py` used by both pipeline and market-data API
+- Code quality report (revision 2): `code-quality-report.md` with 51 findings
+- SonarQube local analysis report: `sonar-report.md`
+
+### Changed
+
+- CORS restricted from `allow_methods=["*"]` / `allow_headers=["*"]` to explicit `["GET", "POST", "OPTIONS"]` / `["Content-Type"]`
+- `FredSource.fetch_series()` now uses `asyncio.to_thread()` instead of blocking the event loop
+- `analyze_forex()` and `analyze_index()` converted to async functions for consistency with `analyze_commodity()`
+- `market_data.py` globals replaced with `@lru_cache` pattern for caches and fallback chain
+- Symbol validation unified across all endpoints using shared `validate_symbol()` from `validators.py`
+- Period validation added to `/technical-analysis` and `/patterns` endpoints via `validate_period()`
+- Regex patterns in `entry_calculator.py` and `sl_tp_calculator.py` pre-compiled at module level
+- `AnalysisForm` component upgraded with full ARIA combobox: `role="combobox"`, `role="listbox"`, `role="option"`, keyboard navigation (ArrowUp/Down, Enter, Escape), `aria-activedescendant`
+- Frontend tables and progress indicator enhanced with `aria-live` regions, `<caption>` elements, and `type="button"` attributes
+- Frontend Dockerfile fixed: conditional `COPY` for `public/` directory
+- Tailwind config: removed dead `./src/pages/**` glob path
+- Duplicate `confidenceBarClass` consolidated into `lib/format.ts`
+- Duplicate signal label/color maps consolidated into `lib/signals.ts`
+
+### Fixed
+
+- Unreachable timeframe validation in `analysis.py` removed (Pydantic handles at deserialization)
+- Removed unused `CURRENCYLAYER_API_KEY` and `MARKETSTACK_API_KEY` from Settings
+- Removed unused `DataCache` protocol from `cache.py`
+- Removed unused logging import from `interfaces.py`
+- Removed unused `slowapi` and `websockets` from active dead-code (slowapi now active)
+- WebSocket `onmessage` now logs parse errors instead of silently swallowing them
+
+### Added
+
 - Nginx reverse proxy with Docker Compose integration (port 80), health checks, and log volume
 - Enhanced health endpoint returning application version and uptime (`GET /api/v1/health`)
 - Dependency health endpoint checking database, yfinance, and API key status (`GET /api/v1/health/dependencies`)
