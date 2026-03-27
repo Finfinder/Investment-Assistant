@@ -234,11 +234,13 @@ class TestFmpEconomicCalendar:
 
     @pytest.mark.asyncio
     async def test_fetch_economic_calendar_success(self, fmp_source: FmpEconomicSource):
-        fmp_source._get = AsyncMock(return_value=[
-            {"country": "US", "event": "CPI Release"},
-            {"country": "EU", "event": "ECB Rate Decision"},
-            {"country": "US", "event": "NFP"},
-        ])
+        fmp_source._get = AsyncMock(
+            return_value=[
+                {"country": "US", "event": "CPI Release"},
+                {"country": "EU", "event": "ECB Rate Decision"},
+                {"country": "US", "event": "NFP"},
+            ]
+        )
         result = await fmp_source.fetch_economic_calendar("US")
         assert len(result) == 2
         assert all(e["country"] == "US" for e in result)

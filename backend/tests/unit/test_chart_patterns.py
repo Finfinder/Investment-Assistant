@@ -118,71 +118,53 @@ class TestClassifyPatternDirect:
     """Direct unit tests for _classify_pattern to cover all branches."""
 
     def test_symmetric_triangle(self):
-        result = _classify_pattern(
-            norm_upper=-0.2, norm_lower=0.2, converging=True, parallel=False, pre_impulse=False
-        )
+        result = _classify_pattern(norm_upper=-0.2, norm_lower=0.2, converging=True, parallel=False, pre_impulse=False)
         assert result is not None
         assert result[0] == "Symmetric Triangle"
 
     def test_descending_triangle(self):
-        result = _classify_pattern(
-            norm_upper=-0.2, norm_lower=0.05, converging=True, parallel=False, pre_impulse=False
-        )
+        result = _classify_pattern(norm_upper=-0.2, norm_lower=0.05, converging=True, parallel=False, pre_impulse=False)
         assert result is not None
         assert result[0] == "Descending Triangle"
         assert result[1] is False  # bearish
 
     def test_ascending_triangle(self):
-        result = _classify_pattern(
-            norm_upper=0.05, norm_lower=0.2, converging=True, parallel=False, pre_impulse=False
-        )
+        result = _classify_pattern(norm_upper=0.05, norm_lower=0.2, converging=True, parallel=False, pre_impulse=False)
         assert result is not None
         assert result[0] == "Ascending Triangle"
         assert result[1] is True  # bullish
 
     def test_pennant_with_impulse(self):
-        result = _classify_pattern(
-            norm_upper=-0.1, norm_lower=0.1, converging=True, parallel=False, pre_impulse=True
-        )
+        result = _classify_pattern(norm_upper=-0.1, norm_lower=0.1, converging=True, parallel=False, pre_impulse=True)
         assert result is not None
         assert result[0] == "Pennant"
 
     def test_bull_flag_with_impulse(self):
-        result = _classify_pattern(
-            norm_upper=-0.1, norm_lower=-0.1, converging=False, parallel=True, pre_impulse=True
-        )
+        result = _classify_pattern(norm_upper=-0.1, norm_lower=-0.1, converging=False, parallel=True, pre_impulse=True)
         assert result is not None
         assert result[0] == "Bull Flag"
         assert result[1] is True
 
     def test_bear_flag_with_impulse(self):
-        result = _classify_pattern(
-            norm_upper=0.1, norm_lower=0.1, converging=False, parallel=True, pre_impulse=True
-        )
+        result = _classify_pattern(norm_upper=0.1, norm_lower=0.1, converging=False, parallel=True, pre_impulse=True)
         assert result is not None
         assert result[0] == "Bear Flag"
         assert result[1] is False
 
     def test_rising_wedge(self):
-        result = _classify_pattern(
-            norm_upper=0.1, norm_lower=0.1, converging=True, parallel=False, pre_impulse=False
-        )
+        result = _classify_pattern(norm_upper=0.1, norm_lower=0.1, converging=True, parallel=False, pre_impulse=False)
         assert result is not None
         assert result[0] == "Rising Wedge"
         assert result[1] is False  # bearish
 
     def test_falling_wedge(self):
-        result = _classify_pattern(
-            norm_upper=-0.1, norm_lower=-0.1, converging=True, parallel=False, pre_impulse=False
-        )
+        result = _classify_pattern(norm_upper=-0.1, norm_lower=-0.1, converging=True, parallel=False, pre_impulse=False)
         assert result is not None
         assert result[0] == "Falling Wedge"
         assert result[1] is True  # bullish
 
     def test_no_pattern_returns_none(self):
-        result = _classify_pattern(
-            norm_upper=0.0, norm_lower=0.0, converging=False, parallel=False, pre_impulse=False
-        )
+        result = _classify_pattern(norm_upper=0.0, norm_lower=0.0, converging=False, parallel=False, pre_impulse=False)
         assert result is None
 
 

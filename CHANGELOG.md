@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Apply ruff auto-formatting to `test_chart_patterns.py` and `test_fmp_source.py`
 - Fix import sorting in `test_chart_patterns.py` (numpy before local imports)
 - Remove redundant per-method `import httpx` in `test_fmp_source.py` (keep single top-level import)
 - Replace unused unpacked variables with `_` in `test_pipeline.py` (RUF059)
