@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix flaky E2E axe-core accessibility test in CI — run Playwright against production build (`npm run build && npm start`) instead of dev server to eliminate incomplete HTML under concurrent load
 - Fix flaky E2E axe-core accessibility test in CI — add `suppressHydrationWarning` to `<html>` and wait for full hydration before scanning
 
 ### Removed
