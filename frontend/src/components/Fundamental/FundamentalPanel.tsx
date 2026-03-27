@@ -37,12 +37,24 @@ function ScoreBar({ score }: Readonly<{ score: number }>) {
         <span>Niedźwiedzi (-100)</span>
         <span>Byczy (+100)</span>
       </div>
-      <div className="relative h-3 overflow-hidden rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500">
+      <div
+        aria-hidden="true"
+        className="relative h-3 overflow-hidden rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
+      >
         <div
           className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg transition-all duration-500"
           style={{ left: `${position}%`, backgroundColor: color }}
         />
       </div>
+      <meter
+        className="sr-only"
+        value={score}
+        min={-100}
+        max={100}
+        aria-label={`Ocena fundamentalna: ${label} (${score > 0 ? "+" : ""}${score.toFixed(0)})`}
+      >
+        {label} ({score > 0 ? "+" : ""}{score.toFixed(0)})
+      </meter>
       <div className="mt-2 text-center text-lg font-bold" style={{ color }}>
         {label} ({score > 0 ? "+" : ""}{score.toFixed(0)})
       </div>

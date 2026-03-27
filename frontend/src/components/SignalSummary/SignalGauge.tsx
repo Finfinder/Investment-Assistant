@@ -35,13 +35,24 @@ export default function SignalGauge({ label, signal, buyCount, sellCount, neutra
       <h4 className="mb-3 text-center text-sm font-medium text-muted">{label}</h4>
 
       {/* Gauge bar */}
-      <div className="relative mb-2 h-3 overflow-hidden rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500">
+      <div
+        aria-hidden="true"
+        className="relative mb-2 h-3 overflow-hidden rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
+      >
         <div
           className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg transition-all duration-500"
           style={{ left: `${position}%`, backgroundColor: color }}
         />
       </div>
-      <span className="sr-only">{label}: {SIGNAL_LABELS[signal]}</span>
+      <meter
+        className="sr-only"
+        value={position}
+        min={0}
+        max={100}
+        aria-label={`${label}: ${SIGNAL_LABELS[signal]}`}
+      >
+        {SIGNAL_LABELS[signal]}
+      </meter>
 
       {/* Labels */}
       <div className="mb-3 flex justify-between text-xs text-muted">

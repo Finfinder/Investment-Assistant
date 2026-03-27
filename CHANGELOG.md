@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automated accessibility testing with `@axe-core/playwright` (WCAG 2.1 AA audit)
+- E2E accessibility test suite (`frontend/e2e/accessibility.spec.ts`): axe-core scans, keyboard navigation, report page structure
+- Frontend lint (`frontend-lint`) and E2E (`frontend-e2e`) jobs in CI pipeline
+
 ### Changed
 
+- Fix `--muted` CSS color from `#6b7280` to `#9ca3af` for WCAG 2.1 AA contrast ratio compliance (7.01:1 on card background)
+- `SignalGauge`: add native `<meter>` element with `aria-label` for screen reader support
+- `FundamentalPanel` ScoreBar: add native `<meter>` element with bipolar range (-100/+100) and `aria-label`
+- `CandlestickChart`: wrap chart in `<figure>` with dynamic `aria-label` showing candle count and date range
 - Apply ruff auto-formatting to `test_chart_patterns.py` and `test_fmp_source.py`
 - Fix import sorting in `test_chart_patterns.py` (numpy before local imports)
 - Remove redundant per-method `import httpx` in `test_fmp_source.py` (keep single top-level import)

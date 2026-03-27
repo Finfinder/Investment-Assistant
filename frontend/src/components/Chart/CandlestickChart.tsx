@@ -207,10 +207,16 @@ export default function CandlestickChart({
     return () => observer.disconnect();
   }, []);
 
+  const chartDescription = ohlcvData.length > 0
+    ? `Wykres świecowy: ${ohlcvData.length} świec, zakres ${toChartTime(ohlcvData[0].timestamp)} – ${toChartTime(ohlcvData.at(-1)!.timestamp)}`
+    : "Wykres świecowy – brak danych";
+
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <h3 className="mb-3 text-lg font-semibold">Wykres</h3>
-      <div ref={containerRef} className="w-full" aria-label="Wykres świecowy" />
+      <figure aria-label={chartDescription}>
+        <div ref={containerRef} className="w-full" />
+      </figure>
     </div>
   );
 }
