@@ -10,44 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Remove `code-quality-report.md` and `sonar-report.md` from repository (generated reports should not be tracked)
+- Remove deprecated `CURRENCYLAYER_API_KEY` and `MARKETSTACK_API_KEY` from `backend/.env.example` and `.env.production.example`
 
 ### Added
 
+- `CONTRIBUTING.md` — contributor guidelines with prerequisites, coding conventions, testing strategy, and PR checklist
+- `SECURITY.md` — security policy with responsible disclosure via GitHub Security Advisories
+- `CODE_OF_CONDUCT.md` — Contributor Covenant v2.0
+- `LICENSE` — MIT license
+- `.github/PULL_REQUEST_TEMPLATE.md` — PR template with checklist aligned to CI pipeline
+- `.github/ISSUE_TEMPLATE/bug-report.yml` — bug report form template
+- `.github/ISSUE_TEMPLATE/feature-request.yml` — feature request form template
+- `.github/ISSUE_TEMPLATE/config.yml` — issue template configuration
 - E2E API mock infrastructure (`frontend/e2e/fixtures.ts`) with HTTP route interception and WebSocket mocking for Playwright tests
 - Playwright test-results and playwright-report directories added to frontend `.gitignore`
-
-### Changed
-
-- Fix `--accent` CSS color from `#3b82f6` to `#2563eb` for WCAG 2.1 AA contrast ratio compliance (4.58:1 white-on-accent)
-- Fix badge text color from `text-accent` to `text-blue-400` in `page.tsx` and `FundamentalPanel.tsx` for WCAG AA contrast on dark background
-- Fix button hover state from `hover:bg-blue-600` to `hover:bg-blue-700` in `AnalysisForm.tsx`
-- Fix E2E test locators from `getByText()` to `getByRole("heading", ...)` for strictness and resilience
-- Show progress UI placeholder immediately when analysis starts (before `analysisId` is received)
-- Prefix user-facing error messages with "Błąd:" for consistent error identification
-- E2E analysis tests use mocked API (`mockedPage` fixture) instead of requiring live backend
-- E2E accessibility tests use mocked API for report page structure and axe-core audit
-- Invalid symbol test uses `INVALIDXYZ123` (fails mock regex validation) instead of `!!!!INVALID!!!!`
-
-### Added
 
 - Automated accessibility testing with `@axe-core/playwright` (WCAG 2.1 AA audit)
 - E2E accessibility test suite (`frontend/e2e/accessibility.spec.ts`): axe-core scans, keyboard navigation, report page structure
 - Frontend lint (`frontend-lint`) and E2E (`frontend-e2e`) jobs in CI pipeline
-
-### Changed
-
-- Fix `--muted` CSS color from `#6b7280` to `#9ca3af` for WCAG 2.1 AA contrast ratio compliance (7.01:1 on card background)
-- `SignalGauge`: add native `<meter>` element with `aria-label` for screen reader support
-- `FundamentalPanel` ScoreBar: add native `<meter>` element with bipolar range (-100/+100) and `aria-label`
-- `CandlestickChart`: wrap chart in `<figure>` with dynamic `aria-label` showing candle count and date range
-- Apply ruff auto-formatting to `test_chart_patterns.py` and `test_fmp_source.py`
-- Fix import sorting in `test_chart_patterns.py` (numpy before local imports)
-- Remove redundant per-method `import httpx` in `test_fmp_source.py` (keep single top-level import)
-- Replace unused unpacked variables with `_` in `test_pipeline.py` (RUF059)
-- Break long patch path lines in `test_pipeline.py` to stay within 120-char limit (E501)
-- Replace bare float equality assertions with `pytest.approx()` in `test_fmp_source.py` and `test_pipeline.py`
-
-### Added
 
 - Rate limiting via `slowapi` on `/analysis` (10/min) and `/market-data` (30/min) endpoints
 - Rate limiting on `/technical-analysis`, `/patterns`, and `/fundamental-analysis` endpoints (20/min each)
@@ -65,37 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code quality report (revision 2): `code-quality-report.md` with 51 findings
 - SonarQube local analysis report: `sonar-report.md`
 
-### Changed
-
-- CORS restricted from `allow_methods=["*"]` / `allow_headers=["*"]` to explicit `["GET", "POST", "OPTIONS"]` / `["Content-Type"]`
-- CSP header: removed `'unsafe-eval'` from `script-src` directive in nginx.conf
-- HTTP→HTTPS redirect comment added to nginx.conf (enable after TLS provisioning)
-- Input validation added to `/fundamental-analysis` endpoint via `validate_symbol()`
-- DEBUG mode logging now filters sensitive data through `SensitiveFilter` (previously unfiltered)
-- `FredSource.fetch_series()` now uses `asyncio.to_thread()` instead of blocking the event loop
-- `analyze_forex()` and `analyze_index()` converted to async functions for consistency with `analyze_commodity()`
-- `market_data.py` globals replaced with `@lru_cache` pattern for caches and fallback chain
-- Symbol validation unified across all endpoints using shared `validate_symbol()` from `validators.py`
-- Period validation added to `/technical-analysis` and `/patterns` endpoints via `validate_period()`
-- Regex patterns in `entry_calculator.py` and `sl_tp_calculator.py` pre-compiled at module level
-- `AnalysisForm` component upgraded with full ARIA combobox: `role="combobox"`, `role="listbox"`, `role="option"`, keyboard navigation (ArrowUp/Down, Enter, Escape), `aria-activedescendant`
-- Frontend tables and progress indicator enhanced with `aria-live` regions, `<caption>` elements, and `type="button"` attributes
-- Frontend Dockerfile fixed: conditional `COPY` for `public/` directory
-- Tailwind config: removed dead `./src/pages/**` glob path
-- Duplicate `confidenceBarClass` consolidated into `lib/format.ts`
-- Duplicate signal label/color maps consolidated into `lib/signals.ts`
-
-### Fixed
-
-- Unreachable timeframe validation in `analysis.py` removed (Pydantic handles at deserialization)
-- Removed unused `CURRENCYLAYER_API_KEY` and `MARKETSTACK_API_KEY` from Settings
-- Removed unused `DataCache` protocol from `cache.py`
-- Removed unused logging import from `interfaces.py`
-- Removed unused `slowapi` and `websockets` from active dead-code (slowapi now active)
-- WebSocket `onmessage` now logs parse errors instead of silently swallowing them
-
-### Added
-
 - Nginx reverse proxy with Docker Compose integration (port 80), health checks, and log volume
 - Enhanced health endpoint returning application version and uptime (`GET /api/v1/health`)
 - Dependency health endpoint checking database, yfinance, and API key status (`GET /api/v1/health/dependencies`)
@@ -105,26 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Architecture boundary tests (`backend/tests/architecture/test_import_boundaries.py`)
 - Full pipeline integration test (`backend/tests/integration/test_full_pipeline.py`)
 - Performance tests with k6 (`tests/performance/analysis.k6.js`)
-
-### Changed
-
-- Docker Compose: backend and frontend use `expose` instead of `ports`, traffic routed through nginx
-- Frontend WebSocket URL resolution supports relative paths for nginx proxy
-- README updated with architecture diagram, Docker setup instructions, configuration reference, and testing commands
-- Extract shared instrument classifier to `app.core.instrument_classifier` removing duplication from `fundamental.py` and `pipeline.py`
-- Move signal aggregation from `report_builder` to `pipeline.py` step 5, fixing domain module independence contract
-- Replace unbounded `analysis_tasks` dict with `TTLCache(maxsize=1000, ttl=3600)` in pipeline and analysis API to prevent memory leak
-- Add full type annotations to pipeline helper methods (`_step_fetch_data`, `_step_technical_analysis`, `_step_pattern_recognition`)
-- Replace soft assertions (`if results:`) with hard assertions in chart pattern tests
-- Reorganize test files: move 6 unit tests from `tests/` root to `tests/unit/`, move `test_database.py` to `tests/integration/`
-
-### Fixed
-
-- Resolve 36 mypy strict-mode errors: list variance, nullable arithmetic, NDArray types, unused type:ignore suppressions
-- Fix chart pattern test data generators to produce oscillating data for `argrelextrema` peak/trough detection
-- Fix `fred_source.py` returning untyped cached value (`Any`) instead of `float`
-
-### Added
 
 - Data acquisition module with multi-provider fallback chain
   - yfinance provider (primary) with symbol/timeframe mapping and H4 resampling
@@ -181,6 +110,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Responsive layout: mobile (360px+), tablet, desktop
   - Docker multi-stage build (node:20-alpine, non-root user)
   - Docker Compose integration with backend service
+
+### Changed
+
+- Fix `--accent` CSS color from `#3b82f6` to `#2563eb` for WCAG 2.1 AA contrast ratio compliance (4.58:1 white-on-accent)
+- Fix badge text color from `text-accent` to `text-blue-400` in `page.tsx` and `FundamentalPanel.tsx` for WCAG AA contrast on dark background
+- Fix button hover state from `hover:bg-blue-600` to `hover:bg-blue-700` in `AnalysisForm.tsx`
+- Fix E2E test locators from `getByText()` to `getByRole("heading", ...)` for strictness and resilience
+- Show progress UI placeholder immediately when analysis starts (before `analysisId` is received)
+- Prefix user-facing error messages with "Błąd:" for consistent error identification
+- E2E analysis tests use mocked API (`mockedPage` fixture) instead of requiring live backend
+- E2E accessibility tests use mocked API for report page structure and axe-core audit
+- Invalid symbol test uses `INVALIDXYZ123` (fails mock regex validation) instead of `!!!!INVALID!!!!`
+
+- Fix `--muted` CSS color from `#6b7280` to `#9ca3af` for WCAG 2.1 AA contrast ratio compliance (7.01:1 on card background)
+- `SignalGauge`: add native `<meter>` element with `aria-label` for screen reader support
+- `FundamentalPanel` ScoreBar: add native `<meter>` element with bipolar range (-100/+100) and `aria-label`
+- `CandlestickChart`: wrap chart in `<figure>` with dynamic `aria-label` showing candle count and date range
+- Apply ruff auto-formatting to `test_chart_patterns.py` and `test_fmp_source.py`
+- Fix import sorting in `test_chart_patterns.py` (numpy before local imports)
+- Remove redundant per-method `import httpx` in `test_fmp_source.py` (keep single top-level import)
+- Replace unused unpacked variables with `_` in `test_pipeline.py` (RUF059)
+- Break long patch path lines in `test_pipeline.py` to stay within 120-char limit (E501)
+- Replace bare float equality assertions with `pytest.approx()` in `test_fmp_source.py` and `test_pipeline.py`
+
+- CORS restricted from `allow_methods=["*"]` / `allow_headers=["*"]` to explicit `["GET", "POST", "OPTIONS"]` / `["Content-Type"]`
+- CSP header: removed `'unsafe-eval'` from `script-src` directive in nginx.conf
+- HTTP→HTTPS redirect comment added to nginx.conf (enable after TLS provisioning)
+- Input validation added to `/fundamental-analysis` endpoint via `validate_symbol()`
+- DEBUG mode logging now filters sensitive data through `SensitiveFilter` (previously unfiltered)
+- `FredSource.fetch_series()` now uses `asyncio.to_thread()` instead of blocking the event loop
+- `analyze_forex()` and `analyze_index()` converted to async functions for consistency with `analyze_commodity()`
+- `market_data.py` globals replaced with `@lru_cache` pattern for caches and fallback chain
+- Symbol validation unified across all endpoints using shared `validate_symbol()` from `validators.py`
+- Period validation added to `/technical-analysis` and `/patterns` endpoints via `validate_period()`
+- Regex patterns in `entry_calculator.py` and `sl_tp_calculator.py` pre-compiled at module level
+- `AnalysisForm` component upgraded with full ARIA combobox: `role="combobox"`, `role="listbox"`, `role="option"`, keyboard navigation (ArrowUp/Down, Enter, Escape), `aria-activedescendant`
+- Frontend tables and progress indicator enhanced with `aria-live` regions, `<caption>` elements, and `type="button"` attributes
+- Frontend Dockerfile fixed: conditional `COPY` for `public/` directory
+- Tailwind config: removed dead `./src/pages/**` glob path
+- Duplicate `confidenceBarClass` consolidated into `lib/format.ts`
+- Duplicate signal label/color maps consolidated into `lib/signals.ts`
+
+- Docker Compose: backend and frontend use `expose` instead of `ports`, traffic routed through nginx
+- Frontend WebSocket URL resolution supports relative paths for nginx proxy
+- README updated with architecture diagram, Docker setup instructions, configuration reference, and testing commands
+- Extract shared instrument classifier to `app.core.instrument_classifier` removing duplication from `fundamental.py` and `pipeline.py`
+- Move signal aggregation from `report_builder` to `pipeline.py` step 5, fixing domain module independence contract
+- Replace unbounded `analysis_tasks` dict with `TTLCache(maxsize=1000, ttl=3600)` in pipeline and analysis API to prevent memory leak
+- Add full type annotations to pipeline helper methods (`_step_fetch_data`, `_step_technical_analysis`, `_step_pattern_recognition`)
+- Replace soft assertions (`if results:`) with hard assertions in chart pattern tests
+- Reorganize test files: move 6 unit tests from `tests/` root to `tests/unit/`, move `test_database.py` to `tests/integration/`
+
+### Fixed
+
+- Unreachable timeframe validation in `analysis.py` removed (Pydantic handles at deserialization)
+- Removed unused `CURRENCYLAYER_API_KEY` and `MARKETSTACK_API_KEY` from Settings
+- Removed unused `DataCache` protocol from `cache.py`
+- Removed unused logging import from `interfaces.py`
+- Removed unused `slowapi` and `websockets` from active dead-code (slowapi now active)
+- WebSocket `onmessage` now logs parse errors instead of silently swallowing them
+
+- Resolve 36 mypy strict-mode errors: list variance, nullable arithmetic, NDArray types, unused type:ignore suppressions
+- Fix chart pattern test data generators to produce oscillating data for `argrelextrema` peak/trough detection
+- Fix `fred_source.py` returning untyped cached value (`Any`) instead of `float`
 
 ## [0.1.0] - 2025-03-26
 

@@ -59,6 +59,8 @@ Thumbs.db
 # Alembic
 backend/alembic/versions/__pycache__/
 
-# GitHub Copilot customizations (keep only workflows)
+# GitHub Copilot customizations (keep workflows and community health templates)
 .github/*
 !.github/workflows/
+!.github/PULL_REQUEST_TEMPLATE.md
+!.github/ISSUE_TEMPLATE/

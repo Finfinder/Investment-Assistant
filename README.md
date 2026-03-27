@@ -194,6 +194,10 @@ npm run test:e2e
 k6 run tests/performance/analysis.k6.js
 ```
 
+## Contributing
+
+Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
+
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
