@@ -22,6 +22,4 @@ def test_import_linter_contracts():
         text=True,
         cwd=_BACKEND_ROOT,
     )
-    assert result.returncode == 0, (
-        f"import-linter found violations:\n{result.stdout}\n{result.stderr}"
-    )
+    assert result.returncode == 0, f"import-linter found violations:\n{result.stdout}\n{result.stderr}"

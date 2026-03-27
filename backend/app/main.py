@@ -23,7 +23,7 @@ def create_app() -> FastAPI:
     )
 
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     app.add_middleware(
         CORSMiddleware,
@@ -35,11 +35,13 @@ def create_app() -> FastAPI:
 
     # Log available API keys (names only, never values)
     configured_keys = [
-        name for name, val in [
+        name
+        for name, val in [
             ("TWELVE_DATA_API_KEY", settings.TWELVE_DATA_API_KEY),
             ("FMP_API_KEY", settings.FMP_API_KEY),
             ("FRED_API_KEY", settings.FRED_API_KEY),
-        ] if val
+        ]
+        if val
     ]
     if configured_keys:
         logger.info("Configured API keys: %s", ", ".join(configured_keys))

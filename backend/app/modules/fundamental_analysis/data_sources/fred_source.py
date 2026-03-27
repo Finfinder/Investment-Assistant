@@ -70,9 +70,7 @@ class FredSource:
             fred = self._get_fred()
             end = datetime.now(UTC)
             start = end - timedelta(days=lookback_days)
-            data = await asyncio.to_thread(
-                fred.get_series, series_id, observation_start=start, observation_end=end
-            )
+            data = await asyncio.to_thread(fred.get_series, series_id, observation_start=start, observation_end=end)
 
             if data is None or data.empty:
                 logger.warning("FRED: no data for series %s", series_id)
