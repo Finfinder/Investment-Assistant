@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Remove `code-quality-report.md` and `sonar-report.md` from repository (generated reports should not be tracked)
+
 ### Added
 
 - E2E API mock infrastructure (`frontend/e2e/fixtures.ts`) with HTTP route interception and WebSocket mocking for Playwright tests
