@@ -203,7 +203,7 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
       <button
         type="submit"
         disabled={isLoading}
-        className="rounded-lg bg-accent px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-lg bg-accent px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isLoading ? (
           <span className="flex items-center gap-2">

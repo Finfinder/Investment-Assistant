@@ -75,7 +75,7 @@ export default function HomePage() {
       setAnalysisId(response.analysis_id);
     } catch (e) {
       setState("error");
-      setError(e instanceof Error ? e.message : "Nie udało się uruchomić analizy");
+      setError(e instanceof Error ? `Błąd: ${e.message}` : "Błąd: nie udało się uruchomić analizy");
     }
   }, []);
 
@@ -88,11 +88,11 @@ export default function HomePage() {
         setState("done");
       } else {
         setState("error");
-        setError("Nie udało się pobrać raportu");
+        setError("Błąd: nie udało się pobrać raportu");
       }
     } catch (e) {
       setState("error");
-      setError(e instanceof Error ? e.message : "Błąd pobierania raportu");
+      setError(e instanceof Error ? `Błąd: ${e.message}` : "Błąd: nie udało się pobrać raportu");
     }
   }, [analysisId]);
 
@@ -109,7 +109,7 @@ export default function HomePage() {
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-bold">{report.symbol}</h1>
-              <span className="rounded bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+              <span className="rounded bg-accent/10 px-2 py-0.5 text-xs font-medium text-blue-400">
                 {report.timeframe}
               </span>
             </div>
@@ -155,13 +155,26 @@ export default function HomePage() {
         )}
 
         {/* Progress */}
-        {state === "analyzing" && analysisId && (
+        {state === "analyzing" && (
           <div className="mb-8" aria-live="polite">
-            <ProgressIndicator
-              analysisId={analysisId}
-              onComplete={handleAnalysisComplete}
-              onError={handleAnalysisError}
-            />
+            {analysisId ? (
+              <ProgressIndicator
+                analysisId={analysisId}
+                onComplete={handleAnalysisComplete}
+                onError={handleAnalysisError}
+              />
+            ) : (
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Postęp analizy</h3>
+                  <span className="text-sm text-muted">0%</span>
+                </div>
+                <div className="mb-6 h-2 overflow-hidden rounded-full bg-border">
+                  <div className="h-full w-0 rounded-full bg-accent transition-all duration-500 ease-out" />
+                </div>
+                <p className="text-sm text-muted">Inicjalizacja analizy…</p>
+              </div>
+            )}
           </div>
         )}
 

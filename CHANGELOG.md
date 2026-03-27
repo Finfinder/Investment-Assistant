@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- E2E API mock infrastructure (`frontend/e2e/fixtures.ts`) with HTTP route interception and WebSocket mocking for Playwright tests
+- Playwright test-results and playwright-report directories added to frontend `.gitignore`
+
+### Changed
+
+- Fix `--accent` CSS color from `#3b82f6` to `#2563eb` for WCAG 2.1 AA contrast ratio compliance (4.58:1 white-on-accent)
+- Fix badge text color from `text-accent` to `text-blue-400` in `page.tsx` and `FundamentalPanel.tsx` for WCAG AA contrast on dark background
+- Fix button hover state from `hover:bg-blue-600` to `hover:bg-blue-700` in `AnalysisForm.tsx`
+- Fix E2E test locators from `getByText()` to `getByRole("heading", ...)` for strictness and resilience
+- Show progress UI placeholder immediately when analysis starts (before `analysisId` is received)
+- Prefix user-facing error messages with "Błąd:" for consistent error identification
+- E2E analysis tests use mocked API (`mockedPage` fixture) instead of requiring live backend
+- E2E accessibility tests use mocked API for report page structure and axe-core audit
+- Invalid symbol test uses `INVALIDXYZ123` (fails mock regex validation) instead of `!!!!INVALID!!!!`
+
+### Added
+
 - Automated accessibility testing with `@axe-core/playwright` (WCAG 2.1 AA audit)
 - E2E accessibility test suite (`frontend/e2e/accessibility.spec.ts`): axe-core scans, keyboard navigation, report page structure
 - Frontend lint (`frontend-lint`) and E2E (`frontend-e2e`) jobs in CI pipeline

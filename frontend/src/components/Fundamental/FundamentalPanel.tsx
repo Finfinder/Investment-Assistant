@@ -75,7 +75,7 @@ export default function FundamentalPanel({ fundamental }: Readonly<FundamentalPa
     <div className="rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h3 className="text-lg font-semibold">Analiza fundamentalna</h3>
-        <span className="rounded bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+        <span className="rounded bg-accent/10 px-2 py-0.5 text-xs font-medium text-blue-400">
           {TYPE_LABELS[fundamental.instrument_type] || fundamental.instrument_type}
         </span>
       </div>

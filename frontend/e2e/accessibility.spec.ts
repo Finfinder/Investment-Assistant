@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { mockAnalysisApi } from "./fixtures";
 
 test.describe("Accessibility — axe-core audit", () => {
   test("home page has no critical accessibility violations", async ({ page }) => {
@@ -97,6 +98,7 @@ test.describe("Accessibility — keyboard navigation (form)", () => {
 
 test.describe("Accessibility — report page structure", () => {
   test("tables have proper caption and section nav is accessible", async ({ page }) => {
+    await mockAnalysisApi(page);
     await page.goto("/");
 
     // Submit a valid analysis to get report tables
@@ -115,7 +117,7 @@ test.describe("Accessibility — report page structure", () => {
     await submitButton.click();
 
     // Wait for report to load
-    await expect(page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)).toBeVisible({
+    await expect(page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()).toBeVisible({
       timeout: 60_000,
     });
 
@@ -141,6 +143,7 @@ test.describe("Accessibility — report page structure", () => {
   });
 
   test("report page has no critical/serious axe-core violations", async ({ page }) => {
+    await mockAnalysisApi(page);
     await page.goto("/");
 
     // Submit analysis and wait for results
@@ -158,7 +161,7 @@ test.describe("Accessibility — report page structure", () => {
     const submitButton = page.getByRole("button", { name: /analiz/i });
     await submitButton.click();
 
-    await expect(page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)).toBeVisible({
+    await expect(page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()).toBeVisible({
       timeout: 60_000,
     });
 

@@ -1,7 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test, mockAnalysisApi } from "./fixtures";
 
 test.describe("Analysis Flow — EURUSD (Forex)", () => {
-  test("submits EURUSD H1 analysis, sees progress, then views results", async ({ page }) => {
+  test("submits EURUSD H1 analysis, sees progress, then views results", async ({ mockedPage: page }) => {
     await page.goto("/");
 
     // Fill in the symbol
@@ -23,20 +24,20 @@ test.describe("Analysis Flow — EURUSD (Forex)", () => {
     await submitButton.click();
 
     // Progress indicator should appear
-    await expect(page.getByText(/postęp analizy/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /postęp analizy/i })).toBeVisible({ timeout: 10_000 });
 
     // Wait for analysis result to appear
     await expect(
-      page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)
+      page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
     ).toBeVisible({ timeout: 60_000 });
 
     // Verify result contains key report sections
-    await expect(page.getByText(/RSI|MACD|ADX/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/RSI|MACD|ADX/i).first()).toBeVisible({ timeout: 5_000 });
   });
 });
 
 test.describe("Analysis Flow — GOLD (Commodity)", () => {
-  test("submits GOLD D1 analysis, sees progress, then views results", async ({ page }) => {
+  test("submits GOLD D1 analysis, sees progress, then views results", async ({ mockedPage: page }) => {
     await page.goto("/");
 
     const symbolInput = page.getByRole("combobox", { name: /symbol/i });
@@ -54,17 +55,17 @@ test.describe("Analysis Flow — GOLD (Commodity)", () => {
     await submitButton.click();
 
     // Should show progress
-    await expect(page.getByText(/postęp analizy|analiz/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /postęp analizy/i })).toBeVisible({ timeout: 10_000 });
 
     // Wait for analysis result
     await expect(
-      page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)
+      page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
     ).toBeVisible({ timeout: 60_000 });
   });
 });
 
 test.describe("Analysis Flow — US500 (Index)", () => {
-  test("submits US500 H4 analysis, sees progress, then views results", async ({ page }) => {
+  test("submits US500 H4 analysis, sees progress, then views results", async ({ mockedPage: page }) => {
     await page.goto("/");
 
     const symbolInput = page.getByRole("combobox", { name: /symbol/i });
@@ -82,21 +83,22 @@ test.describe("Analysis Flow — US500 (Index)", () => {
     await submitButton.click();
 
     // Should show progress
-    await expect(page.getByText(/postęp analizy|analiz/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /postęp analizy/i })).toBeVisible({ timeout: 10_000 });
 
     // Wait for analysis result
     await expect(
-      page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)
+      page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
     ).toBeVisible({ timeout: 60_000 });
   });
 });
 
 test.describe("Invalid Symbol", () => {
   test("shows error for invalid symbol", async ({ page }) => {
+    await mockAnalysisApi(page);
     await page.goto("/");
 
     const symbolInput = page.getByRole("combobox", { name: /symbol/i });
-    await symbolInput.fill("!!!!INVALID!!!!");
+    await symbolInput.fill("INVALIDXYZ123");
 
     const submitButton = page.getByRole("button", { name: /analiz/i });
     await submitButton.click();
