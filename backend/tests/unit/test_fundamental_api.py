@@ -6,12 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 class TestFundamentalEndpointForex:
     async def test_post_forex_analysis(self, client):
         mock_fred = MagicMock()
-        mock_fred.fetch_indicator = AsyncMock(side_effect=lambda name: {
-            "ecb_rate": 4.0,
-            "fed_funds_rate": 5.25,
-            "cpi_eu": 110.0,
-            "cpi_us": 305.0,
-        }.get(name))
+        mock_fred.fetch_indicator = AsyncMock(
+            side_effect=lambda name: {
+                "ecb_rate": 4.0,
+                "fed_funds_rate": 5.25,
+                "cpi_eu": 110.0,
+                "cpi_us": 305.0,
+            }.get(name)
+        )
 
         with patch(
             "app.modules.fundamental_analysis.forex.FredSource",
@@ -34,6 +36,14 @@ class TestFundamentalEndpointInvalidSymbol:
         resp = await client.post(
             "/api/v1/fundamental-analysis",
             json={"symbol": "???"},
+        )
+        assert resp.status_code == 400
+        assert "Invalid symbol format" in resp.json()["detail"]
+
+    async def test_post_valid_but_unrecognized_symbol(self, client):
+        resp = await client.post(
+            "/api/v1/fundamental-analysis",
+            json={"symbol": "ZZZZZ"},
         )
         assert resp.status_code == 400
         assert "Nierozpoznany" in resp.json()["detail"]

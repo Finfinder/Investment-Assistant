@@ -69,3 +69,22 @@ jobs:
 
       - name: Check coverage threshold
         run: coverage report --fail-under=80
+
+  security:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install ".[dev]" pip-audit
+
+      - name: Audit dependencies for known vulnerabilities
+        run: pip-audit

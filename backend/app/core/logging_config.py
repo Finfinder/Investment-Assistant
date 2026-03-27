@@ -7,10 +7,18 @@ from typing import Any
 from app.core.config import get_settings
 
 # Keys that must never appear in log output
-_SENSITIVE_KEYS = frozenset({
-    "password", "secret", "token", "api_key", "apikey",
-    "authorization", "cookie", "credit_card",
-})
+_SENSITIVE_KEYS = frozenset(
+    {
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "authorization",
+        "cookie",
+        "credit_card",
+    }
+)
 
 
 class JSONFormatter(logging.Formatter):
@@ -37,6 +45,18 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
+class SensitiveFilter(logging.Formatter):
+    """Human-readable formatter that redacts sensitive data (used in DEBUG mode)."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        message = super().format(record)
+        msg_lower = message.lower()
+        for key in _SENSITIVE_KEYS:
+            if key in msg_lower:
+                return "[REDACTED — contains sensitive key]"
+        return message
+
+
 def setup_logging() -> None:
     """Configure root logger based on settings."""
     settings = get_settings()
@@ -52,9 +72,7 @@ def setup_logging() -> None:
     handler.setLevel(level)
 
     if settings.DEBUG:
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)-8s %(name)s — %(message)s")
-        )
+        handler.setFormatter(SensitiveFilter(fmt="%(asctime)s %(levelname)-8s %(name)s — %(message)s"))
     else:
         handler.setFormatter(JSONFormatter())
 

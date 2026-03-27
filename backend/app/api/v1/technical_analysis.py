@@ -1,11 +1,12 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.api.v1.market_data import get_fallback_chain
 from app.api.v1.validators import validate_period, validate_symbol
 from app.core.models import IndicatorValue, MovingAverage, PivotPoints, SignalSummary, Timeframe
+from app.core.rate_limit import limiter
 from app.modules.data_acquisition.fallback_chain import DataProviderError
 from app.modules.technical_analysis.indicators import calculate_indicators
 from app.modules.technical_analysis.moving_averages import calculate_moving_averages
@@ -33,7 +34,8 @@ class TechnicalAnalysisResponse(BaseModel):
 
 
 @router.post("/technical-analysis", response_model=TechnicalAnalysisResponse)
-async def run_technical_analysis(body: TechnicalAnalysisRequest) -> TechnicalAnalysisResponse:
+@limiter.limit("20/minute")
+async def run_technical_analysis(request: Request, body: TechnicalAnalysisRequest) -> TechnicalAnalysisResponse:
     validate_symbol(body.symbol)
     validate_period(body.period)
 

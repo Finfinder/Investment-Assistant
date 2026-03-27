@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Rate limiting via `slowapi` on `/analysis` (10/min) and `/market-data` (30/min) endpoints
+- Rate limiting on `/technical-analysis`, `/patterns`, and `/fundamental-analysis` endpoints (20/min each)
+- `pip-audit` dependency scanning job in CI pipeline for detecting known vulnerabilities
+- Auth middleware placeholder (`app/core/auth.py`) with no-op `require_auth` dependency for future JWT integration
+- HTTPS/TLS server block template in nginx.conf (commented, ready for Let's Encrypt)
+- `SensitiveFilter` formatter in logging — redacts sensitive data in DEBUG mode too
 - Centralized `rate_limit.py` module with shared `Limiter` instance
 - Centralized `validators.py` with canonical `SYMBOL_PATTERN` and `PERIOD_PATTERN` used by all API endpoints
 - Shared `DailyRateLimiter` in `app.core.daily_rate_limiter` replacing duplicated rate-limit logic in providers
@@ -23,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - CORS restricted from `allow_methods=["*"]` / `allow_headers=["*"]` to explicit `["GET", "POST", "OPTIONS"]` / `["Content-Type"]`
+- CSP header: removed `'unsafe-eval'` from `script-src` directive in nginx.conf
+- HTTP→HTTPS redirect comment added to nginx.conf (enable after TLS provisioning)
+- Input validation added to `/fundamental-analysis` endpoint via `validate_symbol()`
+- DEBUG mode logging now filters sensitive data through `SensitiveFilter` (previously unfiltered)
 - `FredSource.fetch_series()` now uses `asyncio.to_thread()` instead of blocking the event loop
 - `analyze_forex()` and `analyze_index()` converted to async functions for consistency with `analyze_commodity()`
 - `market_data.py` globals replaced with `@lru_cache` pattern for caches and fallback chain
