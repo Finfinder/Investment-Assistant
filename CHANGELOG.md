@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Fix import sorting in `test_chart_patterns.py` (numpy before local imports)
+- Remove redundant per-method `import httpx` in `test_fmp_source.py` (keep single top-level import)
+- Replace unused unpacked variables with `_` in `test_pipeline.py` (RUF059)
+- Break long patch path lines in `test_pipeline.py` to stay within 120-char limit (E501)
+- Replace bare float equality assertions with `pytest.approx()` in `test_fmp_source.py` and `test_pipeline.py`
+
 ### Added
 
 - Rate limiting via `slowapi` on `/analysis` (10/min) and `/market-data` (30/min) endpoints

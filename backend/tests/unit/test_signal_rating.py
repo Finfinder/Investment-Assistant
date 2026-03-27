@@ -172,3 +172,7 @@ def test_rate_uo_sell():
 
 def test_rate_uo_neutral():
     assert rate_ultimate_oscillator(50.0) == SignalType.NEUTRAL
+
+
+def test_rate_uo_none():
+    assert rate_ultimate_oscillator(None) == SignalType.NEUTRAL

@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pytest import approx
 
-from app.core.models import AnalysisStatusType, OHLCVData, Timeframe
+from app.core.models import AnalysisStatusType, InstrumentType, OHLCVData, Timeframe
 from app.modules.pipeline import AnalysisPipeline, analysis_tasks
 
 
@@ -60,7 +61,7 @@ async def test_pipeline_success():
     assert report.symbol == "EURUSD"
     assert report.timeframe == Timeframe.H1
     assert pipeline.status.status == AnalysisStatusType.COMPLETED
-    assert pipeline.status.progress_pct == 100.0
+    assert pipeline.status.progress_pct == approx(100.0)
     assert len(pipeline.status.steps_completed) == 6
 
 
@@ -131,4 +132,208 @@ async def test_pipeline_status_tracking():
 
     status = analysis_tasks[pipeline.analysis_id]
     assert status.status == AnalysisStatusType.COMPLETED
-    assert status.progress_pct == 100.0
+    assert status.progress_pct == approx(100.0)
+
+
+# ---------------------------------------------------------------------------
+# _step_technical_analysis — exception isolation per sub-step
+# ---------------------------------------------------------------------------
+class TestStepTechnicalAnalysis:
+    def _make_pipeline(self) -> AnalysisPipeline:
+        chain = MagicMock()
+        return AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+
+    def test_indicators_failure_returns_empty(self):
+        pipeline = self._make_pipeline()
+        ohlcv = _make_ohlcv(30)
+        with patch(
+            "app.modules.technical_analysis.indicators.calculate_indicators",
+            side_effect=RuntimeError("boom"),
+        ):
+            indicators, ma, _, _ = pipeline._step_technical_analysis(ohlcv)
+        assert indicators == []
+        assert len(ma) > 0  # other sub-steps still succeed
+
+    def test_moving_averages_failure_returns_empty(self):
+        pipeline = self._make_pipeline()
+        ohlcv = _make_ohlcv(30)
+        with patch(
+            "app.modules.technical_analysis.moving_averages.calculate_moving_averages",
+            side_effect=RuntimeError("boom"),
+        ):
+            indicators, ma, _, _ = pipeline._step_technical_analysis(ohlcv)
+        assert ma == []
+        assert len(indicators) > 0
+
+    def test_pivot_points_failure_returns_empty(self):
+        pipeline = self._make_pipeline()
+        ohlcv = _make_ohlcv(30)
+        with patch(
+            "app.modules.technical_analysis.pivot_points.calculate_pivot_points",
+            side_effect=RuntimeError("boom"),
+        ):
+            _, _, pp, _ = pipeline._step_technical_analysis(ohlcv)
+        assert pp == []
+
+    def test_summary_failure_returns_none(self):
+        pipeline = self._make_pipeline()
+        ohlcv = _make_ohlcv(30)
+        with patch(
+            "app.modules.technical_analysis.summary.calculate_summaries",
+            side_effect=RuntimeError("boom"),
+        ):
+            _, _, _, summary = pipeline._step_technical_analysis(ohlcv)
+        assert summary is None
+
+
+# ---------------------------------------------------------------------------
+# _step_pattern_recognition — exception in one func doesn't block others
+# ---------------------------------------------------------------------------
+class TestStepPatternRecognition:
+    def test_single_func_failure_continues(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+        ohlcv = _make_ohlcv(30)
+        failing_mock = MagicMock(side_effect=RuntimeError("boom"))
+        failing_mock.__name__ = "detect_candlestick_patterns"
+        with patch(
+            "app.modules.pattern_recognition.candlestick.detect_candlestick_patterns",
+            failing_mock,
+        ):
+            patterns = pipeline._step_pattern_recognition(ohlcv)
+        # Other 4 detectors still ran; at minimum support_resistance should work
+        assert isinstance(patterns, list)
+
+
+# ---------------------------------------------------------------------------
+# _step_fundamental_analysis — routing by instrument type
+# ---------------------------------------------------------------------------
+class TestStepFundamentalAnalysis:
+    @pytest.mark.asyncio
+    async def test_forex_routing(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+        mock_result = MagicMock()
+        with (
+            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.FOREX),
+            patch(
+                "app.modules.fundamental_analysis.forex.analyze_forex",
+                new_callable=AsyncMock,
+                return_value=mock_result,
+            ) as mock_fn,
+        ):
+            result = await pipeline._step_fundamental_analysis()
+        mock_fn.assert_awaited_once_with("EURUSD")
+        assert result is mock_result
+
+    @pytest.mark.asyncio
+    async def test_commodity_routing(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="GOLD", timeframe=Timeframe.H1, chain=chain)
+        mock_result = MagicMock()
+        with (
+            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.COMMODITY),
+            patch(
+                "app.modules.fundamental_analysis.commodities.analyze_commodity",
+                new_callable=AsyncMock,
+                return_value=mock_result,
+            ) as mock_fn,
+        ):
+            result = await pipeline._step_fundamental_analysis()
+        mock_fn.assert_awaited_once_with("GOLD")
+        assert result is mock_result
+
+    @pytest.mark.asyncio
+    async def test_index_routing(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="US500", timeframe=Timeframe.H1, chain=chain)
+        mock_result = MagicMock()
+        with (
+            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.INDEX),
+            patch(
+                "app.modules.fundamental_analysis.indices.analyze_index",
+                new_callable=AsyncMock,
+                return_value=mock_result,
+            ) as mock_fn,
+        ):
+            result = await pipeline._step_fundamental_analysis()
+        mock_fn.assert_awaited_once_with("US500")
+        assert result is mock_result
+
+    @pytest.mark.asyncio
+    async def test_unknown_instrument_returns_none(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="???", timeframe=Timeframe.H1, chain=chain)
+        with patch("app.modules.pipeline.classify_instrument", return_value=None):
+            result = await pipeline._step_fundamental_analysis()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_exception_returns_none(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+        with (
+            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.FOREX),
+            patch(
+                "app.modules.fundamental_analysis.forex.analyze_forex",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("api down"),
+            ),
+        ):
+            result = await pipeline._step_fundamental_analysis()
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _persist_result — DB write + exception handling
+# ---------------------------------------------------------------------------
+class TestPersistResult:
+    @pytest.mark.asyncio
+    async def test_persist_success(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+
+        mock_session = AsyncMock()
+        mock_factory = MagicMock(return_value=mock_session)
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.add = MagicMock()  # add() is sync
+
+        mock_report = MagicMock()
+        mock_report.model_dump_json.return_value = "{}"
+
+        with patch("app.modules.pipeline.get_session_factory", return_value=mock_factory):
+            await pipeline._persist_result(mock_report)
+
+        mock_session.add.assert_called_once()
+        mock_session.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_persist_exception_handled(self):
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+
+        mock_report = MagicMock()
+        mock_report.model_dump_json.return_value = "{}"
+
+        with patch("app.modules.pipeline.get_session_factory", side_effect=RuntimeError("no db")):
+            # Should not raise — exception is caught and logged
+            await pipeline._persist_result(mock_report)
+
+
+# ---------------------------------------------------------------------------
+# run() — outer exception handler
+# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_pipeline_run_outer_exception():
+    """When an unexpected exception occurs mid-pipeline, run() returns None and sets FAILED."""
+    mock_chain = MagicMock()
+    mock_chain.fetch_ohlcv = AsyncMock(return_value=_make_ohlcv(30))
+
+    pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=mock_chain)
+
+    with patch.object(pipeline, "_step_technical_analysis", side_effect=RuntimeError("unexpected")):
+        report = await pipeline.run()
+
+    assert report is None
+    assert pipeline.status.status == AnalysisStatusType.FAILED

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Analysis Flow — EURUSD", () => {
-  test("submits EURUSD H1 analysis and sees progress then results", async ({ page }) => {
+test.describe("Analysis Flow — EURUSD (Forex)", () => {
+  test("submits EURUSD H1 analysis, sees progress, then views results", async ({ page }) => {
     await page.goto("/");
 
     // Fill in the symbol
@@ -24,11 +24,19 @@ test.describe("Analysis Flow — EURUSD", () => {
 
     // Progress indicator should appear
     await expect(page.getByText(/postęp analizy/i)).toBeVisible({ timeout: 10_000 });
+
+    // Wait for analysis result to appear
+    await expect(
+      page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)
+    ).toBeVisible({ timeout: 60_000 });
+
+    // Verify result contains key report sections
+    await expect(page.getByText(/RSI|MACD|ADX/i)).toBeVisible({ timeout: 5_000 });
   });
 });
 
-test.describe("Analysis Flow — GOLD", () => {
-  test("submits GOLD D1 analysis", async ({ page }) => {
+test.describe("Analysis Flow — GOLD (Commodity)", () => {
+  test("submits GOLD D1 analysis, sees progress, then views results", async ({ page }) => {
     await page.goto("/");
 
     const symbolInput = page.getByRole("combobox", { name: /symbol/i });
@@ -45,8 +53,41 @@ test.describe("Analysis Flow — GOLD", () => {
     const submitButton = page.getByRole("button", { name: /analiz/i });
     await submitButton.click();
 
-    // Should show progress or form should indicate submission
+    // Should show progress
     await expect(page.getByText(/postęp analizy|analiz/i)).toBeVisible({ timeout: 10_000 });
+
+    // Wait for analysis result
+    await expect(
+      page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)
+    ).toBeVisible({ timeout: 60_000 });
+  });
+});
+
+test.describe("Analysis Flow — US500 (Index)", () => {
+  test("submits US500 H4 analysis, sees progress, then views results", async ({ page }) => {
+    await page.goto("/");
+
+    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
+    await symbolInput.fill("US500");
+
+    const option = page.getByRole("option", { name: /US500/i });
+    if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await option.click();
+    }
+
+    const timeframeSelect = page.getByRole("combobox", { name: /timeframe/i });
+    await timeframeSelect.selectOption("H4");
+
+    const submitButton = page.getByRole("button", { name: /analiz/i });
+    await submitButton.click();
+
+    // Should show progress
+    await expect(page.getByText(/postęp analizy|analiz/i)).toBeVisible({ timeout: 10_000 });
+
+    // Wait for analysis result
+    await expect(
+      page.getByText(/podsumowanie|sygnał|wskaźnik|strategi|raport/i)
+    ).toBeVisible({ timeout: 60_000 });
   });
 });
 
