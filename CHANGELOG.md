@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix flaky E2E axe-core accessibility test in CI — add `suppressHydrationWarning` to `<html>` and wait for full hydration before scanning
+
 ### Removed
 
 - Remove `code-quality-report.md` and `sonar-report.md` from repository (generated reports should not be tracked)

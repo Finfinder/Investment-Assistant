@@ -165,6 +165,12 @@ test.describe("Accessibility — report page structure", () => {
       timeout: 60_000,
     });
 
+    // Ensure the page is fully hydrated — html[lang] and <title> must be present
+    await page.waitForFunction(
+      () => document.documentElement.lang === "pl" && document.title.length > 0,
+      { timeout: 10_000 },
+    );
+
     // Scan the report DOM for a11y violations
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
