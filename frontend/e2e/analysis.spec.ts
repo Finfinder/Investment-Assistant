@@ -33,6 +33,10 @@ test.describe("Analysis Flow — EURUSD (Forex)", () => {
 
     // Verify result contains key report sections
     await expect(page.getByText(/RSI|MACD|ADX/i).first()).toBeVisible({ timeout: 5_000 });
+
+    // Verify candlestick chart renders canvas
+    const chartFigure = page.getByRole("figure", { name: /wykres świecowy/i });
+    await expect(chartFigure.locator("canvas").first()).toBeVisible({ timeout: 5_000 });
   });
 });
 
@@ -61,6 +65,10 @@ test.describe("Analysis Flow — GOLD (Commodity)", () => {
     await expect(
       page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
     ).toBeVisible({ timeout: 60_000 });
+
+    // Verify candlestick chart renders canvas
+    const chartFigure = page.getByRole("figure", { name: /wykres świecowy/i });
+    await expect(chartFigure.locator("canvas").first()).toBeVisible({ timeout: 5_000 });
   });
 });
 
@@ -89,6 +97,10 @@ test.describe("Analysis Flow — US500 (Index)", () => {
     await expect(
       page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
     ).toBeVisible({ timeout: 60_000 });
+
+    // Verify candlestick chart renders canvas
+    const chartFigure = page.getByRole("figure", { name: /wykres świecowy/i });
+    await expect(chartFigure.locator("canvas").first()).toBeVisible({ timeout: 5_000 });
   });
 });
 

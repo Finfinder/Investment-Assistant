@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix empty candlestick chart on intraday timeframes (M15, H1, H4) — convert ISO timestamps to `UTCTimestamp` (Unix epoch seconds) instead of truncating to date strings, which caused duplicate keys silently rejected by lightweight-charts v5.1
 - Fix flaky E2E axe-core accessibility test in CI — run Playwright against production build (`npm run build && npm start`) instead of dev server to eliminate incomplete HTML under concurrent load
 - Fix flaky E2E axe-core accessibility test in CI — add `suppressHydrationWarning` to `<html>` and wait for full hydration before scanning
 

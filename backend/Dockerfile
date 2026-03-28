@@ -23,7 +23,9 @@ COPY alembic.ini .
 COPY alembic/ alembic/
 COPY app/ app/
 
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
+RUN mkdir -p /app/data /app/.numba_cache && chown -R appuser:appgroup /app/data /app/.numba_cache
+
+ENV NUMBA_CACHE_DIR=/app/.numba_cache
 
 USER appuser
 

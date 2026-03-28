@@ -7,6 +7,7 @@ import {
   CandlestickSeries,
   type IChartApi,
   type ISeriesApi,
+  type UTCTimestamp,
   ColorType,
   LineStyle,
 } from "lightweight-charts";
@@ -20,8 +21,8 @@ interface CandlestickChartProps {
   highlightedPattern?: string | null;
 }
 
-function toChartTime(timestamp: string): string {
-  return timestamp.slice(0, 10);
+function toChartTime(timestamp: string): UTCTimestamp {
+  return Math.floor(new Date(timestamp).getTime() / 1000) as UTCTimestamp;
 }
 
 interface PriceLevelDef {
@@ -89,7 +90,7 @@ function buildFibonacciLevels(pivotPoints: Readonly<PivotPoints[]>): PriceLevelD
 
 function buildPatternMarkers(
   patterns: Readonly<PatternDetection[]>,
-  lastTimestamp: string,
+  lastTimestamp: UTCTimestamp,
   highlightedPattern: string | null | undefined,
 ) {
   return patterns.map((p) => {
@@ -178,7 +179,7 @@ export default function CandlestickChart({
 
   // Update pattern markers without rebuilding the chart
   const lastTimestamp = useMemo(
-    () => (ohlcvData.length > 0 ? toChartTime(ohlcvData.at(-1)!.timestamp) : ""),
+    () => (ohlcvData.length > 0 ? toChartTime(ohlcvData.at(-1)!.timestamp) : (0 as UTCTimestamp)),
     [ohlcvData],
   );
 
@@ -208,7 +209,7 @@ export default function CandlestickChart({
   }, []);
 
   const chartDescription = ohlcvData.length > 0
-    ? `Wykres świecowy: ${ohlcvData.length} świec, zakres ${toChartTime(ohlcvData[0].timestamp)} – ${toChartTime(ohlcvData.at(-1)!.timestamp)}`
+    ? `Wykres świecowy: ${ohlcvData.length} świec, zakres ${ohlcvData[0].timestamp.slice(0, 10)} – ${ohlcvData.at(-1)!.timestamp.slice(0, 10)}`
     : "Wykres świecowy – brak danych";
 
   return (
