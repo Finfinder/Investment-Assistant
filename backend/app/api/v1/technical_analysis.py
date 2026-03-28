@@ -5,12 +5,13 @@ from pydantic import BaseModel
 
 from app.api.v1.market_data import get_fallback_chain
 from app.api.v1.validators import validate_period, validate_symbol
-from app.core.models import IndicatorValue, MovingAverage, PivotPoints, SignalSummary, Timeframe
+from app.core.models import IndicatorPreset, IndicatorValue, MovingAverage, PivotPoints, SignalSummary, Timeframe
 from app.core.rate_limit import limiter
 from app.modules.data_acquisition.fallback_chain import DataProviderError
 from app.modules.technical_analysis.indicators import calculate_indicators
 from app.modules.technical_analysis.moving_averages import calculate_moving_averages
 from app.modules.technical_analysis.pivot_points import calculate_pivot_points
+from app.modules.technical_analysis.presets import get_preset_params
 from app.modules.technical_analysis.summary import calculate_summaries
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class TechnicalAnalysisRequest(BaseModel):
     symbol: str
     timeframe: Timeframe = Timeframe.H1
     period: str = "90d"
+    preset: IndicatorPreset = IndicatorPreset.INVESTING
 
 
 class TechnicalAnalysisResponse(BaseModel):
@@ -49,7 +51,8 @@ async def run_technical_analysis(request: Request, body: TechnicalAnalysisReques
     if not ohlcv:
         raise HTTPException(status_code=404, detail="No data returned for the given symbol")
 
-    indicators = calculate_indicators(ohlcv)
+    params = get_preset_params(body.preset)
+    indicators = calculate_indicators(ohlcv, params)
     moving_avgs = calculate_moving_averages(ohlcv)
 
     last = ohlcv[-1]

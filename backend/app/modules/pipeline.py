@@ -13,6 +13,7 @@ from app.core.models import (
     AnalysisStatus,
     AnalysisStatusType,
     FundamentalData,
+    IndicatorPreset,
     IndicatorValue,
     InstrumentType,
     MovingAverage,
@@ -46,10 +47,17 @@ PIPELINE_STEPS = [
 class AnalysisPipeline:
     """Runs through all analysis steps, tracks progress, and persists results."""
 
-    def __init__(self, symbol: str, timeframe: Timeframe, chain: FallbackChainManager | None = None) -> None:
+    def __init__(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        chain: FallbackChainManager | None = None,
+        preset: IndicatorPreset = IndicatorPreset.INVESTING,
+    ) -> None:
         self.analysis_id = str(uuid.uuid4())
         self.symbol = symbol
         self.timeframe = timeframe
+        self.preset = preset
         self._chain = chain or build_fallback_chain()
         self._status = AnalysisStatus(
             id=self.analysis_id,
@@ -165,9 +173,40 @@ class AnalysisPipeline:
             return None
 
     async def _step_fetch_data(self) -> list[OHLCVData]:
+        # Try delta-fetch via OHLCVCacheService
         try:
-            return await self._chain.fetch_ohlcv(self.symbol, self.timeframe, "90d")
+            from app.modules.data_acquisition.ohlcv_cache import OHLCVCacheService
+
+            session_factory = get_session_factory()
+            async with session_factory() as session:
+                cache_service = OHLCVCacheService(session)
+
+                async def _fetch(symbol: str, timeframe: str, period: str) -> list[OHLCVData]:
+                    return await self._chain.fetch_ohlcv(symbol, Timeframe(timeframe), period)
+
+                ohlcv = await cache_service.get_ohlcv(self.symbol, self.timeframe.value, "200d", _fetch)
+                if ohlcv:
+                    return ohlcv
         except Exception as exc:
+            logger.warning("OHLCVCacheService failed, falling back to direct fetch: %s", exc)
+
+        # Fallback: direct fetch without cache
+        try:
+            return await self._chain.fetch_ohlcv(self.symbol, self.timeframe, "200d")
+        except Exception as exc:
+            # Last resort: try reading from cache
+            try:
+                from app.modules.data_acquisition.ohlcv_cache import get_cached_ohlcv
+
+                session_factory = get_session_factory()
+                async with session_factory() as session:
+                    cached = await get_cached_ohlcv(session, self.symbol, self.timeframe.value)
+                if cached:
+                    logger.info("Using %d cached candles for %s/%s", len(cached), self.symbol, self.timeframe)
+                    return cached
+            except Exception as cache_exc:
+                logger.warning("OHLCV cache read also failed: %s", cache_exc)
+
             logger.warning("Data fetch failed: %s", exc)
             return []
 
@@ -177,10 +216,13 @@ class AnalysisPipeline:
         from app.modules.technical_analysis.indicators import calculate_indicators
         from app.modules.technical_analysis.moving_averages import calculate_moving_averages
         from app.modules.technical_analysis.pivot_points import calculate_pivot_points
+        from app.modules.technical_analysis.presets import get_preset_params
         from app.modules.technical_analysis.summary import calculate_summaries
 
+        params = get_preset_params(self.preset)
+
         try:
-            indicators = calculate_indicators(ohlcv)
+            indicators = calculate_indicators(ohlcv, params)
         except Exception as exc:
             logger.warning("Indicators calculation failed: %s", exc)
             indicators = []

@@ -104,6 +104,44 @@ test.describe("Analysis Flow — US500 (Index)", () => {
   });
 });
 
+test.describe("Preset Selection — TradingView", () => {
+  test("submits analysis with tradingview preset in request body", async ({ page }) => {
+    await mockAnalysisApi(page);
+    await page.goto("/");
+
+    // Fill symbol
+    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
+    await symbolInput.fill("EURUSD");
+
+    const option = page.getByRole("option", { name: /EURUSD/i });
+    if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await option.click();
+    }
+
+    // Select TradingView preset
+    const presetSelect = page.locator("#preset");
+    await presetSelect.selectOption("tradingview");
+
+    // Select timeframe
+    const timeframeSelect = page.getByRole("combobox", { name: /timeframe/i });
+    await timeframeSelect.selectOption("H1");
+
+    // Intercept POST to verify preset in body
+    const [request] = await Promise.all([
+      page.waitForRequest((req) => req.url().includes("/api/v1/analysis") && req.method() === "POST"),
+      page.getByRole("button", { name: /analiz/i }).click(),
+    ]);
+
+    const body = JSON.parse(request.postData() ?? "{}");
+    expect(body.preset).toBe("tradingview");
+
+    // Verify analysis completes
+    await expect(
+      page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
+    ).toBeVisible({ timeout: 60_000 });
+  });
+});
+
 test.describe("Invalid Symbol", () => {
   test("shows error for invalid symbol", async ({ page }) => {
     await mockAnalysisApi(page);

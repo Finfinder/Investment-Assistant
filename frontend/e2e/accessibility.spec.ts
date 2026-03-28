@@ -38,6 +38,11 @@ test.describe("Accessibility — keyboard navigation (form)", () => {
     // Type a symbol
     await symbolInput.fill("EURUSD");
 
+    // Tab to preset select
+    await page.keyboard.press("Tab");
+    const presetSelect = page.locator("#preset");
+    await expect(presetSelect).toBeFocused();
+
     // Tab to timeframe select
     await page.keyboard.press("Tab");
     const timeframeSelect = page.getByRole("combobox", { name: /timeframe/i });

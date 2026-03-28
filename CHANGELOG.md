@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Configurable indicator presets system (Investing.pl / TradingView) with frozen dataclass parameters and `IndicatorPreset` StrEnum
+- 4 new technical indicators: ATR, Bull/Bear Power, StochRSI, ROC (13 total oscillator/momentum indicators)
+- MACD crossover signal logic replacing histogram-based signal generation
+- OHLCV cache in SQLite with delta-fetch strategy, staleness check for intraday timeframes, and graceful fallback
+- Preset dropdown in analysis form (frontend) with accessibility support (label, keyboard nav, Tab order)
+- `FetchFn` type alias for async fetch callbacks in cache service (proper `Callable` typing)
+
+### Changed
+
+- Extend default data period from 90 to 200 days for improved indicator accuracy
+- Parameterize all 9 existing indicators via preset configuration instead of hardcoded values
+- Indicator names now reflect active parameters (e.g., `CCI(14)` for Investing, `CCI(20)` for TradingView)
+
 ### Fixed
 
 - Fix chart price precision for forex pairs (4 decimal places instead of 2), initial chart scaling to show relevant bars per timeframe, and zoom anchoring to keep right edge visible

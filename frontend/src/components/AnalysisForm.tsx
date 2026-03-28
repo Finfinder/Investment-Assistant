@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { Timeframe } from "@/types";
+import type { Timeframe, IndicatorPreset } from "@/types";
 
 const POPULAR_INSTRUMENTS = [
   "EURUSD",
@@ -37,14 +37,20 @@ const TIMEFRAMES: { value: Timeframe; label: string }[] = [
   { value: "D1", label: "D1 (1 dzień)" },
 ];
 
+const PRESETS: { value: IndicatorPreset; label: string }[] = [
+  { value: "investing", label: "Investing.com" },
+  { value: "tradingview", label: "TradingView" },
+];
+
 interface AnalysisFormProps {
-  onSubmit: (symbol: string, timeframe: Timeframe) => void;
+  onSubmit: (symbol: string, timeframe: Timeframe, preset: IndicatorPreset) => void;
   isLoading: boolean;
 }
 
 export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisFormProps>) {
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState<Timeframe>("H1");
+  const [preset, setPreset] = useState<IndicatorPreset>("investing");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -123,7 +129,7 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
       setError("Symbol musi mieć co najmniej 2 znaki");
       return;
     }
-    onSubmit(symbol.trim(), timeframe);
+    onSubmit(symbol.trim(), timeframe, preset);
   }
 
   const activeDescendant = activeIndex >= 0 ? `suggestion-${suggestions[activeIndex]}` : undefined;
@@ -179,6 +185,25 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
           </ul>
         )}
         {error && <p className="mt-1 text-sm text-danger">{error}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="preset" className="mb-1 block text-sm font-medium text-muted">
+          Preset wskaźników
+        </label>
+        <select
+          id="preset"
+          value={preset}
+          onChange={(e) => setPreset(e.target.value as IndicatorPreset)}
+          disabled={isLoading}
+          className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50 sm:w-44"
+        >
+          {PRESETS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

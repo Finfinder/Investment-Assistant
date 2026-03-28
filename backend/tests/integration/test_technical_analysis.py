@@ -21,7 +21,7 @@ async def test_technical_analysis_success(client, mock_chain):
     data = resp.json()
     assert data["symbol"] == "EURUSD"
     assert data["timeframe"] == "H1"
-    assert len(data["indicators"]) == 9
+    assert len(data["indicators"]) == 13
     assert len(data["moving_averages"]) == 6
     assert len(data["pivot_points"]) == 5
     assert "overall_summary" in data["summary"]

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import type { Timeframe, AnalysisReport } from "@/types";
+import type { Timeframe, IndicatorPreset, AnalysisReport } from "@/types";
 import { triggerAnalysis, getAnalysis } from "@/lib/api";
 import AnalysisForm from "@/components/AnalysisForm";
 import ProgressIndicator from "@/components/ProgressIndicator";
@@ -66,12 +66,12 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, [state]);
 
-  const handleSubmit = useCallback(async (symbol: string, timeframe: Timeframe) => {
+  const handleSubmit = useCallback(async (symbol: string, timeframe: Timeframe, preset: IndicatorPreset) => {
     setState("analyzing");
     setError("");
     setReport(null);
     try {
-      const response = await triggerAnalysis({ symbol, timeframe });
+      const response = await triggerAnalysis({ symbol, timeframe, preset });
       setAnalysisId(response.analysis_id);
     } catch (e) {
       setState("error");
@@ -140,7 +140,9 @@ export default function HomePage() {
         {!report && (
           <div className="mb-8 text-center">
             <h1 className="mb-2 text-3xl font-bold">Investment Assistant</h1>
-            <p className="text-muted">Analiza techniczna, fundamentalna i rozpoznawanie formacji dla instrumentów CFD</p>
+            <p className="text-muted">
+              Analiza techniczna, fundamentalna i rozpoznawanie formacji dla instrumentów CFD
+            </p>
           </div>
         )}
 
@@ -151,7 +153,12 @@ export default function HomePage() {
 
         {/* Error */}
         {state === "error" && (
-          <div role="alert" className="mb-8 rounded-xl border border-danger/30 bg-danger/10 p-4 text-center text-danger">{error}</div>
+          <div
+            role="alert"
+            className="mb-8 rounded-xl border border-danger/30 bg-danger/10 p-4 text-center text-danger"
+          >
+            {error}
+          </div>
         )}
 
         {/* Progress */}

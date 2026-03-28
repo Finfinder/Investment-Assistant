@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisco
 from pydantic import BaseModel
 
 from app.api.v1.validators import validate_symbol
-from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, Timeframe
+from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, IndicatorPreset, Timeframe
 from app.core.rate_limit import limiter
 from app.modules.pipeline import AnalysisPipeline, analysis_tasks
 
@@ -24,6 +24,7 @@ _analysis_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_ANALYSES)
 class AnalysisRequest(BaseModel):
     symbol: str
     timeframe: Timeframe = Timeframe.H1
+    preset: IndicatorPreset = IndicatorPreset.INVESTING
 
 
 class AnalysisResponse(BaseModel):
@@ -40,7 +41,7 @@ async def trigger_analysis(request: Request, body: AnalysisRequest) -> AnalysisR
     """
     validate_symbol(body.symbol)
 
-    pipeline = AnalysisPipeline(symbol=body.symbol, timeframe=body.timeframe)
+    pipeline = AnalysisPipeline(symbol=body.symbol, timeframe=body.timeframe, preset=body.preset)
 
     # Run pipeline as a background coroutine — store ref to prevent GC
     _background_tasks[pipeline.analysis_id] = asyncio.create_task(_run_pipeline(pipeline))

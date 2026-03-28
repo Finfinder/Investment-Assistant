@@ -1,12 +1,17 @@
 from app.core.models import SignalType
 from app.modules.technical_analysis.signal_rating import (
     rate_adx,
+    rate_atr,
     rate_awesome_oscillator,
+    rate_bull_bear_power,
     rate_cci,
+    rate_macd_crossover,
     rate_macd_histogram,
     rate_momentum,
+    rate_roc,
     rate_rsi,
     rate_stochastic,
+    rate_stochrsi,
     rate_ultimate_oscillator,
     rate_williams_r,
 )
@@ -176,3 +181,98 @@ def test_rate_uo_neutral():
 
 def test_rate_uo_none():
     assert rate_ultimate_oscillator(None) == SignalType.NEUTRAL
+
+
+# --- MACD crossover ---
+
+
+def test_rate_macd_crossover_buy():
+    assert rate_macd_crossover(1.5, 0.5) == SignalType.BUY
+
+
+def test_rate_macd_crossover_sell():
+    assert rate_macd_crossover(-0.5, 0.5) == SignalType.SELL
+
+
+def test_rate_macd_crossover_neutral_none():
+    assert rate_macd_crossover(None, None) == SignalType.NEUTRAL
+
+
+def test_rate_macd_crossover_neutral_equal():
+    assert rate_macd_crossover(1.0, 1.0) == SignalType.NEUTRAL
+
+
+def test_rate_macd_crossover_macd_none():
+    assert rate_macd_crossover(None, 0.5) == SignalType.NEUTRAL
+
+
+def test_rate_macd_crossover_signal_none():
+    assert rate_macd_crossover(0.5, None) == SignalType.NEUTRAL
+
+
+# --- ATR ---
+
+
+def test_rate_atr_always_neutral():
+    assert rate_atr(2.5) == SignalType.NEUTRAL
+
+
+def test_rate_atr_none():
+    assert rate_atr(None) == SignalType.NEUTRAL
+
+
+# --- Bull Bear Power ---
+
+
+def test_rate_bbp_buy():
+    assert rate_bull_bear_power(1.5) == SignalType.BUY
+
+
+def test_rate_bbp_sell():
+    assert rate_bull_bear_power(-1.5) == SignalType.SELL
+
+
+def test_rate_bbp_neutral():
+    assert rate_bull_bear_power(0.0) == SignalType.NEUTRAL
+
+
+def test_rate_bbp_none():
+    assert rate_bull_bear_power(None) == SignalType.NEUTRAL
+
+
+# --- Stochastic RSI ---
+
+
+def test_rate_stochrsi_buy():
+    assert rate_stochrsi(10.0) == SignalType.BUY
+
+
+def test_rate_stochrsi_sell():
+    assert rate_stochrsi(90.0) == SignalType.SELL
+
+
+def test_rate_stochrsi_neutral():
+    assert rate_stochrsi(50.0) == SignalType.NEUTRAL
+
+
+def test_rate_stochrsi_none():
+    assert rate_stochrsi(None) == SignalType.NEUTRAL
+
+
+# --- ROC ---
+
+
+def test_rate_roc_buy():
+    assert rate_roc(2.0) == SignalType.BUY
+
+
+def test_rate_roc_sell():
+    assert rate_roc(-2.0) == SignalType.SELL
+
+
+def test_rate_roc_neutral():
+    assert rate_roc(0.0) == SignalType.NEUTRAL
+
+
+def test_rate_roc_none():
+    assert rate_roc(None) == SignalType.NEUTRAL

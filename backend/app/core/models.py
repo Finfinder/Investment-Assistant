@@ -45,6 +45,11 @@ class Direction(StrEnum):
     SHORT = "short"
 
 
+class IndicatorPreset(StrEnum):
+    INVESTING = "investing"
+    TRADINGVIEW = "tradingview"
+
+
 # --- Data Models ---
 
 

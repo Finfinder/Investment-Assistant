@@ -12,6 +12,8 @@ export type AnalysisStatusType = "pending" | "running" | "completed" | "failed";
 
 export type Direction = "long" | "short";
 
+export type IndicatorPreset = "investing" | "tradingview";
+
 export interface OHLCVData {
   timestamp: string;
   open: number;
@@ -113,6 +115,7 @@ export interface AnalysisStatus {
 export interface AnalysisRequest {
   symbol: string;
   timeframe: Timeframe;
+  preset: IndicatorPreset;
 }
 
 export interface AnalysisResponse {

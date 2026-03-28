@@ -230,9 +230,9 @@ export default function CandlestickChart({
       });
     };
 
-    containerRef.current.addEventListener("wheel", handleWheel, { passive: true });
+    containerRef.current.addEventListener("wheel", handleWheel, { capture: true, passive: true });
     wheelCleanupRef.current = () => {
-      containerRef.current?.removeEventListener("wheel", handleWheel);
+      containerRef.current?.removeEventListener("wheel", handleWheel, { capture: true });
     };
   }, [ohlcvData, movingAverages, pivotPoints, symbol, instrumentType, timeframe]);
 

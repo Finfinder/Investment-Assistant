@@ -3,25 +3,28 @@ import pandas_ta as ta
 
 from app.core.models import IndicatorValue, OHLCVData
 from app.modules.technical_analysis._helpers import safe_last as _safe_last
+from app.modules.technical_analysis.presets import IndicatorParams
 from app.modules.technical_analysis.signal_rating import (
     rate_adx,
+    rate_atr,
     rate_awesome_oscillator,
+    rate_bull_bear_power,
     rate_cci,
-    rate_macd_histogram,
+    rate_macd_crossover,
     rate_momentum,
+    rate_roc,
     rate_rsi,
     rate_stochastic,
+    rate_stochrsi,
     rate_ultimate_oscillator,
     rate_williams_r,
 )
 
 
-def calculate_indicators(ohlcv: list[OHLCVData]) -> list[IndicatorValue]:
+def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> list[IndicatorValue]:
     """Calculate 9 oscillator / momentum indicators and assign signals.
 
-    Returns one IndicatorValue per indicator:
-    RSI(14), STOCH.K(14), CCI(20), ADX(14), AO, Momentum(10),
-    MACD(12,26,9), Williams %R(14), UO(7,14,28).
+    Parameters come from the selected preset (Investing / TradingView).
     """
     if len(ohlcv) < 2:
         return []
@@ -31,52 +34,102 @@ def calculate_indicators(ohlcv: list[OHLCVData]) -> list[IndicatorValue]:
 
     results: list[IndicatorValue] = []
 
-    # 1. RSI(14)
-    rsi_val = _safe_last(ta.rsi(close, length=14))
-    results.append(IndicatorValue(name="RSI(14)", value=rsi_val, signal=rate_rsi(rsi_val)))
+    # 1. RSI
+    rsi_val = _safe_last(ta.rsi(close, length=params.rsi_length))
+    results.append(IndicatorValue(name=f"RSI({params.rsi_length})", value=rsi_val, signal=rate_rsi(rsi_val)))
 
-    # 2. Stochastic %K(14,3,3)
-    stoch_df = ta.stoch(high, low, close, k=14, d=3, smooth_k=3)
+    # 2. Stochastic %K
+    stoch_df = ta.stoch(high, low, close, k=params.stoch_k, d=params.stoch_d, smooth_k=params.stoch_smooth_k)
     stoch_k = _safe_last(stoch_df, col=0)
-    results.append(IndicatorValue(name="STOCH.K(14)", value=stoch_k, signal=rate_stochastic(stoch_k)))
+    results.append(IndicatorValue(name=f"STOCH.K({params.stoch_k})", value=stoch_k, signal=rate_stochastic(stoch_k)))
 
-    # 3. CCI(20)
-    cci_val = _safe_last(ta.cci(high, low, close, length=20))
-    results.append(IndicatorValue(name="CCI(20)", value=cci_val, signal=rate_cci(cci_val)))
+    # 3. CCI
+    cci_val = _safe_last(ta.cci(high, low, close, length=params.cci_length))
+    results.append(IndicatorValue(name=f"CCI({params.cci_length})", value=cci_val, signal=rate_cci(cci_val)))
 
-    # 4. ADX(14) — signal depends on +DI / -DI direction
-    adx_df = ta.adx(high, low, close, length=14)
+    # 4. ADX — signal depends on +DI / -DI direction
+    adx_df = ta.adx(high, low, close, length=params.adx_length)
     adx_val = _safe_last(adx_df, col=0)
     plus_di = _safe_last(adx_df, col=1)
     minus_di = _safe_last(adx_df, col=2)
-    results.append(IndicatorValue(name="ADX(14)", value=adx_val, signal=rate_adx(adx_val, plus_di, minus_di)))
-
-    # 5. Awesome Oscillator (5, 34)
-    ao_val = _safe_last(ta.ao(high, low, fast=5, slow=34))
-    results.append(IndicatorValue(name="AO", value=ao_val, signal=rate_awesome_oscillator(ao_val)))
-
-    # 6. Momentum(10)
-    mom_val = _safe_last(ta.mom(close, length=10))
-    results.append(IndicatorValue(name="Momentum(10)", value=mom_val, signal=rate_momentum(mom_val)))
-
-    # 7. MACD(12,26,9) — value = MACD line, signal based on histogram
-    macd_df = ta.macd(close, fast=12, slow=26, signal=9)
-    macd_line = _safe_last(macd_df, col=0)
-    macd_hist = _safe_last(macd_df, col=1)
-    prev_hist = None
-    if macd_df is not None and len(macd_df) >= 2:
-        prev = macd_df.iloc[-2, 1]
-        prev_hist = None if pd.isna(prev) else float(prev)
     results.append(
-        IndicatorValue(name="MACD(12,26,9)", value=macd_line, signal=rate_macd_histogram(macd_hist, prev_hist))
+        IndicatorValue(name=f"ADX({params.adx_length})", value=adx_val, signal=rate_adx(adx_val, plus_di, minus_di))
     )
 
-    # 8. Williams %R(14)
-    willr_val = _safe_last(ta.willr(high, low, close, length=14))
-    results.append(IndicatorValue(name="Williams %R(14)", value=willr_val, signal=rate_williams_r(willr_val)))
+    # 5. Awesome Oscillator
+    ao_val = _safe_last(ta.ao(high, low, fast=params.ao_fast, slow=params.ao_slow))
+    results.append(IndicatorValue(name="AO", value=ao_val, signal=rate_awesome_oscillator(ao_val)))
 
-    # 9. Ultimate Oscillator(7,14,28)
-    uo_val = _safe_last(ta.uo(high, low, close, fast=7, medium=14, slow=28))
-    results.append(IndicatorValue(name="UO(7,14,28)", value=uo_val, signal=rate_ultimate_oscillator(uo_val)))
+    # 6. Momentum
+    mom_val = _safe_last(ta.mom(close, length=params.momentum_length))
+    results.append(
+        IndicatorValue(name=f"Momentum({params.momentum_length})", value=mom_val, signal=rate_momentum(mom_val))
+    )
+
+    # 7. MACD — value = MACD line, signal based on crossover (MACD vs Signal line)
+    macd_df = ta.macd(close, fast=params.macd_fast, slow=params.macd_slow, signal=params.macd_signal)
+    macd_line = _safe_last(macd_df, col=0)
+    signal_line = _safe_last(macd_df, col=2)
+    results.append(
+        IndicatorValue(
+            name=f"MACD({params.macd_fast},{params.macd_slow},{params.macd_signal})",
+            value=macd_line,
+            signal=rate_macd_crossover(macd_line, signal_line),
+        )
+    )
+
+    # 8. Williams %R
+    willr_val = _safe_last(ta.willr(high, low, close, length=params.willr_length))
+    results.append(
+        IndicatorValue(name=f"Williams %R({params.willr_length})", value=willr_val, signal=rate_williams_r(willr_val))
+    )
+
+    # 9. Ultimate Oscillator
+    uo_val = _safe_last(ta.uo(high, low, close, fast=params.uo_fast, medium=params.uo_medium, slow=params.uo_slow))
+    results.append(
+        IndicatorValue(
+            name=f"UO({params.uo_fast},{params.uo_medium},{params.uo_slow})",
+            value=uo_val,
+            signal=rate_ultimate_oscillator(uo_val),
+        )
+    )
+
+    # 10. ATR (volatility — always NEUTRAL signal)
+    atr_val = _safe_last(ta.atr(high, low, close, length=params.atr_length))
+    results.append(IndicatorValue(name=f"ATR({params.atr_length})", value=atr_val, signal=rate_atr(atr_val)))
+
+    # 11. Bull Bear Power — bull = high - EMA, bear = low - EMA, bbp = bull + bear
+    ema_for_bbp = ta.ema(close, length=params.bbp_length)
+    last_ema = _safe_last(pd.DataFrame({"v": ema_for_bbp}), col=0) if ema_for_bbp is not None else None
+    last_high = _safe_last(pd.DataFrame({"v": high}), col=0)
+    last_low = _safe_last(pd.DataFrame({"v": low}), col=0)
+    if last_ema is not None and last_high is not None and last_low is not None:
+        bbp_val = (last_high - last_ema) + (last_low - last_ema)
+    else:
+        bbp_val = None
+    results.append(
+        IndicatorValue(name=f"BBP({params.bbp_length})", value=bbp_val, signal=rate_bull_bear_power(bbp_val))
+    )
+
+    # 12. Stochastic RSI
+    stochrsi_df = ta.stochrsi(
+        close,
+        length=params.stochrsi_length,
+        rsi_length=params.stochrsi_rsi_length,
+        k=params.stochrsi_k,
+        d=params.stochrsi_d,
+    )
+    stochrsi_k = _safe_last(stochrsi_df, col=0)
+    results.append(
+        IndicatorValue(
+            name=f"STOCHRSI.K({params.stochrsi_length})",
+            value=stochrsi_k,
+            signal=rate_stochrsi(stochrsi_k),
+        )
+    )
+
+    # 13. Rate of Change
+    roc_val = _safe_last(ta.roc(close, length=params.roc_length))
+    results.append(IndicatorValue(name=f"ROC({params.roc_length})", value=roc_val, signal=rate_roc(roc_val)))
 
     return results

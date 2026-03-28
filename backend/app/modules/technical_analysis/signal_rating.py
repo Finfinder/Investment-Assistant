@@ -112,3 +112,52 @@ def rate_ultimate_oscillator(value: float | None) -> SignalType:
     if value > 70:
         return SignalType.SELL
     return SignalType.NEUTRAL
+
+
+def rate_macd_crossover(macd_line: float | None, signal_line: float | None) -> SignalType:
+    """MACD crossover: MACD > Signal = buy, MACD < Signal = sell."""
+    if macd_line is None or signal_line is None:
+        return SignalType.NEUTRAL
+    if macd_line > signal_line:
+        return SignalType.BUY
+    if macd_line < signal_line:
+        return SignalType.SELL
+    return SignalType.NEUTRAL
+
+
+def rate_atr(value: float | None) -> SignalType:
+    """ATR is a volatility measure — always NEUTRAL (informational only)."""
+    return SignalType.NEUTRAL
+
+
+def rate_bull_bear_power(value: float | None) -> SignalType:
+    """Bull Bear Power: >0 buy (bulls dominate), <0 sell (bears dominate)."""
+    if value is None:
+        return SignalType.NEUTRAL
+    if value > 0:
+        return SignalType.BUY
+    if value < 0:
+        return SignalType.SELL
+    return SignalType.NEUTRAL
+
+
+def rate_stochrsi(value: float | None) -> SignalType:
+    """Stochastic RSI %K: <20 buy (oversold), >80 sell (overbought)."""
+    if value is None:
+        return SignalType.NEUTRAL
+    if value < 20:
+        return SignalType.BUY
+    if value > 80:
+        return SignalType.SELL
+    return SignalType.NEUTRAL
+
+
+def rate_roc(value: float | None) -> SignalType:
+    """Rate of Change: >0 buy, <0 sell."""
+    if value is None:
+        return SignalType.NEUTRAL
+    if value > 0:
+        return SignalType.BUY
+    if value < 0:
+        return SignalType.SELL
+    return SignalType.NEUTRAL
