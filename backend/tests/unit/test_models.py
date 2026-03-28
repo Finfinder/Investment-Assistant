@@ -183,6 +183,18 @@ class TestAnalysisReport:
         assert report.signal_summary is not None
         assert report.signal_summary.overall_summary == SignalType.BUY
 
+    def test_instrument_type_default_none(self) -> None:
+        report = AnalysisReport(symbol="EURUSD", timeframe=Timeframe.H1)
+        assert report.instrument_type is None
+
+    def test_instrument_type_explicit(self) -> None:
+        report = AnalysisReport(
+            symbol="EURUSD",
+            timeframe=Timeframe.H1,
+            instrument_type=InstrumentType.FOREX,
+        )
+        assert report.instrument_type == InstrumentType.FOREX
+
 
 class TestAnalysisStatus:
     def test_valid_status(self) -> None:

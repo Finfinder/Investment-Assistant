@@ -219,6 +219,9 @@ export default function HomePage() {
                   pivotPoints={report.pivot_points}
                   patterns={report.patterns}
                   highlightedPattern={highlightedPattern}
+                  symbol={report.symbol}
+                  instrumentType={report.instrument_type}
+                  timeframe={report.timeframe}
                 />
               </Section>
             )}

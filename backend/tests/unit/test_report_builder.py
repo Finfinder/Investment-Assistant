@@ -70,10 +70,12 @@ def test_bullish_report():
         signal_summary=summary,
         fundamental=fundamental,
         direction=Direction.LONG,
+        instrument_type=InstrumentType.FOREX,
     )
 
     assert report.symbol == "EURUSD"
     assert report.timeframe == Timeframe.H1
+    assert report.instrument_type == InstrumentType.FOREX
     assert len(report.strategies) >= 1
     assert all(s.direction == Direction.LONG for s in report.strategies)
     assert all(s.entry_price is not None for s in report.strategies)
@@ -115,8 +117,10 @@ def test_bearish_report():
         signal_summary=summary,
         fundamental=fundamental,
         direction=Direction.SHORT,
+        instrument_type=InstrumentType.FOREX,
     )
 
+    assert report.instrument_type == InstrumentType.FOREX
     assert len(report.strategies) >= 1
     assert all(s.direction == Direction.SHORT for s in report.strategies)
 
@@ -136,6 +140,28 @@ def test_neutral_report_no_strategies():
         pivot_points=[],
         patterns=[],
         signal_summary=summary,
+        instrument_type=InstrumentType.FOREX,
     )
 
+    assert report.instrument_type == InstrumentType.FOREX
     assert report.strategies == []
+
+
+def test_build_report_default_instrument_type():
+    """Calling build_report without instrument_type gives None."""
+    ohlcv = _make_ohlcv(20)
+    indicators = [IndicatorValue(name="RSI(14)", value=50, signal=SignalType.NEUTRAL)]
+    summary = SignalSummary(overall_summary=SignalType.NEUTRAL)
+
+    report = build_report(
+        symbol="EURUSD",
+        timeframe=Timeframe.H1,
+        ohlcv=ohlcv,
+        indicators=indicators,
+        moving_averages=[],
+        pivot_points=[],
+        patterns=[],
+        signal_summary=summary,
+    )
+
+    assert report.instrument_type is None

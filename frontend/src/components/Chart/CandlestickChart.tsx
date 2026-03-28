@@ -11,7 +11,7 @@ import {
   ColorType,
   LineStyle,
 } from "lightweight-charts";
-import type { OHLCVData, MovingAverage, PivotPoints, PatternDetection } from "@/types";
+import type { OHLCVData, MovingAverage, PivotPoints, PatternDetection, InstrumentType, Timeframe } from "@/types";
 
 interface CandlestickChartProps {
   ohlcvData: OHLCVData[];
@@ -19,6 +19,9 @@ interface CandlestickChartProps {
   pivotPoints: PivotPoints[];
   patterns: PatternDetection[];
   highlightedPattern?: string | null;
+  symbol: string;
+  instrumentType: InstrumentType | null;
+  timeframe: Timeframe;
 }
 
 function toChartTime(timestamp: string): UTCTimestamp {
@@ -106,21 +109,47 @@ function buildPatternMarkers(
   });
 }
 
+function getPriceFormat(instrumentType: InstrumentType | null, symbol: string) {
+  if (instrumentType === "forex") {
+    if (/JPY/i.test(symbol)) {
+      return { type: "price" as const, precision: 2, minMove: 0.01 };
+    }
+    return { type: "price" as const, precision: 4, minMove: 0.0001 };
+  }
+  if (instrumentType === "commodity" && /^(XAGUSD|SILVER)$/i.test(symbol)) {
+    return { type: "price" as const, precision: 3, minMove: 0.001 };
+  }
+  return { type: "price" as const, precision: 2, minMove: 0.01 };
+}
+
+const VISIBLE_BARS_BY_TIMEFRAME: Record<Timeframe, number | null> = {
+  M15: 100,
+  H1: 120,
+  H4: 120,
+  D1: null,
+};
+
 export default function CandlestickChart({
   ohlcvData,
   movingAverages,
   pivotPoints,
   patterns,
   highlightedPattern,
+  symbol,
+  instrumentType,
+  timeframe,
 }: Readonly<CandlestickChartProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const wheelCleanupRef = useRef<(() => void) | null>(null);
 
   const buildChart = useCallback(() => {
     if (!containerRef.current || ohlcvData.length === 0) return;
 
     if (chartRef.current) {
+      wheelCleanupRef.current?.();
+      wheelCleanupRef.current = null;
       chartRef.current.remove();
       chartRef.current = null;
     }
@@ -149,6 +178,7 @@ export default function CandlestickChart({
       borderUpColor: "#22c55e",
       wickDownColor: "#ef4444",
       wickUpColor: "#22c55e",
+      priceFormat: getPriceFormat(instrumentType, symbol),
     });
     candleSeriesRef.current = candleSeries;
 
@@ -170,11 +200,48 @@ export default function CandlestickChart({
     // Fibonacci levels
     addPriceLines(candleSeries, buildFibonacciLevels(pivotPoints));
 
-    chart.timeScale().fitContent();
-  }, [ohlcvData, movingAverages, pivotPoints]);
+    const dataLength = ohlcvData.length;
+    const bars = VISIBLE_BARS_BY_TIMEFRAME[timeframe] ?? null;
+    if (bars !== null && dataLength > bars) {
+      chart.timeScale().setVisibleLogicalRange({ from: dataLength - bars, to: dataLength - 1 });
+    } else {
+      chart.timeScale().fitContent();
+    }
+
+    // Zoom anchoring — keep right edge pinned when zooming with mouse wheel
+    let isAtRightEdge = true;
+    let adjusting = false;
+
+    chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+      if (adjusting || !range) return;
+      isAtRightEdge = range.to >= dataLength - 2;
+    });
+
+    const handleWheel = () => {
+      if (!isAtRightEdge) return;
+      adjusting = true;
+      requestAnimationFrame(() => {
+        const range = chart.timeScale().getVisibleLogicalRange();
+        if (range) {
+          const width = range.to - range.from;
+          chart.timeScale().setVisibleLogicalRange({ from: dataLength - 1 - width, to: dataLength - 1 });
+        }
+        adjusting = false;
+      });
+    };
+
+    containerRef.current.addEventListener("wheel", handleWheel, { passive: true });
+    wheelCleanupRef.current = () => {
+      containerRef.current?.removeEventListener("wheel", handleWheel);
+    };
+  }, [ohlcvData, movingAverages, pivotPoints, symbol, instrumentType, timeframe]);
 
   useEffect(() => {
     buildChart();
+    return () => {
+      wheelCleanupRef.current?.();
+      wheelCleanupRef.current = null;
+    };
   }, [buildChart]);
 
   // Update pattern markers without rebuilding the chart

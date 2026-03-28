@@ -5,6 +5,7 @@ from app.core.models import (
     Direction,
     FundamentalData,
     IndicatorValue,
+    InstrumentType,
     MovingAverage,
     OHLCVData,
     PatternDetection,
@@ -29,6 +30,7 @@ def build_report(
     signal_summary: SignalSummary | None = None,
     fundamental: FundamentalData | None = None,
     direction: Direction | None = None,
+    instrument_type: InstrumentType | None = None,
 ) -> AnalysisReport:
     """Build a complete AnalysisReport with strategies.
 
@@ -56,6 +58,7 @@ def build_report(
     return AnalysisReport(
         symbol=symbol,
         timeframe=timeframe,
+        instrument_type=instrument_type,
         ohlcv_data=ohlcv,
         technical_indicators=indicators,
         moving_averages=moving_averages,

@@ -8,6 +8,7 @@ import pytest
 from app.core.models import (
     AnalysisStatusType,
     FundamentalData,
+    InstrumentType,
     OHLCVData,
     Timeframe,
 )
@@ -71,6 +72,7 @@ class TestFullPipelineForex:
         assert report is not None
         assert report.symbol == "EURUSD"
         assert report.timeframe == Timeframe.H1
+        assert report.instrument_type == InstrumentType.FOREX
 
         # Verify report contains all required sections
         assert len(report.technical_indicators) > 0, "Report must have technical indicators"
@@ -122,6 +124,7 @@ class TestFullPipelineCommodity:
         assert len(report.strategies) > 0
         assert report.fundamental is not None
         assert report.fundamental.instrument_type == "commodity"
+        assert report.instrument_type == InstrumentType.COMMODITY
 
 
 @pytest.mark.integration
@@ -158,6 +161,7 @@ class TestFullPipelineIndex:
         assert len(report.strategies) > 0
         assert report.fundamental is not None
         assert report.fundamental.instrument_type == "index"
+        assert report.instrument_type == InstrumentType.INDEX
 
 
 @pytest.mark.integration
@@ -187,6 +191,7 @@ class TestPipelineGracefulDegradation:
 
         assert report is not None
         assert report.fundamental is None
+        assert report.instrument_type is not None
         assert len(report.technical_indicators) > 0
         assert pipeline.status.status == AnalysisStatusType.COMPLETED
 

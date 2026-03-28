@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix chart price precision for forex pairs (4 decimal places instead of 2), initial chart scaling to show relevant bars per timeframe, and zoom anchoring to keep right edge visible
 - Fix empty candlestick chart on intraday timeframes (M15, H1, H4) — convert ISO timestamps to `UTCTimestamp` (Unix epoch seconds) instead of truncating to date strings, which caused duplicate keys silently rejected by lightweight-charts v5.1
 - Fix flaky E2E axe-core accessibility test in CI — run Playwright against production build (`npm run build && npm start`) instead of dev server to eliminate incomplete HTML under concurrent load
 - Fix flaky E2E axe-core accessibility test in CI — add `suppressHydrationWarning` to `<html>` and wait for full hydration before scanning
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared frontend utilities: `lib/format.ts` (confidence bar classes), `lib/signals.ts` (signal labels/colors)
 - Concurrency control: `asyncio.Semaphore` limiting concurrent pipeline executions to 5
 - Centralized `build_fallback_chain()` factory in `fallback_chain.py` used by both pipeline and market-data API
+- Propagate `instrument_type` from backend pipeline through `AnalysisReport` to frontend chart component
 - Code quality report (revision 2): `code-quality-report.md` with 51 findings
 - SonarQube local analysis report: `sonar-report.md`
 

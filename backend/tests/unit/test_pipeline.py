@@ -214,15 +214,12 @@ class TestStepFundamentalAnalysis:
         chain = MagicMock()
         pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
         mock_result = MagicMock()
-        with (
-            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.FOREX),
-            patch(
-                "app.modules.fundamental_analysis.forex.analyze_forex",
-                new_callable=AsyncMock,
-                return_value=mock_result,
-            ) as mock_fn,
-        ):
-            result = await pipeline._step_fundamental_analysis()
+        with patch(
+            "app.modules.fundamental_analysis.forex.analyze_forex",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ) as mock_fn:
+            result = await pipeline._step_fundamental_analysis(InstrumentType.FOREX)
         mock_fn.assert_awaited_once_with("EURUSD")
         assert result is mock_result
 
@@ -231,15 +228,12 @@ class TestStepFundamentalAnalysis:
         chain = MagicMock()
         pipeline = AnalysisPipeline(symbol="GOLD", timeframe=Timeframe.H1, chain=chain)
         mock_result = MagicMock()
-        with (
-            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.COMMODITY),
-            patch(
-                "app.modules.fundamental_analysis.commodities.analyze_commodity",
-                new_callable=AsyncMock,
-                return_value=mock_result,
-            ) as mock_fn,
-        ):
-            result = await pipeline._step_fundamental_analysis()
+        with patch(
+            "app.modules.fundamental_analysis.commodities.analyze_commodity",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ) as mock_fn:
+            result = await pipeline._step_fundamental_analysis(InstrumentType.COMMODITY)
         mock_fn.assert_awaited_once_with("GOLD")
         assert result is mock_result
 
@@ -248,15 +242,12 @@ class TestStepFundamentalAnalysis:
         chain = MagicMock()
         pipeline = AnalysisPipeline(symbol="US500", timeframe=Timeframe.H1, chain=chain)
         mock_result = MagicMock()
-        with (
-            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.INDEX),
-            patch(
-                "app.modules.fundamental_analysis.indices.analyze_index",
-                new_callable=AsyncMock,
-                return_value=mock_result,
-            ) as mock_fn,
-        ):
-            result = await pipeline._step_fundamental_analysis()
+        with patch(
+            "app.modules.fundamental_analysis.indices.analyze_index",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ) as mock_fn:
+            result = await pipeline._step_fundamental_analysis(InstrumentType.INDEX)
         mock_fn.assert_awaited_once_with("US500")
         assert result is mock_result
 
@@ -264,23 +255,19 @@ class TestStepFundamentalAnalysis:
     async def test_unknown_instrument_returns_none(self):
         chain = MagicMock()
         pipeline = AnalysisPipeline(symbol="???", timeframe=Timeframe.H1, chain=chain)
-        with patch("app.modules.pipeline.classify_instrument", return_value=None):
-            result = await pipeline._step_fundamental_analysis()
+        result = await pipeline._step_fundamental_analysis(None)
         assert result is None
 
     @pytest.mark.asyncio
     async def test_exception_returns_none(self):
         chain = MagicMock()
         pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
-        with (
-            patch("app.modules.pipeline.classify_instrument", return_value=InstrumentType.FOREX),
-            patch(
-                "app.modules.fundamental_analysis.forex.analyze_forex",
-                new_callable=AsyncMock,
-                side_effect=RuntimeError("api down"),
-            ),
+        with patch(
+            "app.modules.fundamental_analysis.forex.analyze_forex",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("api down"),
         ):
-            result = await pipeline._step_fundamental_analysis()
+            result = await pipeline._step_fundamental_analysis(InstrumentType.FOREX)
         assert result is None
 
 

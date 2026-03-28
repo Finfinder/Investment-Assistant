@@ -126,6 +126,7 @@ class AnalysisReport(BaseModel):
     symbol: str
     timeframe: Timeframe
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    instrument_type: InstrumentType | None = None
     ohlcv_data: list[OHLCVData] = Field(default_factory=list)
     technical_indicators: list[IndicatorValue] = Field(default_factory=list)
     moving_averages: list[MovingAverage] = Field(default_factory=list)

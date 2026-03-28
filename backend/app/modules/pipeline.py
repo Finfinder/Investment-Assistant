@@ -87,6 +87,9 @@ class AnalysisPipeline:
         return empty results without blocking the pipeline.
         """
         try:
+            # Classify instrument once, reuse in fundamental analysis and report
+            instrument_type = classify_instrument(self.symbol)
+
             # Step 1: Data fetch
             self._update_status(0, PIPELINE_STEPS[0])
             ohlcv = await self._step_fetch_data()
@@ -108,7 +111,7 @@ class AnalysisPipeline:
 
             # Step 4: Fundamental Analysis (graceful degradation)
             self._update_status(3, PIPELINE_STEPS[3])
-            fundamental = await self._step_fundamental_analysis()
+            fundamental = await self._step_fundamental_analysis(instrument_type)
             self._complete_step(PIPELINE_STEPS[3])
 
             # Step 5: Signal Aggregation
@@ -142,6 +145,7 @@ class AnalysisPipeline:
                 signal_summary=signal_summary,
                 fundamental=fundamental,
                 direction=direction,
+                instrument_type=instrument_type,
             )
             self._complete_step(PIPELINE_STEPS[5])
 
@@ -224,8 +228,7 @@ class AnalysisPipeline:
                 logger.warning("Pattern detection (%s) failed: %s", func.__name__, exc)
         return patterns
 
-    async def _step_fundamental_analysis(self) -> FundamentalData | None:
-        instrument_type = classify_instrument(self.symbol)
+    async def _step_fundamental_analysis(self, instrument_type: InstrumentType | None) -> FundamentalData | None:
         if instrument_type is None:
             return None
 

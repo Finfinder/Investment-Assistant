@@ -3,10 +3,20 @@ import { test as base, type Page } from "@playwright/test";
 const MOCK_ANALYSIS_ID = "mock-analysis-id";
 
 function mockReport(symbol: string, timeframe: string) {
+  const instrumentTypeMap: Record<string, string | null> = {
+    EURUSD: "forex",
+    GBPUSD: "forex",
+    USDJPY: "forex",
+    XAUUSD: "commodity",
+    GOLD: "commodity",
+    US500: "index",
+    SPX: "index",
+  };
   return {
     symbol,
     timeframe,
     timestamp: new Date().toISOString(),
+    instrument_type: instrumentTypeMap[symbol] ?? null,
     ohlcv_data: Array.from({ length: 30 }, (_, i) => ({
       timestamp: new Date(Date.now() - (30 - i) * 3600000).toISOString(),
       open: 1.1 + i * 0.001,

@@ -90,6 +90,7 @@ export interface AnalysisReport {
   symbol: string;
   timeframe: Timeframe;
   timestamp: string;
+  instrument_type: InstrumentType | null;
   ohlcv_data: OHLCVData[];
   technical_indicators: IndicatorValue[];
   moving_averages: MovingAverage[];
