@@ -23,7 +23,7 @@ class TestIndexBullish:
     async def test_bullish_us500(self, mock_fred: MagicMock):
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "fed_funds_rate": 1.0,
-            "cpi_us": 290.0,
+            "cpi_us": 2.0,
             "unemployment_us": 3.5,
             "gdp_us": 25000.0,
         }.get(name)
@@ -33,6 +33,7 @@ class TestIndexBullish:
         assert result.instrument_type == InstrumentType.INDEX
         assert result.score > 0
         assert result.indicators["region"] == "US"
+        assert result.indicators["inflation_yoy"] == 2.0
         assert "bycza" in result.summary
 
 
@@ -43,7 +44,7 @@ class TestIndexBearish:
     async def test_bearish_us500(self, mock_fred: MagicMock):
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "fed_funds_rate": 6.5,
-            "cpi_us": 320.0,
+            "cpi_us": 5.0,
             "unemployment_us": 8.0,
             "gdp_us": 22000.0,
         }.get(name)
@@ -51,6 +52,7 @@ class TestIndexBearish:
         result = await analyze_index("US500", fred=mock_fred)
 
         assert result.score < 0
+        assert result.indicators["inflation_yoy"] == 5.0
         assert "niedzwiedzia" in result.summary
 
 
@@ -73,7 +75,7 @@ class TestIndexEuropean:
     async def test_de40_uses_eu_region(self, mock_fred: MagicMock):
         mock_fred.fetch_indicator.side_effect = lambda name: {
             "ecb_rate": 4.5,
-            "cpi_eu": 115.0,
+            "cpi_eu": 1.9,
         }.get(name)
 
         result = await analyze_index("DE40", fred=mock_fred)

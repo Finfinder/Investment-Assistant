@@ -10,8 +10,8 @@ class TestFundamentalEndpointForex:
             side_effect=lambda name: {
                 "ecb_rate": 4.0,
                 "fed_funds_rate": 5.25,
-                "cpi_eu": 110.0,
-                "cpi_us": 305.0,
+                "cpi_eu": 1.9,
+                "cpi_us": 2.4,
             }.get(name)
         )
 

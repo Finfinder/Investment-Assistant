@@ -80,20 +80,20 @@ async def _score_rates_environment(fred: FredSource) -> tuple[float, str]:
     """Real rates environment effect on commodities.
 
     Low/negative real rates -> bullish for hard assets (gold, silver).
+    Real rate = fed_funds_rate - cpi_yoy.
     """
     fed_rate = await fred.fetch_indicator("fed_funds_rate")
-    cpi = await fred.fetch_indicator("cpi_us")
+    cpi_yoy = await fred.fetch_indicator("cpi_us")
 
-    if fed_rate is None or cpi is None:
+    if fed_rate is None or cpi_yoy is None:
         return 0.0, "Brak danych o stopach realnych"
 
-    # CPI is index, approximate YoY change as the raw value is index-based
-    # For scoring we use the rate vs a CPI proxy
-    # Negative real rate = bullish for commodities
-    # Simple heuristic: if fed_rate < 3% => accommodative => bullish commodities
-    real_score = max(-20.0, min(20.0, -(fed_rate - 2.5) * 8.0))
+    real_rate = fed_rate - cpi_yoy
+    # Negative real rate = bullish for commodities; each 1pp below 0 = +5 pts
+    real_score = -real_rate * 5.0
+    real_score = max(-20.0, min(20.0, real_score))
 
-    desc = f"Srodowisko stop: Fed {fed_rate:.2f}%"
+    desc = f"Stopa realna: {real_rate:+.1f}% (Fed {fed_rate:.2f}% - inflacja {cpi_yoy:.1f}%)"
     return real_score, desc
 
 

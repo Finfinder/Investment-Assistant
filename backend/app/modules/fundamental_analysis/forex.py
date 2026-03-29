@@ -76,9 +76,11 @@ def _compute_rate_differential(base_rate: float | None, quote_rate: float | None
 
 
 def _compute_inflation_differential(base_cpi: float | None, quote_cpi: float | None) -> float:
-    """Lower inflation -> stronger currency.
+    """Compare YoY inflation rates (%) between currencies.
 
+    Lower inflation -> stronger currency.
     Positive means base has higher inflation -> bearish for the pair.
+    Parameters are YoY inflation rates in %, not raw CPI index values.
     """
     if base_cpi is None or quote_cpi is None:
         return 0.0
@@ -115,8 +117,8 @@ async def analyze_forex(symbol: str, fred: FredSource | None = None) -> Fundamen
         f"{base}_interest_rate": base_rate,
         f"{quote}_interest_rate": quote_rate,
         "interest_rate_differential": rate_diff,
-        f"{base}_cpi": base_cpi,
-        f"{quote}_cpi": quote_cpi,
+        f"{base}_inflation_yoy": base_cpi,
+        f"{quote}_inflation_yoy": quote_cpi,
         "inflation_differential": inflation_diff,
     }
 
@@ -148,7 +150,7 @@ async def analyze_forex(symbol: str, fred: FredSource | None = None) -> Fundamen
         if base_rate is not None and quote_rate is not None:
             parts.append(f"roznica stop {base} vs {quote}: {rate_diff:+.2f}%")
         if base_cpi is not None and quote_cpi is not None:
-            parts.append(f"roznica inflacji: {inflation_diff:+.2f}%")
+            parts.append(f"roznica inflacji: {inflation_diff:+.2f}pp")
         summary = f"Analiza fundamentalna {base}/{quote}: {direction} ({', '.join(parts)})."
 
     return FundamentalData(

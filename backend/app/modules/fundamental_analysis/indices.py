@@ -88,18 +88,21 @@ def _score_unemployment(unemployment: float | None) -> tuple[float, str]:
     return score, desc
 
 
-def _score_inflation(cpi: float | None, rate: float | None) -> tuple[float, str]:
-    """Moderate inflation is fine; high inflation with high rates = drag on equities."""
-    if cpi is None:
+def _score_inflation(cpi_yoy: float | None) -> tuple[float, str]:
+    """Score inflation based on CPI YoY% deviation from the 2% central bank target.
+
+    Above target = bearish (tighter policy ahead), below = mildly bullish.
+    """
+    if cpi_yoy is None:
         return 0.0, ""
 
-    # We don't have the exact YoY change from FRED index, so we skip CPI-based scoring
-    # and rely on the rate environment. If we have both, real rate matters.
-    if rate is not None:
-        # Approximation: if CPI data available but represents an index, just report it
-        return 0.0, f"CPI (indeks): {cpi:.1f}"
+    target = 2.0
+    deviation = cpi_yoy - target
+    # Asymmetric: above target hurts more (-8 per pp) than below helps (+4 per pp)
+    score = -deviation * 8.0 if deviation > 0 else -deviation * 4.0
+    score = max(-30.0, min(30.0, score))
 
-    return 0.0, f"CPI (indeks): {cpi:.1f}"
+    return score, f"Inflacja CPI: {cpi_yoy:.1f}% r/r"
 
 
 async def analyze_index(symbol: str, fred: FredSource | None = None) -> FundamentalData:
@@ -132,7 +135,7 @@ async def analyze_index(symbol: str, fred: FredSource | None = None) -> Fundamen
 
     rate_score, rate_desc = _score_interest_rate(rate)
     unemp_score, unemp_desc = _score_unemployment(unemployment)
-    cpi_score, cpi_desc = _score_inflation(cpi, rate)
+    cpi_score, cpi_desc = _score_inflation(cpi)
 
     total_score = rate_score + unemp_score + cpi_score
     total_score = max(-100.0, min(100.0, total_score))
@@ -140,7 +143,7 @@ async def analyze_index(symbol: str, fred: FredSource | None = None) -> Fundamen
     indicators: dict[str, float | str | None] = {
         "region": region,
         "interest_rate": rate,
-        "cpi": cpi,
+        "inflation_yoy": cpi,
         "unemployment": unemployment,
         "gdp": gdp,
         "rate_score": rate_score,

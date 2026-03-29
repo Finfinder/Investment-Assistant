@@ -16,7 +16,7 @@ def mock_fred():
     fred.fetch_indicator = AsyncMock(
         side_effect=lambda name: {
             "fed_funds_rate": 5.25,
-            "cpi_us": 300.0,
+            "cpi_us": 2.4,
         }.get(name)
     )
     return fred
@@ -44,7 +44,7 @@ class TestCommodityBullish:
         mock_fred.fetch_indicator = AsyncMock(
             side_effect=lambda name: {
                 "fed_funds_rate": 1.5,
-                "cpi_us": 280.0,
+                "cpi_us": 3.5,
             }.get(name)
         )
 
@@ -72,7 +72,7 @@ class TestCommodityBearish:
         mock_fred.fetch_indicator = AsyncMock(
             side_effect=lambda name: {
                 "fed_funds_rate": 6.0,
-                "cpi_us": 310.0,
+                "cpi_us": 1.5,
             }.get(name)
         )
 

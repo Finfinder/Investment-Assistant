@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replace discontinued/unavailable FRED CPI series: US (`CPIAUCSL` → `CPALTT01USM659N` YoY%), JP (`CPALTT01JPM659N` → `FPCPITOTLZGJPN` annual IMF), AU (`CPALTT01AUM659N` → `CPALTT01AUQ659N` quarterly OECD)
+- Add `SERIES_YOY_UNITS` dict to convert EU HICP index to YoY% via FRED `units=pc1` parameter
+- Add `SERIES_LOOKBACK_DAYS` dict for per-series lookback overrides (730 days for annual JP CPI)
+- Rewrite index inflation scoring to use CPI YoY% deviation from 2% target instead of skipping CPI index values
+- Rewrite commodity real-rate scoring to compute actual real rate (`fed_rate - cpi_yoy`) instead of heuristic
+- Rename forex fundamental indicators from `_cpi` to `_inflation_yoy` and display inflation differential in percentage points
+
+### Fixed
+
+- Fix null inflation data for JPY and AUD currency pairs caused by discontinued FRED OECD series
+- Fix EU inflation always null — add FRED `units=pc1` parameter to convert Eurostat HICP index to YoY%
+- Fix US CPI returning raw index value instead of YoY% — switch from `CPIAUCSL` (SA index) to `CPALTT01USM659N` (YoY%)
+- Fix Docker healthchecks failing inside containers — replace `localhost` with `127.0.0.1` in `wget` commands
+- Fix backend entrypoint `exec format error` on Linux — strip Windows CRLF line endings in Dockerfile
+- Fix Next.js standalone server not accepting external connections — set `HOSTNAME=0.0.0.0` in frontend Dockerfile
+
 ### Added
 
 - Docker entrypoint script (`entrypoint.sh`) that runs Alembic migrations before starting uvicorn
