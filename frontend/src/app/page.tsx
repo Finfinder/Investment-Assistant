@@ -81,15 +81,22 @@ export default function HomePage() {
 
   const handleAnalysisComplete = useCallback(async () => {
     if (!analysisId) return;
+    const MAX_RETRIES = 3;
+    const BACKOFF_MS = 500;
     try {
-      const result = await getAnalysis(analysisId);
-      if ("symbol" in result) {
-        setReport(result);
-        setState("done");
-      } else {
-        setState("error");
-        setError("Błąd: nie udało się pobrać raportu");
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        const result = await getAnalysis(analysisId);
+        if ("symbol" in result) {
+          setReport(result);
+          setState("done");
+          return;
+        }
+        if (attempt < MAX_RETRIES - 1) {
+          await new Promise((r) => setTimeout(r, BACKOFF_MS * (attempt + 1)));
+        }
       }
+      setState("error");
+      setError("Błąd: nie udało się pobrać raportu po zakończeniu analizy");
     } catch (e) {
       setState("error");
       setError(e instanceof Error ? `Błąd: ${e.message}` : "Błąd: nie udało się pobrać raportu");
@@ -235,7 +242,7 @@ export default function HomePage() {
 
             {/* Strategy */}
             <Section title="Strategie wejścia" id="strategies">
-              <StrategyTable strategies={report.strategies} />
+              <StrategyTable strategies={report.strategies} strategySkipReason={report.strategy_skip_reason} />
             </Section>
 
             {/* Indicators */}

@@ -3,14 +3,15 @@ import { formatValue } from "../IndicatorTable/shared";
 import { confidenceBarClass } from "@/lib/format";
 
 interface StrategyTableProps {
-  strategies: StrategyEntry[];
+  readonly strategies: StrategyEntry[];
+  readonly strategySkipReason?: string | null;
 }
 
-export default function StrategyTable({ strategies }: Readonly<StrategyTableProps>) {
+export default function StrategyTable({ strategies, strategySkipReason }: Readonly<StrategyTableProps>) {
   if (strategies.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card p-6 text-center text-muted">
-        Brak wygenerowanych strategii
+        {strategySkipReason || "Brak wygenerowanych strategii"}
       </div>
     );
   }

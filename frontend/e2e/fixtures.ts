@@ -82,6 +82,7 @@ function mockReport(symbol: string, timeframe: string) {
         confidence_pct: 72,
       },
     ],
+    strategy_skip_reason: null,
   };
 }
 

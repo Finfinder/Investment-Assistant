@@ -24,6 +24,7 @@ from app.core.models import (
     Timeframe,
 )
 from app.modules.data_acquisition.fallback_chain import FallbackChainManager, build_fallback_chain
+from app.modules.technical_analysis.pivot_points import get_pivot_candle
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -87,6 +88,17 @@ class AnalysisPipeline:
         self._status.error_message = error
         analysis_tasks[self.analysis_id] = self._status
 
+    def complete(self) -> None:
+        """Mark analysis as COMPLETED and publish to analysis_tasks.
+
+        Must be called by the API layer AFTER caching the report
+        in _analysis_results to prevent the race condition.
+        """
+        self._status.status = AnalysisStatusType.COMPLETED
+        self._status.progress_pct = 100.0
+        self._status.current_step = ""
+        analysis_tasks[self.analysis_id] = self._status
+
     async def run(self) -> AnalysisReport | None:
         """Execute the full 6-step pipeline.
 
@@ -107,9 +119,17 @@ class AnalysisPipeline:
                 self._fail("Brak danych rynkowych dla podanego symbolu")
                 return None
 
+            # Fetch D1 candle for Pivot Points (before step 2)
+            if self.timeframe == Timeframe.D1:
+                pivot_candle = get_pivot_candle(ohlcv)
+            else:
+                pivot_candle = await self._fetch_pivot_candle()
+
             # Step 2: Technical Analysis
             self._update_status(1, PIPELINE_STEPS[1])
-            indicators, moving_averages, pivot_points, signal_summary = self._step_technical_analysis(ohlcv)
+            indicators, moving_averages, pivot_points, signal_summary = self._step_technical_analysis(
+                ohlcv, pivot_candle
+            )
             self._complete_step(PIPELINE_STEPS[1])
 
             # Step 3: Pattern Recognition
@@ -160,10 +180,11 @@ class AnalysisPipeline:
             # Persist result
             await self._persist_result(report)
 
-            self._status.status = AnalysisStatusType.COMPLETED
-            self._status.progress_pct = 100.0
-            self._status.current_step = ""
-            analysis_tasks[self.analysis_id] = self._status
+            # NOTE: COMPLETED status is NOT published here — the caller
+            # (_run_pipeline in analysis.py) must call complete() AFTER
+            # caching the report in _analysis_results to avoid the race
+            # condition where WebSocket sends COMPLETED before the report
+            # is available via GET /analysis/{id}.
 
             return report
 
@@ -210,8 +231,17 @@ class AnalysisPipeline:
             logger.warning("Data fetch failed: %s", exc)
             return []
 
+    async def _fetch_pivot_candle(self) -> OHLCVData | None:
+        """Fetch daily candles and return the previous completed day for Pivot Points."""
+        try:
+            daily = await self._chain.fetch_ohlcv(self.symbol, Timeframe.D1, "5d")
+            return get_pivot_candle(daily)
+        except Exception as exc:
+            logger.warning("D1 candle fetch for pivot points failed: %s", exc)
+            return None
+
     def _step_technical_analysis(
-        self, ohlcv: list[OHLCVData]
+        self, ohlcv: list[OHLCVData], pivot_candle: OHLCVData | None = None
     ) -> tuple[list[IndicatorValue], list[MovingAverage], list[PivotPoints], SignalSummary | None]:
         from app.modules.technical_analysis.indicators import calculate_indicators
         from app.modules.technical_analysis.moving_averages import calculate_moving_averages
@@ -234,8 +264,8 @@ class AnalysisPipeline:
             moving_averages = []
 
         try:
-            last = ohlcv[-1]
-            pivot_points = calculate_pivot_points(last.high, last.low, last.close, last.open)
+            candle = pivot_candle or ohlcv[-1]
+            pivot_points = calculate_pivot_points(candle.high, candle.low, candle.close, candle.open)
         except Exception as exc:
             logger.warning("Pivot points calculation failed: %s", exc)
             pivot_points = []

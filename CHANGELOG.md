@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Docker entrypoint script (`entrypoint.sh`) that runs Alembic migrations before starting uvicorn
+- `strategy_skip_reason` field on `AnalysisReport` — explains why no strategies were generated (e.g., neutral signals)
+- DB fallback in `GET /analysis/{id}` — loads persisted report from database when TTL cache misses
+- Frontend retry with linear backoff (3 attempts) when fetching completed analysis report
 - Configurable indicator presets system (Investing.pl / TradingView) with frozen dataclass parameters and `IndicatorPreset` StrEnum
 - 4 new technical indicators: ATR, Bull/Bear Power, StochRSI, ROC (13 total oscillator/momentum indicators)
 - MACD crossover signal logic replacing histogram-based signal generation
@@ -24,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix Pivot Points showing identical values for all S/R levels on intraday timeframes — use previous completed daily candle (D1) instead of last intraday candle for calculations, with graceful fallback when D1 fetch fails
+- Fix race condition between COMPLETED status publication and report caching — pipeline now caches report before signaling completion via `complete()` method
+- Fix missing `analysis_results` table in Docker — entrypoint runs `alembic upgrade head` before uvicorn startup
+- Fix empty strategies showing generic message — display `strategy_skip_reason` explaining why no entry strategies were generated (neutral signals)
 - Fix chart price precision for forex pairs (4 decimal places instead of 2), initial chart scaling to show relevant bars per timeframe, and zoom anchoring to keep right edge visible
 - Fix empty candlestick chart on intraday timeframes (M15, H1, H4) — convert ISO timestamps to `UTCTimestamp` (Unix epoch seconds) instead of truncating to date strings, which caused duplicate keys silently rejected by lightweight-charts v5.1
 - Fix flaky E2E axe-core accessibility test in CI — run Playwright against production build (`npm run build && npm start`) instead of dev server to eliminate incomplete HTML under concurrent load

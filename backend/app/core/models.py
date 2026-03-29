@@ -140,6 +140,7 @@ class AnalysisReport(BaseModel):
     fundamental: FundamentalData | None = None
     signal_summary: SignalSummary | None = None
     strategies: list[StrategyEntry] = Field(default_factory=list)
+    strategy_skip_reason: str | None = None
 
 
 class AnalysisStatus(BaseModel):

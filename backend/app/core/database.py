@@ -1,8 +1,9 @@
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import DateTime, Float, Index, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, Float, Index, String, Text, UniqueConstraint, event, func
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -54,6 +55,18 @@ def _create_engine() -> tuple[async_sessionmaker[AsyncSession], object]:
         settings.DATABASE_URL,
         echo=settings.DEBUG,
     )
+
+    if settings.DATABASE_URL.startswith("sqlite"):
+
+        @event.listens_for(engine.sync_engine, "connect")
+        def _set_sqlite_pragma(dbapi_conn: Any, connection_record: Any) -> None:
+            cursor = dbapi_conn.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=-64000")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.close()
+
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     return session_factory, engine
 

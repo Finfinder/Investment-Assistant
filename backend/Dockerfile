@@ -22,8 +22,10 @@ COPY --from=builder /install /usr/local
 COPY alembic.ini .
 COPY alembic/ alembic/
 COPY app/ app/
+COPY entrypoint.sh .
 
 RUN mkdir -p /app/data /app/.numba_cache && chown -R appuser:appgroup /app/data /app/.numba_cache
+RUN chmod +x /app/entrypoint.sh
 
 ENV NUMBA_CACHE_DIR=/app/.numba_cache
 
@@ -31,4 +33,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/entrypoint.sh"]

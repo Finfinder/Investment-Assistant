@@ -80,6 +80,7 @@ def test_bullish_report():
     assert all(s.direction == Direction.LONG for s in report.strategies)
     assert all(s.entry_price is not None for s in report.strategies)
     assert all(s.stop_loss is not None for s in report.strategies)
+    assert report.strategy_skip_reason is None
 
 
 def test_bearish_report():
@@ -123,6 +124,7 @@ def test_bearish_report():
     assert report.instrument_type == InstrumentType.FOREX
     assert len(report.strategies) >= 1
     assert all(s.direction == Direction.SHORT for s in report.strategies)
+    assert report.strategy_skip_reason is None
 
 
 def test_neutral_report_no_strategies():
@@ -145,6 +147,8 @@ def test_neutral_report_no_strategies():
 
     assert report.instrument_type == InstrumentType.FOREX
     assert report.strategies == []
+    assert report.strategy_skip_reason is not None
+    assert len(report.strategy_skip_reason) > 0
 
 
 def test_build_report_default_instrument_type():

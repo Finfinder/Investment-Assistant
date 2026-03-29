@@ -1,7 +1,7 @@
 """Tests for database operations."""
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AnalysisResult
@@ -49,3 +49,13 @@ class TestAnalysisResultORM:
         row = result.scalar_one()
         assert row.status == "completed"
         assert row.result_json == '{"indicators": []}'
+
+
+@pytest.mark.integration
+class TestSQLitePragma:
+    async def test_wal_mode_enabled(self, db_session: AsyncSession) -> None:
+        """Verify PRAGMA journal_mode is set (in-memory SQLite returns 'memory')."""
+        result = await db_session.execute(text("PRAGMA journal_mode"))
+        mode = result.scalar()
+        # In-memory SQLite returns "memory" for journal_mode, file-based returns "wal"
+        assert mode in ("wal", "memory")

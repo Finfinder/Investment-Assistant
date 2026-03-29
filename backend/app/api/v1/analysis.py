@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisco
 from pydantic import BaseModel
 
 from app.api.v1.validators import validate_symbol
+from app.core.database import AnalysisResult, get_session_factory
 from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, IndicatorPreset, Timeframe
 from app.core.rate_limit import limiter
 from app.modules.pipeline import AnalysisPipeline, analysis_tasks
@@ -55,11 +56,25 @@ _background_tasks: TTLCache[str, asyncio.Task[None]] = TTLCache(maxsize=1000, tt
 
 
 async def _run_pipeline(pipeline: AnalysisPipeline) -> None:
-    """Execute pipeline and store result."""
+    """Execute pipeline: cache report first, then publish COMPLETED."""
     async with _analysis_semaphore:
         report = await pipeline.run()
         if report is not None:
             _analysis_results[pipeline.analysis_id] = report
+            pipeline.complete()
+
+
+async def _load_report_from_db(analysis_id: str) -> AnalysisReport | None:
+    """Try to load a persisted report from the database (defense-in-depth)."""
+    try:
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            row = await session.get(AnalysisResult, analysis_id)
+            if row is not None and row.result_json:
+                return AnalysisReport.model_validate_json(row.result_json)
+    except Exception:
+        logger.debug("DB fallback failed for analysis %s", analysis_id, exc_info=True)
+    return None
 
 
 @router.get("/analysis/{analysis_id}")
@@ -76,7 +91,11 @@ async def get_analysis(analysis_id: str) -> AnalysisReport | AnalysisStatus:
         report: AnalysisReport | None = _analysis_results.get(analysis_id)
         if report is not None:
             return report
-        # Report was persisted but not in memory — return status
+        # Cache miss — try DB fallback (defense-in-depth)
+        report = await _load_report_from_db(analysis_id)
+        if report is not None:
+            _analysis_results[analysis_id] = report
+            return report
         return status
 
     return status

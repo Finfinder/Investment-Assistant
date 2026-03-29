@@ -1,4 +1,17 @@
-from app.core.models import PivotPoints, PivotType
+from app.core.models import OHLCVData, PivotPoints, PivotType
+
+
+def get_pivot_candle(daily_ohlcv: list[OHLCVData]) -> OHLCVData | None:
+    """Select the proper daily candle for Pivot Points calculation.
+
+    Returns the previous completed day (second-to-last candle) when available,
+    the only candle when just one exists, or None for an empty list.
+    """
+    if not daily_ohlcv:
+        return None
+    if len(daily_ohlcv) >= 2:
+        return daily_ohlcv[-2]
+    return daily_ohlcv[-1]
 
 
 def calculate_pivot_points(high: float, low: float, close: float, open_: float) -> list[PivotPoints]:

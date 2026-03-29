@@ -101,6 +101,7 @@ export interface AnalysisReport {
   fundamental: FundamentalData | null;
   signal_summary: SignalSummary | null;
   strategies: StrategyEntry[];
+  strategy_skip_reason: string | null;
 }
 
 export interface AnalysisStatus {

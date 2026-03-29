@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import OHLCVCache
@@ -20,6 +21,9 @@ _STALENESS_MINUTES = 5
 
 # Timeframes considered intraday (subject to staleness check)
 _INTRADAY_TIMEFRAMES = frozenset({"M15", "H1", "H4"})
+
+# Max rows per INSERT statement (500 x 8 columns = 4000 params, safely under SQLite 32766 limit)
+_UPSERT_CHUNK_SIZE = 500
 
 
 async def get_cached_ohlcv(session: AsyncSession, symbol: str, timeframe: str) -> list[OHLCVData]:
@@ -63,39 +67,43 @@ async def get_latest_fetched_at(session: AsyncSession, symbol: str, timeframe: s
 
 
 async def upsert_ohlcv(session: AsyncSession, symbol: str, timeframe: str, candles: list[OHLCVData]) -> int:
-    """Insert or replace candles in cache. Returns count of rows written."""
+    """Insert or update candles in cache using bulk upsert. Returns count of rows written."""
     if not candles:
         return 0
 
-    timestamps = [c.timestamp for c in candles]
-
-    # Delete existing rows for these timestamps (upsert via delete+insert for SQLite compat)
-    await session.execute(
-        delete(OHLCVCache).where(
-            OHLCVCache.symbol == symbol,
-            OHLCVCache.timeframe == timeframe,
-            OHLCVCache.timestamp.in_(timestamps),
-        )
-    )
-
     rows = [
-        OHLCVCache(
-            symbol=symbol,
-            timeframe=timeframe,
-            timestamp=c.timestamp,
-            open=c.open,
-            high=c.high,
-            low=c.low,
-            close=c.close,
-            volume=c.volume,
-        )
+        {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "timestamp": c.timestamp,
+            "open": c.open,
+            "high": c.high,
+            "low": c.low,
+            "close": c.close,
+            "volume": c.volume,
+        }
         for c in candles
     ]
-    session.add_all(rows)
-    await session.commit()
 
-    logger.info("Cached %d candles for %s/%s", len(rows), symbol, timeframe)
-    return len(rows)
+    for i in range(0, len(rows), _UPSERT_CHUNK_SIZE):
+        chunk = rows[i : i + _UPSERT_CHUNK_SIZE]
+        stmt = sqlite_insert(OHLCVCache).values(chunk)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["symbol", "timeframe", "timestamp"],
+            set_={
+                "open": stmt.excluded.open,
+                "high": stmt.excluded.high,
+                "low": stmt.excluded.low,
+                "close": stmt.excluded.close,
+                "volume": stmt.excluded.volume,
+                "fetched_at": func.now(),
+            },
+        )
+        await session.execute(stmt)
+
+    await session.commit()
+    logger.info("Cached %d candles for %s/%s", len(candles), symbol, timeframe)
+    return len(candles)
 
 
 async def clear_cache(session: AsyncSession, symbol: str, timeframe: str) -> None:

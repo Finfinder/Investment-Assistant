@@ -10,7 +10,7 @@ from app.core.rate_limit import limiter
 from app.modules.data_acquisition.fallback_chain import DataProviderError
 from app.modules.technical_analysis.indicators import calculate_indicators
 from app.modules.technical_analysis.moving_averages import calculate_moving_averages
-from app.modules.technical_analysis.pivot_points import calculate_pivot_points
+from app.modules.technical_analysis.pivot_points import calculate_pivot_points, get_pivot_candle
 from app.modules.technical_analysis.presets import get_preset_params
 from app.modules.technical_analysis.summary import calculate_summaries
 
@@ -55,8 +55,19 @@ async def run_technical_analysis(request: Request, body: TechnicalAnalysisReques
     indicators = calculate_indicators(ohlcv, params)
     moving_avgs = calculate_moving_averages(ohlcv)
 
-    last = ohlcv[-1]
-    pivots = calculate_pivot_points(last.high, last.low, last.close, last.open)
+    # Fetch D1 candle for Pivot Points
+    pivot_candle = None
+    if body.timeframe == Timeframe.D1:
+        pivot_candle = get_pivot_candle(ohlcv)
+    else:
+        try:
+            daily = await chain.fetch_ohlcv(body.symbol, Timeframe.D1, "5d")
+            pivot_candle = get_pivot_candle(daily)
+        except Exception as exc:
+            logger.warning("D1 candle fetch for pivot points failed: %s", exc)
+
+    candle = pivot_candle or ohlcv[-1]
+    pivots = calculate_pivot_points(candle.high, candle.low, candle.close, candle.open)
 
     summary = calculate_summaries(indicators, moving_avgs)
 

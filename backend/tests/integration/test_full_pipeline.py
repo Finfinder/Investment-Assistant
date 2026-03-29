@@ -82,7 +82,8 @@ class TestFullPipelineForex:
         assert report.signal_summary is not None, "Report must have signal summary"
         assert report.fundamental is not None, "Report must have fundamental data"
 
-        # Verify pipeline status
+        # run() no longer publishes COMPLETED; caller must call complete()
+        pipeline.complete()
         assert pipeline.status.status == AnalysisStatusType.COMPLETED
         assert pipeline.status.progress_pct == 100.0
         assert len(pipeline.status.steps_completed) == 6
@@ -193,6 +194,8 @@ class TestPipelineGracefulDegradation:
         assert report.fundamental is None
         assert report.instrument_type is not None
         assert len(report.technical_indicators) > 0
+        # run() no longer publishes COMPLETED; caller must call complete()
+        pipeline.complete()
         assert pipeline.status.status == AnalysisStatusType.COMPLETED
 
     @pytest.mark.asyncio

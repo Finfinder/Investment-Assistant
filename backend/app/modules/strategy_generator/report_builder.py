@@ -43,6 +43,7 @@ def build_report(
     fib_patterns = [p for p in patterns if p.pattern_type.startswith("Fibonacci")]
 
     strategies: list[StrategyEntry] = []
+    strategy_skip_reason: str | None = None
     if direction is not None:
         strategies = _build_strategies(
             direction=direction,
@@ -54,6 +55,8 @@ def build_report(
             sr_patterns=sr_patterns,
             fib_patterns=fib_patterns,
         )
+    else:
+        strategy_skip_reason = "Sygnały neutralne — zagregowany wynik zbyt bliski zeru, aby określić kierunek wejścia"
 
     return AnalysisReport(
         symbol=symbol,
@@ -67,6 +70,7 @@ def build_report(
         fundamental=fundamental,
         signal_summary=signal_summary,
         strategies=strategies,
+        strategy_skip_reason=strategy_skip_reason,
     )
 
 

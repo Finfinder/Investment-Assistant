@@ -1,7 +1,8 @@
 import pytest
 
 from app.core.models import PivotType
-from app.modules.technical_analysis.pivot_points import calculate_pivot_points
+from app.modules.technical_analysis.pivot_points import calculate_pivot_points, get_pivot_candle
+from tests.helpers import make_ohlcv
 
 # Test data: H=110, L=90, C=105, OP=100
 H, L, C, OP = 110.0, 90.0, 105.0, 100.0
@@ -85,3 +86,31 @@ def test_returns_5_types():
     assert len(results) == 5
     types = {r.type for r in results}
     assert types == {PivotType.CLASSIC, PivotType.FIBONACCI, PivotType.CAMARILLA, PivotType.WOODIE, PivotType.DEMARK}
+
+
+# ---------------------------------------------------------------------------
+# get_pivot_candle — selection of the proper daily candle
+# ---------------------------------------------------------------------------
+
+
+def test_get_pivot_candle_empty_list():
+    assert get_pivot_candle([]) is None
+
+
+def test_get_pivot_candle_single_candle():
+    candle = make_ohlcv(open_=100, high=110, low=90, close=105)
+    result = get_pivot_candle([candle])
+    assert result is candle
+
+
+def test_get_pivot_candle_two_candles():
+    first = make_ohlcv(open_=100, high=110, low=90, close=105, index=0)
+    second = make_ohlcv(open_=106, high=112, low=95, close=108, index=1)
+    result = get_pivot_candle([first, second])
+    assert result is first
+
+
+def test_get_pivot_candle_five_candles():
+    candles = [make_ohlcv(open_=100 + i, high=110 + i, low=90 + i, close=105 + i, index=i) for i in range(5)]
+    result = get_pivot_candle(candles)
+    assert result is candles[-2]  # 4th candle (index 3)

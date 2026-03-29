@@ -60,8 +60,8 @@ async def test_pipeline_success():
     assert report is not None
     assert report.symbol == "EURUSD"
     assert report.timeframe == Timeframe.H1
-    assert pipeline.status.status == AnalysisStatusType.COMPLETED
-    assert pipeline.status.progress_pct == approx(100.0)
+    # run() no longer publishes COMPLETED — caller must call complete()
+    assert pipeline.status.status != AnalysisStatusType.COMPLETED
     assert len(pipeline.status.steps_completed) == 6
 
 
@@ -88,7 +88,8 @@ async def test_pipeline_partial_failure():
 
     assert report is not None
     assert report.fundamental is None
-    assert pipeline.status.status == AnalysisStatusType.COMPLETED
+    # run() no longer publishes COMPLETED — caller must call complete()
+    assert pipeline.status.status != AnalysisStatusType.COMPLETED
 
 
 @pytest.mark.asyncio
@@ -131,8 +132,45 @@ async def test_pipeline_status_tracking():
         await pipeline.run()
 
     status = analysis_tasks[pipeline.analysis_id]
+    # run() no longer sets COMPLETED; the status should be RUNNING (last step update)
+    assert status.status == AnalysisStatusType.RUNNING
+
+    # After calling complete(), status should be COMPLETED
+    pipeline.complete()
+    status = analysis_tasks[pipeline.analysis_id]
     assert status.status == AnalysisStatusType.COMPLETED
     assert status.progress_pct == approx(100.0)
+
+
+def test_complete_sets_completed_status():
+    """complete() sets COMPLETED status, 100% progress, and empty current_step."""
+    mock_chain = MagicMock()
+    pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=mock_chain)
+
+    # Simulate running state
+    pipeline._status.status = AnalysisStatusType.RUNNING
+    pipeline._status.progress_pct = 83.0
+    pipeline._status.current_step = "Generowanie strategii"
+
+    pipeline.complete()
+
+    assert pipeline.status.status == AnalysisStatusType.COMPLETED
+    assert pipeline.status.progress_pct == approx(100.0)
+    assert pipeline.status.current_step == ""
+
+
+def test_complete_publishes_to_analysis_tasks():
+    """complete() publishes the COMPLETED status to the shared analysis_tasks dict."""
+    mock_chain = MagicMock()
+    pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=mock_chain)
+
+    pipeline.complete()
+
+    published = analysis_tasks.get(pipeline.analysis_id)
+    assert published is not None
+    assert published.status == AnalysisStatusType.COMPLETED
+    assert published.progress_pct == approx(100.0)
+    assert published.current_step == ""
 
 
 # ---------------------------------------------------------------------------
@@ -324,3 +362,92 @@ async def test_pipeline_run_outer_exception():
 
     assert report is None
     assert pipeline.status.status == AnalysisStatusType.FAILED
+
+
+# ---------------------------------------------------------------------------
+# _fetch_pivot_candle + D1 candle integration with pipeline
+# ---------------------------------------------------------------------------
+class TestFetchPivotCandle:
+    @pytest.mark.asyncio
+    async def test_fetch_pivot_candle_returns_candle(self):
+        """_fetch_pivot_candle returns the previous completed daily candle."""
+        daily = _make_ohlcv(5)
+        chain = MagicMock()
+        chain.fetch_ohlcv = AsyncMock(return_value=daily)
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+
+        result = await pipeline._fetch_pivot_candle()
+
+        chain.fetch_ohlcv.assert_awaited_once_with("EURUSD", Timeframe.D1, "5d")
+        assert result is daily[-2]
+
+    @pytest.mark.asyncio
+    async def test_fetch_pivot_candle_exception_returns_none(self):
+        """_fetch_pivot_candle returns None on failure without crashing."""
+        chain = MagicMock()
+        chain.fetch_ohlcv = AsyncMock(side_effect=RuntimeError("network error"))
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+
+        result = await pipeline._fetch_pivot_candle()
+
+        assert result is None
+
+    def test_step_technical_analysis_uses_pivot_candle(self):
+        """When pivot_candle is provided, it is used instead of ohlcv[-1]."""
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+        ohlcv = _make_ohlcv(30)
+        daily_candle = OHLCVData(
+            timestamp=datetime(2024, 1, 1, tzinfo=UTC),
+            open=1.1000,
+            high=1.1200,
+            low=1.0800,
+            close=1.1100,
+            volume=50000.0,
+        )
+
+        _, _, pp, _ = pipeline._step_technical_analysis(ohlcv, pivot_candle=daily_candle)
+
+        assert len(pp) == 5
+        classic = next(p for p in pp if p.type.value == "classic")
+        # Verify using daily candle values, not ohlcv[-1]
+        expected_pp = round((1.1200 + 1.0800 + 1.1100) / 3, 5)
+        assert classic.pp == pytest.approx(expected_pp, abs=1e-4)
+
+    def test_step_technical_analysis_fallback_when_no_pivot_candle(self):
+        """When pivot_candle is None, falls back to ohlcv[-1]."""
+        chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=chain)
+        ohlcv = _make_ohlcv(30)
+
+        _, _, pp_with_none, _ = pipeline._step_technical_analysis(ohlcv, pivot_candle=None)
+        _, _, pp_without, _ = pipeline._step_technical_analysis(ohlcv)
+
+        assert len(pp_with_none) == 5
+        assert pp_with_none[0].pp == pp_without[0].pp
+
+    @pytest.mark.asyncio
+    async def test_pipeline_d1_timeframe_uses_existing_ohlcv(self):
+        """For D1 timeframe, pivot_candle comes from existing ohlcv — no extra fetch."""
+        mock_chain = MagicMock()
+        daily_data = _make_ohlcv(30)
+        mock_chain.fetch_ohlcv = AsyncMock(return_value=daily_data)
+
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.D1, chain=mock_chain)
+
+        with (
+            patch(
+                "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.modules.pipeline.AnalysisPipeline._persist_result",
+                new_callable=AsyncMock,
+            ),
+        ):
+            report = await pipeline.run()
+
+        assert report is not None
+        # Only one fetch_ohlcv call (for step 1 data), not two (no separate D1 fetch)
+        assert mock_chain.fetch_ohlcv.await_count == 1

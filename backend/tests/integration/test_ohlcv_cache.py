@@ -107,6 +107,44 @@ class TestOHLCVCache:
         fetched_at = await get_latest_fetched_at(db_session, "XAUUSD", "D1")
         assert fetched_at is None
 
+    async def test_bulk_upsert_large_dataset(self, db_session):
+        """Verify upsert handles datasets larger than chunk size."""
+        candles = _make_candles(1200)  # > _UPSERT_CHUNK_SIZE (500)
+        count = await upsert_ohlcv(db_session, "EURUSD", "H1", candles)
+        assert count == 1200
+
+        cached = await get_cached_ohlcv(db_session, "EURUSD", "H1")
+        assert len(cached) == 1200
+        # Verify ordering preserved
+        assert cached[0].open == 100.0
+        assert cached[-1].close == pytest.approx(101.0 + 1199)
+
+    async def test_bulk_upsert_mixed_insert_update(self, db_session):
+        """Verify upsert correctly updates existing and inserts new candles in one call."""
+        initial = _make_candles(5)
+        await upsert_ohlcv(db_session, "EURUSD", "H1", initial)
+
+        # 3 updated (same timestamps) + 5 new
+        mixed = [
+            OHLCVData(
+                timestamp=c.timestamp,
+                open=c.open + 50,
+                high=c.high + 50,
+                low=c.low + 50,
+                close=c.close + 50,
+                volume=c.volume,
+            )
+            for c in initial[:3]
+        ] + _make_candles(5, start=initial[-1].timestamp + timedelta(hours=1))
+
+        count = await upsert_ohlcv(db_session, "EURUSD", "H1", mixed)
+        assert count == 8
+
+        cached = await get_cached_ohlcv(db_session, "EURUSD", "H1")
+        assert len(cached) == 10  # 5 original (3 updated + 2 untouched) + 5 new
+        # Verify updated values
+        assert cached[0].open == initial[0].open + 50
+
 
 @pytest.mark.integration
 class TestOHLCVCacheService:
