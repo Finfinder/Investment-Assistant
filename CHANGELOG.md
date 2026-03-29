@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- GitHub Discussions contact link in issue template config — directs users to Discussions before opening issues
+
 ### Changed
 
 - Replace discontinued/unavailable FRED CPI series: US (`CPIAUCSL` → `CPALTT01USM659N` YoY%), JP (`CPALTT01JPM659N` → `FPCPITOTLZGJPN` annual IMF), AU (`CPALTT01AUM659N` → `CPALTT01AUQ659N` quarterly OECD)
