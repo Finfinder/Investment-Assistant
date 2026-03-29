@@ -9,6 +9,16 @@ from app.modules.data_acquisition.providers.twelve_data_provider import (
     TwelveDataProvider,
 )
 
+CROSS_PAIRS = ["AUDCAD", "AUDCHF", "AUDJPY", "CADJPY", "CHFJPY", "EURCHF", "EURAUD", "EURCAD", "GBPCAD", "GBPCHF"]
+
+
+class TestTwelveDataSymbolMapping:
+    @pytest.mark.parametrize("pair", CROSS_PAIRS)
+    def test_cross_pair_forex_mapping(self, pair: str) -> None:
+        provider = TwelveDataProvider(api_key="test_key")
+        expected = f"{pair[:3]}/{pair[3:]}"
+        assert provider._map_symbol(pair) == expected
+
 
 class TestTwelveDataProvider:
     def test_name_and_priority(self) -> None:

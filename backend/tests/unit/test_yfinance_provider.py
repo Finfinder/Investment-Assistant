@@ -35,6 +35,13 @@ class TestSymbolMapping:
     def test_slash_stripped(self) -> None:
         assert _map_symbol("EUR/USD") == "EURUSD=X"
 
+    @pytest.mark.parametrize(
+        "pair",
+        ["AUDCAD", "AUDCHF", "AUDJPY", "CADJPY", "CHFJPY", "EURCHF", "EURAUD", "EURCAD", "GBPCAD", "GBPCHF"],
+    )
+    def test_cross_pair_forex_mapping(self, pair: str) -> None:
+        assert _map_symbol(pair) == f"{pair}=X"
+
 
 class TestResampleTo4H:
     def test_resample_8_candles(self) -> None:

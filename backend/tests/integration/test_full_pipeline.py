@@ -213,6 +213,47 @@ class TestPipelineGracefulDegradation:
 
 
 @pytest.mark.integration
+class TestFullPipelineForexCrossPair:
+    """Full pipeline test for cross forex pair (AUDCAD)."""
+
+    @pytest.mark.asyncio
+    async def test_audcad_pipeline_complete_report(self) -> None:
+        mock_chain = MagicMock()
+        mock_chain.fetch_ohlcv = AsyncMock(return_value=_make_ohlcv(50, base_price=0.90))
+
+        pipeline = AnalysisPipeline(symbol="AUDCAD", timeframe=Timeframe.H1, chain=mock_chain)
+
+        with (
+            patch(
+                "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+                new_callable=AsyncMock,
+                return_value=FundamentalData(
+                    instrument_type="forex",
+                    score=10.0,
+                    indicators={},
+                ),
+            ),
+            patch(
+                "app.modules.pipeline.AnalysisPipeline._persist_result",
+                new_callable=AsyncMock,
+            ),
+        ):
+            report = await pipeline.run()
+
+        assert report is not None
+        assert report.symbol == "AUDCAD"
+        assert report.instrument_type == InstrumentType.FOREX
+        assert len(report.technical_indicators) > 0
+        assert len(report.moving_averages) > 0
+        assert len(report.strategies) > 0
+        assert report.fundamental is not None
+
+        pipeline.complete()
+        assert pipeline.status.status == AnalysisStatusType.COMPLETED
+        assert len(pipeline.status.steps_completed) == 6
+
+
+@pytest.mark.integration
 class TestApiPipelineFlow:
     """Integration test through the HTTP API layer."""
 

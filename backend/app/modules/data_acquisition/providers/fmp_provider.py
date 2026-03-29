@@ -22,12 +22,29 @@ TIMEFRAME_MAP: dict[Timeframe, str] = {
 DAILY_RATE_LIMIT = 250
 
 SYMBOL_MAP: dict[str, str] = {
+    # Forex majors
     "EURUSD": "EURUSD",
     "GBPUSD": "GBPUSD",
     "USDJPY": "USDJPY",
     "USDCHF": "USDCHF",
     "AUDUSD": "AUDUSD",
     "USDCAD": "USDCAD",
+    "NZDUSD": "NZDUSD",
+    "EURGBP": "EURGBP",
+    "EURJPY": "EURJPY",
+    "GBPJPY": "GBPJPY",
+    # Forex cross pairs
+    "AUDCAD": "AUDCAD",
+    "AUDCHF": "AUDCHF",
+    "AUDJPY": "AUDJPY",
+    "CADJPY": "CADJPY",
+    "CHFJPY": "CHFJPY",
+    "EURCHF": "EURCHF",
+    "EURAUD": "EURAUD",
+    "EURCAD": "EURCAD",
+    "GBPCAD": "GBPCAD",
+    "GBPCHF": "GBPCHF",
+    # Commodities
     "GOLD": "XAUUSD",
     "XAUUSD": "XAUUSD",
     "SILVER": "XAGUSD",

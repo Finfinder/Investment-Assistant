@@ -21,6 +21,17 @@ SYMBOL_MAP: dict[str, str] = {
     "EURGBP": "EURGBP=X",
     "EURJPY": "EURJPY=X",
     "GBPJPY": "GBPJPY=X",
+    # Forex cross pairs
+    "AUDCAD": "AUDCAD=X",
+    "AUDCHF": "AUDCHF=X",
+    "AUDJPY": "AUDJPY=X",
+    "CADJPY": "CADJPY=X",
+    "CHFJPY": "CHFJPY=X",
+    "EURCHF": "EURCHF=X",
+    "EURAUD": "EURAUD=X",
+    "EURCAD": "EURCAD=X",
+    "GBPCAD": "GBPCAD=X",
+    "GBPCHF": "GBPCHF=X",
     # Commodities
     "GOLD": "GC=F",
     "XAUUSD": "GC=F",

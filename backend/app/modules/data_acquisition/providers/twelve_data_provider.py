@@ -39,7 +39,34 @@ class TwelveDataProvider:
         return self._priority
 
     def get_supported_symbols(self) -> list[str]:
-        return ["EURUSD", "GBPUSD", "USDJPY", "GOLD", "SILVER", "OIL", "US500", "US30", "US100"]
+        return [
+            "EURUSD",
+            "GBPUSD",
+            "USDJPY",
+            "USDCHF",
+            "AUDUSD",
+            "USDCAD",
+            "NZDUSD",
+            "EURGBP",
+            "EURJPY",
+            "GBPJPY",
+            "AUDCAD",
+            "AUDCHF",
+            "AUDJPY",
+            "CADJPY",
+            "CHFJPY",
+            "EURCHF",
+            "EURAUD",
+            "EURCAD",
+            "GBPCAD",
+            "GBPCHF",
+            "GOLD",
+            "SILVER",
+            "OIL",
+            "US500",
+            "US30",
+            "US100",
+        ]
 
     def _map_symbol(self, symbol: str) -> str:
         key = symbol.upper().replace("/", "")
@@ -54,6 +81,16 @@ class TwelveDataProvider:
             "EURGBP",
             "EURJPY",
             "GBPJPY",
+            "AUDCAD",
+            "AUDCHF",
+            "AUDJPY",
+            "CADJPY",
+            "CHFJPY",
+            "EURCHF",
+            "EURAUD",
+            "EURCAD",
+            "GBPCAD",
+            "GBPCHF",
         }
         if key in forex_pairs:
             return f"{key[:3]}/{key[3:]}"

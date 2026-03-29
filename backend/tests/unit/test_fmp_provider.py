@@ -9,6 +9,30 @@ from app.modules.data_acquisition.providers.fmp_provider import (
     FMPProvider,
 )
 
+FOREX_PAIRS_NEW = [
+    "NZDUSD",
+    "EURGBP",
+    "EURJPY",
+    "GBPJPY",
+    "AUDCAD",
+    "AUDCHF",
+    "AUDJPY",
+    "CADJPY",
+    "CHFJPY",
+    "EURCHF",
+    "EURAUD",
+    "EURCAD",
+    "GBPCAD",
+    "GBPCHF",
+]
+
+
+class TestFMPSymbolMapping:
+    @pytest.mark.parametrize("pair", FOREX_PAIRS_NEW)
+    def test_new_forex_pair_mapping(self, pair: str) -> None:
+        provider = FMPProvider(api_key="test_key")
+        assert provider._map_symbol(pair) == pair
+
 
 class TestFMPProvider:
     def test_name_and_priority(self) -> None:

@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - GitHub Discussions contact link in issue template config — directs users to Discussions before opening issues
+- Support for 10 forex cross pairs (AUDCAD, AUDCHF, AUDJPY, CADJPY, CHFJPY, EURCHF, EURAUD, EURCAD, GBPCAD, GBPCHF) in all data providers and frontend suggestions
+- Architecture test enforcing FOREX_PAIRS consistency across all data provider symbol maps
 
 ### Changed
 
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix "Brak danych rynkowych" error for 10 forex cross pairs (AUDCAD etc.) — add missing symbol mappings to YFinance, TwelveData and FMP providers
 - Fix null inflation data for JPY and AUD currency pairs caused by discontinued FRED OECD series
 - Fix EU inflation always null — add FRED `units=pc1` parameter to convert Eurostat HICP index to YoY%
 - Fix US CPI returning raw index value instead of YoY% — switch from `CPIAUCSL` (SA index) to `CPALTT01USM659N` (YoY%)
