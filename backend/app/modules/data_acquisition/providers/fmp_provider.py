@@ -44,6 +44,7 @@ SYMBOL_MAP: dict[str, str] = {
     "EURCAD": "EURCAD",
     "GBPCAD": "GBPCAD",
     "GBPCHF": "GBPCHF",
+    "AUDNZD": "AUDNZD",
     # Commodities
     "GOLD": "XAUUSD",
     "XAUUSD": "XAUUSD",

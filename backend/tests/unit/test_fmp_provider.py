@@ -24,6 +24,7 @@ FOREX_PAIRS_NEW = [
     "EURCAD",
     "GBPCAD",
     "GBPCHF",
+    "AUDNZD",
 ]
 
 

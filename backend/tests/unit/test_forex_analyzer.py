@@ -104,3 +104,41 @@ class TestForexAnalyzerMissingData:
 
         assert result.score == 0.0
         assert "Brak danych" in result.summary
+
+
+class TestForexAnalyzerAudnzd:
+    """AUDNZD pair with NZD macro data."""
+
+    @pytest.mark.asyncio
+    async def test_audnzd_with_both_currencies_data(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "rba_rate": 4.35,
+            "rbnz_rate": 5.50,
+            "cpi_au": 3.6,
+            "cpi_nz": 4.0,
+        }.get(name)
+
+        result = await analyze_forex("AUDNZD", fred=mock_fred)
+
+        assert result.instrument_type == InstrumentType.FOREX
+        assert result.score != 0.0
+        assert result.indicators["base_currency"] == "AUD"
+        assert result.indicators["quote_currency"] == "NZD"
+        assert result.indicators["interest_rate_differential"] == pytest.approx(-1.15)
+        assert result.indicators["inflation_differential"] == pytest.approx(-0.4)
+        assert "AUD/NZD" in result.summary
+
+    @pytest.mark.asyncio
+    async def test_audnzd_missing_nzd_data(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "rba_rate": 4.35,
+            "rbnz_rate": None,
+            "cpi_au": 3.6,
+            "cpi_nz": None,
+        }.get(name)
+
+        result = await analyze_forex("AUDNZD", fred=mock_fred)
+
+        assert result.instrument_type == InstrumentType.FOREX
+        assert result.score == 0.0
+        assert "Brak danych" in result.summary

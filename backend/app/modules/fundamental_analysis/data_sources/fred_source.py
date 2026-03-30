@@ -33,6 +33,8 @@ FRED_SERIES: dict[str, str] = {
     "rba_rate": "IRSTCI01AUM156N",
     "boc_rate": "IRSTCI01CAM156N",
     "snb_rate": "IRSTCI01CHM156N",
+    "rbnz_rate": "IRSTCI01NZM156N",
+    "cpi_nz": "CPALTT01NZQ659N",  # Quarterly, OECD — Stats NZ publishes CPI quarterly
 }
 
 # Series that return raw index values and need FRED units transformation to YoY%.

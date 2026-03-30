@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Support for AUDNZD forex pair across all layers: instrument classifier, three data providers (YFinance, TwelveData, FMP), frontend suggestions
+- NZD macro data for fundamental analysis: RBNZ interest rate (`IRSTCI01NZM156N`) and NZ CPI (`CPALTT01NZQ659N`) FRED series
+- NZD currency maps in forex analyzer (`CURRENCY_RATE_MAP`, `CURRENCY_CPI_MAP`) — also fixes NZDUSD fundamental analysis returning score=0
+- Unit tests for AUDNZD fundamental analysis (happy path + missing data)
 - GitHub Discussions contact link in issue template config — directs users to Discussions before opening issues
 - Support for 10 forex cross pairs (AUDCAD, AUDCHF, AUDJPY, CADJPY, CHFJPY, EURCHF, EURAUD, EURCAD, GBPCAD, GBPCHF) in all data providers and frontend suggestions
 - Architecture test enforcing FOREX_PAIRS consistency across all data provider symbol maps

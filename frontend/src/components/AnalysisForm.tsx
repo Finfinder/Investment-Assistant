@@ -24,6 +24,7 @@ const POPULAR_INSTRUMENTS = [
   "EURCAD",
   "GBPCAD",
   "GBPCHF",
+  "AUDNZD",
   "GOLD",
   "SILVER",
   "XAUUSD",

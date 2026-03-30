@@ -17,6 +17,7 @@ CURRENCY_RATE_MAP: dict[str, str] = {
     "AUD": "rba_rate",
     "CAD": "boc_rate",
     "CHF": "snb_rate",
+    "NZD": "rbnz_rate",
 }
 
 CURRENCY_CPI_MAP: dict[str, str] = {
@@ -27,6 +28,7 @@ CURRENCY_CPI_MAP: dict[str, str] = {
     "AUD": "cpi_au",
     "CAD": "cpi_ca",
     "CHF": "cpi_ch",
+    "NZD": "cpi_nz",
 }
 
 # Standard forex pair to (base, quote) mapping
@@ -51,6 +53,7 @@ PAIR_CURRENCIES: dict[str, tuple[str, str]] = {
     "EURCAD": ("EUR", "CAD"),
     "GBPCAD": ("GBP", "CAD"),
     "GBPCHF": ("GBP", "CHF"),
+    "AUDNZD": ("AUD", "NZD"),
 }
 
 
