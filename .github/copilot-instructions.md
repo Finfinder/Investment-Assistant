@@ -197,3 +197,32 @@ cd backend && alembic upgrade head
 Environment: `.env` file in `backend/` (copy from `.env.example`). API keys are optional — yfinance works without them.
 
 CI: GitHub Actions with 6 jobs — lint, type-check, test, security, frontend-lint, frontend-e2e.
+
+# Git Workflow
+
+## Commit message
+
+- Opis commita ZAWSZE w języku angielskim
+- Format: krótki, imperatywny opis (np. `Add OHLCV endpoint`, `Fix data provider fallback`)
+- Nie używaj prefiksów typu `feat:`, `fix:` — prostota ponad konwencje
+
+## Strategia branchowania i merge-forward
+
+Repozytorium używa czystych branchy semver (np. `1.0.0`, `1.0.1`, `1.1.0`) + feature branches + merge-forward do `main`.
+
+**Branche wersyjne** — codzienna praca odbywa się na aktywnym branchu wersyjnym.
+
+**Branche zadaniowe** — format: `feature|bugfix|task/<semver>/<Issue>` (np. `feature/1.0.0/Issue-5`). Tworzone z brancha wersyjnego, mergowane z powrotem po CR.
+
+Po commicie zmiany MUSZĄ być propagowane w górę:
+
+1. Commituj i pushuj na aktualny branch (lub branch zgodny z podaną wersją)
+2. Merguj zmiany do WSZYSTKICH wyższych branchy wersyjnych, w kolejności rosnącej (np. `1.0.0` → `1.0.1` → `1.1.0`)
+3. Ostatni (najwyższy) branch wersyjny merguj dodatkowo do `main`
+4. Wróć na branch, na którym rozpoczęto pracę
+
+## Przed commitem
+
+Przed commitem sprawdź, czy nie trzeba zaktualizować:
+- `README.md` — jeśli zmiana wpływa na dokumentację użytkownika
+- `CHANGELOG.md` — dodaj wpis w sekcji `[Unreleased]` opisujący zmianę (format Keep a Changelog)
