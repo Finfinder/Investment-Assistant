@@ -1,6 +1,15 @@
 # Investment Assistant
 
+[![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-REST%20API-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Version](https://img.shields.io/badge/version-0.1.0-green)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 CFD instrument technical and fundamental analysis application. Provides market data retrieval with multi-provider fallback, technical indicators, and analysis endpoints via a REST API.
+
+---
 
 ## Tech Stack
 
@@ -17,6 +26,8 @@ CFD instrument technical and fundamental analysis application. Provides market d
 - **TailwindCSS 3.4** with CSS custom properties (dark theme)
 - **lightweight-charts v5** for interactive candlestick charts
 - **Docker Compose** for full-stack deployment
+
+---
 
 ## Quick Start
 
@@ -63,6 +74,8 @@ docker compose up --build
 
 The application is available at `http://localhost` (nginx reverse proxy). Health check: `GET /api/v1/health`. API documentation: `http://localhost/api/v1/docs`.
 
+---
+
 ## Architecture
 
 ```
@@ -96,6 +109,8 @@ backend/app/
 ```
 
 Import boundaries are enforced by `import-linter` contracts defined in `pyproject.toml`.
+
+---
 
 ## API Endpoints
 
@@ -155,6 +170,8 @@ POST /api/v1/analysis
 
 Triggers an asynchronous 6-step pipeline: data fetch → technical analysis → pattern recognition → fundamental analysis → signal aggregation → strategy generation. Returns an `analysis_id` to poll via `GET /api/v1/analysis/{id}` or subscribe via `WS /api/v1/ws/analysis/{id}` for live progress updates. The final report includes weighted signal scoring, entry point scenarios (aggressive and conservative), SL/TP levels, and confidence percentages.
 
+---
+
 ## Configuration
 
 Copy `backend/.env.example` to `backend/.env`. For production see `.env.production.example`.
@@ -170,6 +187,8 @@ Copy `backend/.env.example` to `backend/.env`. For production see `.env.producti
 | `FRED_API_KEY` | FRED API key (optional) | — |
 | `CACHE_TTL_INTRADAY` | Cache TTL for intraday data (seconds) | `300` |
 | `CACHE_TTL_DAILY` | Cache TTL for daily data (seconds) | `3600` |
+
+---
 
 ## Testing
 
@@ -194,9 +213,25 @@ npm run test:e2e
 k6 run tests/performance/analysis.k6.js
 ```
 
+---
+
 ## Contributing
 
 Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
+
+---
+
+## Security
+
+To report a security vulnerability, please see [SECURITY.md](SECURITY.md) for instructions.
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
+
+---
 
 ## License
 

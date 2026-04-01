@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Badge bar in README.md (Python, FastAPI, Next.js, Docker, Version, License) matching SeqMcpServer style
+- Horizontal rule separators between README sections for visual consistency
+- Security and Changelog footer sections in README.md
 
 - Support for AUDNZD forex pair across all layers: instrument classifier, three data providers (YFinance, TwelveData, FMP), frontend suggestions
 - NZD macro data for fundamental analysis: RBNZ interest rate (`IRSTCI01NZM156N`) and NZ CPI (`CPALTT01NZQ659N`) FRED series
