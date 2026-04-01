@@ -55,6 +55,13 @@ def build_report(
             sr_patterns=sr_patterns,
             fib_patterns=fib_patterns,
         )
+        # Filter out strategies with unfavorable risk/reward (ratio > 1.0)
+        strategies = [s for s in strategies if s.risk_reward_ratio is None or s.risk_reward_ratio <= 1.0]
+        if not strategies:
+            strategy_skip_reason = (
+                "Wszystkie strategie wejścia odrzucone"
+                " — stosunek ryzyka do zysku (R/R) niekorzystny dla każdego scenariusza"
+            )
     else:
         strategy_skip_reason = "Sygnały neutralne — zagregowany wynik zbyt bliski zeru, aby określić kierunek wejścia"
 
@@ -72,6 +79,21 @@ def build_report(
         strategies=strategies,
         strategy_skip_reason=strategy_skip_reason,
     )
+
+
+def _calculate_risk_reward(
+    entry_price: float | None,
+    stop_loss: float | None,
+    tp1: float | None,
+) -> float | None:
+    """Return risk/reward ratio or None when data is missing or reward is zero."""
+    if entry_price is None or stop_loss is None or tp1 is None:
+        return None
+    risk = abs(entry_price - stop_loss)
+    reward = abs(tp1 - entry_price)
+    if reward == 0:
+        return None
+    return round(risk / reward, 2)
 
 
 def _build_strategies(
@@ -108,6 +130,7 @@ def _build_strategies(
                 tp1=sl_tp["tp1"],
                 tp2=sl_tp["tp2"],
                 confidence_pct=confidence,
+                risk_reward_ratio=_calculate_risk_reward(entry_price, sl_tp["stop_loss"], sl_tp["tp1"]),
             )
         )
 

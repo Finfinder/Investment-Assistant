@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Risk/Reward column in entry strategies table — displays ratio in trading-standard `1:X.XX` format with color coding (green ≤ 0.5, yellow 0.5–1.0)
+- Backend R/R calculation (`_calculate_risk_reward`) using TP1 as reward target
+- Automatic filtering of strategies with unfavorable risk/reward ratio (R/R > 1.0) — filtered strategies are removed from the report
+- Skip reason message when all strategies are filtered out due to unfavorable R/R
+- Unit tests for R/R calculation (favorable, unfavorable, boundary, None, zero reward) and filtering logic
 - Badge bar in README.md (Python, FastAPI, Next.js, Docker, Version, License) matching SeqMcpServer style
 - Horizontal rule separators between README sections for visual consistency
 - Security and Changelog footer sections in README.md
-
 - Support for AUDNZD forex pair across all layers: instrument classifier, three data providers (YFinance, TwelveData, FMP), frontend suggestions
 - NZD macro data for fundamental analysis: RBNZ interest rate (`IRSTCI01NZM156N`) and NZ CPI (`CPALTT01NZQ659N`) FRED series
 - NZD currency maps in forex analyzer (`CURRENCY_RATE_MAP`, `CURRENCY_CPI_MAP`) — also fixes NZDUSD fundamental analysis returning score=0
@@ -23,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Add Git Workflow section to `copilot-instructions.md` — branching strategy (semver branches + merge-forward), commit conventions, pre-commit checklist
+
+### Fixed
+- Offload CPU-intensive technical analysis and pattern recognition to thread pool (`asyncio.to_thread`) — prevents blocking the async event loop which caused Gateway Timeout on health checks and stalled WebSocket progress updates
+
 - Replace discontinued/unavailable FRED CPI series: US (`CPIAUCSL` → `CPALTT01USM659N` YoY%), JP (`CPALTT01JPM659N` → `FPCPITOTLZGJPN` annual IMF), AU (`CPALTT01AUM659N` → `CPALTT01AUQ659N` quarterly OECD)
 - Add `SERIES_YOY_UNITS` dict to convert EU HICP index to YoY% via FRED `units=pc1` parameter
 - Add `SERIES_LOOKBACK_DAYS` dict for per-series lookback overrides (730 days for annual JP CPI)

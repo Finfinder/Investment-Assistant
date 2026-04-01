@@ -1,6 +1,6 @@
 import type { StrategyEntry } from "@/types";
 import { formatValue } from "../IndicatorTable/shared";
-import { confidenceBarClass } from "@/lib/format";
+import { confidenceBarClass, formatRiskReward, riskRewardClass } from "@/lib/format";
 
 interface StrategyTableProps {
   readonly strategies: StrategyEntry[];
@@ -29,6 +29,7 @@ export default function StrategyTable({ strategies, strategySkipReason }: Readon
               <th className="px-4 py-2 font-medium">Stop Loss</th>
               <th className="px-4 py-2 font-medium">TP1</th>
               <th className="px-4 py-2 font-medium">TP2</th>
+              <th className="px-4 py-2 font-medium">Risk/Reward</th>
               <th className="px-4 py-2 font-medium">Pewność</th>
             </tr>
           </thead>
@@ -51,6 +52,9 @@ export default function StrategyTable({ strategies, strategySkipReason }: Readon
                 <td className="px-4 py-2 font-mono text-sm text-red-400">{formatValue(s.stop_loss)}</td>
                 <td className="px-4 py-2 font-mono text-sm text-green-300">{formatValue(s.tp1)}</td>
                 <td className="px-4 py-2 font-mono text-sm text-green-400">{formatValue(s.tp2)}</td>
+                <td className={`px-4 py-2 font-mono text-sm ${riskRewardClass(s.risk_reward_ratio)}`}>
+                  {formatRiskReward(s.risk_reward_ratio)}
+                </td>
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-16 overflow-hidden rounded-full bg-border">

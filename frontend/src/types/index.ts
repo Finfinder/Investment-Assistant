@@ -86,6 +86,7 @@ export interface StrategyEntry {
   tp1: number | null;
   tp2: number | null;
   confidence_pct: number;
+  risk_reward_ratio: number | null;
 }
 
 export interface AnalysisReport {

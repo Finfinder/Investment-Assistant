@@ -1,5 +1,6 @@
 """Asynchronous analysis pipeline — orchestrates the full analysis flow."""
 
+import asyncio
 import logging
 import uuid
 from typing import TYPE_CHECKING
@@ -125,16 +126,16 @@ class AnalysisPipeline:
             else:
                 pivot_candle = await self._fetch_pivot_candle()
 
-            # Step 2: Technical Analysis
+            # Step 2: Technical Analysis (offload to thread — CPU-intensive)
             self._update_status(1, PIPELINE_STEPS[1])
-            indicators, moving_averages, pivot_points, signal_summary = self._step_technical_analysis(
-                ohlcv, pivot_candle
+            indicators, moving_averages, pivot_points, signal_summary = await asyncio.to_thread(
+                self._step_technical_analysis, ohlcv, pivot_candle
             )
             self._complete_step(PIPELINE_STEPS[1])
 
-            # Step 3: Pattern Recognition
+            # Step 3: Pattern Recognition (offload to thread — CPU-intensive)
             self._update_status(2, PIPELINE_STEPS[2])
-            patterns = self._step_pattern_recognition(ohlcv)
+            patterns = await asyncio.to_thread(self._step_pattern_recognition, ohlcv)
             self._complete_step(PIPELINE_STEPS[2])
 
             # Step 4: Fundamental Analysis (graceful degradation)

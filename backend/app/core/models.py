@@ -125,6 +125,7 @@ class StrategyEntry(BaseModel):
     tp1: float | None = None
     tp2: float | None = None
     confidence_pct: float = Field(ge=0.0, le=100.0, default=0.0)
+    risk_reward_ratio: float | None = None
 
 
 class AnalysisReport(BaseModel):
