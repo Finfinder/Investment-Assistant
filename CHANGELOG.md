@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- R/R (TP2) column in entry strategies table — second Risk/Reward ratio calculated against TP2 (aspirational target) alongside existing R/R (TP1); reuses `formatRiskReward` / `riskRewardClass` helpers; column headers renamed from "Risk/Reward" to "R/R (TP1)" and "R/R (TP2)"
 - Risk/Reward column in entry strategies table — displays ratio in trading-standard `1:X.XX` format with color coding (green ≤ 0.5, yellow 0.5–1.0)
 - Backend R/R calculation (`_calculate_risk_reward`) using TP1 as reward target
 - Automatic filtering of strategies with unfavorable risk/reward ratio (R/R > 1.0) — filtered strategies are removed from the report

@@ -131,6 +131,7 @@ def _build_strategies(
                 tp2=sl_tp["tp2"],
                 confidence_pct=confidence,
                 risk_reward_ratio=_calculate_risk_reward(entry_price, sl_tp["stop_loss"], sl_tp["tp1"]),
+                risk_reward_ratio_tp2=_calculate_risk_reward(entry_price, sl_tp["stop_loss"], sl_tp["tp2"]),
             )
         )
 

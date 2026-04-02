@@ -29,7 +29,8 @@ export default function StrategyTable({ strategies, strategySkipReason }: Readon
               <th className="px-4 py-2 font-medium">Stop Loss</th>
               <th className="px-4 py-2 font-medium">TP1</th>
               <th className="px-4 py-2 font-medium">TP2</th>
-              <th className="px-4 py-2 font-medium">Risk/Reward</th>
+              <th className="px-4 py-2 font-medium">R/R (TP1)</th>
+              <th className="px-4 py-2 font-medium">R/R (TP2)</th>
               <th className="px-4 py-2 font-medium">Pewność</th>
             </tr>
           </thead>
@@ -54,6 +55,9 @@ export default function StrategyTable({ strategies, strategySkipReason }: Readon
                 <td className="px-4 py-2 font-mono text-sm text-green-400">{formatValue(s.tp2)}</td>
                 <td className={`px-4 py-2 font-mono text-sm ${riskRewardClass(s.risk_reward_ratio)}`}>
                   {formatRiskReward(s.risk_reward_ratio)}
+                </td>
+                <td className={`px-4 py-2 font-mono text-sm ${riskRewardClass(s.risk_reward_ratio_tp2)}`}>
+                  {formatRiskReward(s.risk_reward_ratio_tp2)}
                 </td>
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-2">

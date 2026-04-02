@@ -82,6 +82,7 @@ def test_bullish_report():
     assert all(s.entry_price is not None for s in report.strategies)
     assert all(s.stop_loss is not None for s in report.strategies)
     assert all(s.risk_reward_ratio is None or s.risk_reward_ratio <= 1.0 for s in report.strategies)
+    assert all(s.risk_reward_ratio_tp2 is not None for s in report.strategies)
     assert report.strategy_skip_reason is None
 
 
@@ -127,6 +128,7 @@ def test_bearish_report():
     assert len(report.strategies) >= 1
     assert all(s.direction == Direction.SHORT for s in report.strategies)
     assert all(s.risk_reward_ratio is None or s.risk_reward_ratio <= 1.0 for s in report.strategies)
+    assert all(s.risk_reward_ratio_tp2 is not None for s in report.strategies)
     assert report.strategy_skip_reason is None
 
 
@@ -244,7 +246,48 @@ def test_risk_reward_favorable_kept():
 
     favorable = [s for s in report.strategies if s.risk_reward_ratio is not None and s.risk_reward_ratio <= 1.0]
     assert len(favorable) >= 1
+    assert all(s.risk_reward_ratio_tp2 is not None for s in report.strategies)
     assert report.strategy_skip_reason is None
+
+
+def test_risk_reward_tp2_more_favorable_than_tp1():
+    """R/R for TP2 should be <= R/R for TP1 (TP2 is farther target)."""
+    ohlcv = _make_ohlcv(20)
+    indicators = [
+        IndicatorValue(name="RSI(14)", value=65, signal=SignalType.BUY),
+        IndicatorValue(name="ADX(14)", value=35, signal=SignalType.BUY),
+    ]
+    summary = SignalSummary(
+        overall_summary=SignalType.BUY,
+        overall_buy_count=8,
+        overall_sell_count=1,
+        overall_neutral_count=1,
+    )
+    patterns = [
+        PatternDetection(
+            pattern_type="S/R Level (support)",
+            confidence=0.7,
+            description="Support at 110.00 (3 touches)",
+            bullish=True,
+        ),
+    ]
+
+    report = build_report(
+        symbol="EURUSD",
+        timeframe=Timeframe.H1,
+        ohlcv=ohlcv,
+        indicators=indicators,
+        moving_averages=[],
+        pivot_points=[],
+        patterns=patterns,
+        signal_summary=summary,
+        direction=Direction.LONG,
+        instrument_type=InstrumentType.FOREX,
+    )
+
+    for s in report.strategies:
+        if s.risk_reward_ratio is not None and s.risk_reward_ratio_tp2 is not None:
+            assert s.risk_reward_ratio_tp2 <= s.risk_reward_ratio
 
 
 def test_risk_reward_boundary_kept():
