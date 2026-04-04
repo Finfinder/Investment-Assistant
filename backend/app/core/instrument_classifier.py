@@ -24,6 +24,11 @@ FOREX_PAIRS: set[str] = {
     "GBPCAD",
     "GBPCHF",
     "AUDNZD",
+    "NZDJPY",
+    "NZDCAD",
+    "NZDCHF",
+    "EURNZD",
+    "GBPNZD",
 }
 
 COMMODITY_SYMBOLS: set[str] = {

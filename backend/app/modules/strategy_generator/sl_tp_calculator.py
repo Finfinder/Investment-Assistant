@@ -119,11 +119,12 @@ def _calculate_tp(
             elif tp1 is not None and tp2 is None and t >= min_tp2:
                 tp2 = t
 
-        # Fallbacks using ATR multiples
+        # Fallbacks using ATR multiples; TP2 must be farther from entry than TP1
         if tp1 is None:
             tp1 = entry_price + atr * ATR_MULTIPLIER_TP_FALLBACK
         if tp2 is None:
-            tp2 = entry_price + atr * ATR_MULTIPLIER_TP_FALLBACK * 2
+            atr_fallback = entry_price + atr * ATR_MULTIPLIER_TP_FALLBACK * 2
+            tp2 = max(atr_fallback, tp1 + risk)
     else:
         # Look for support levels below entry
         targets = sorted(
@@ -139,9 +140,20 @@ def _calculate_tp(
             elif tp1 is not None and tp2 is None and t <= min_tp2:
                 tp2 = t
 
+        # Fallbacks using ATR multiples; TP2 must be farther from entry than TP1
         if tp1 is None:
             tp1 = entry_price - atr * ATR_MULTIPLIER_TP_FALLBACK
         if tp2 is None:
-            tp2 = entry_price - atr * ATR_MULTIPLIER_TP_FALLBACK * 2
+            atr_fallback = entry_price - atr * ATR_MULTIPLIER_TP_FALLBACK * 2
+            tp2 = min(atr_fallback, tp1 - risk)
+
+    # Invariant guard: TP2 must always be farther from entry than TP1.
+    # The smart fallback above makes this unreachable under current code;
+    # the guard fires only if future S/R logic changes break the invariant.
+    if tp1 is not None and tp2 is not None:
+        if direction == Direction.LONG and tp2 <= tp1:
+            tp2 = tp1 + risk
+        elif direction == Direction.SHORT and tp2 >= tp1:
+            tp2 = tp1 - risk
 
     return tp1, tp2

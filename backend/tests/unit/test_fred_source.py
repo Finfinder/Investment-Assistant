@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
+from tenacity import wait_none
 
 from app.modules.fundamental_analysis.data_sources.fred_source import (
     FRED_SERIES,
@@ -71,6 +72,21 @@ class TestFredSourceErrors:
             result = await fred_source.fetch_series("FEDFUNDS")
         assert result is None
 
+    @pytest.mark.asyncio
+    async def test_error_log_sanitizes_api_key(self, fred_source: FredSource, caplog):
+        """logger.error must not expose the FRED API key when an exception URL is logged."""
+        import logging
+
+        fred_source._fred = MagicMock()
+        exc_msg = "https://api.stlouisfed.org/series?api_key=SUPER_SECRET&series_id=FEDFUNDS"
+
+        with patch(_MODULE, new_callable=AsyncMock, side_effect=RuntimeError(exc_msg)), caplog.at_level(logging.ERROR):
+            result = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result is None
+        assert "SUPER_SECRET" not in caplog.text
+        assert "api_key=***" in caplog.text
+
 
 class TestFredSourceCaching:
     @pytest.mark.asyncio
@@ -135,6 +151,19 @@ class TestFredSourceUnitsTransform:
         assert result2 == 2.1
         assert mock_to_thread.call_count == 1
 
+    @pytest.mark.asyncio
+    async def test_nz_cpi_index_passes_units_pc1(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "NZLCPIALLQINMEI"
+        assert series_id in SERIES_YOY_UNITS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.5])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == 2.5
+        _, kwargs = mock_to_thread.call_args
+        assert kwargs.get("units") == "pc1"
+
 
 class TestFredSourceLookbackOverride:
     """Series in SERIES_LOOKBACK_DAYS get wider lookback window; others use the default."""
@@ -168,6 +197,38 @@ class TestFredSourceLookbackOverride:
         lookback = (observation_end - observation_start).days
         assert 364 <= lookback <= 366
 
+    @pytest.mark.asyncio
+    async def test_quarterly_nz_cpi_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "NZLCPIALLQINMEI"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.5])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == 2.5
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 539 <= lookback <= 541
+
+    @pytest.mark.asyncio
+    async def test_uk_cpi_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "CPALTT01GBM659N"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([3.4])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == 3.4
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 539 <= lookback <= 541
+
 
 class TestFredSourceSeriesMappings:
     """Verify critical CPI series mappings after OECD discontinuation fix."""
@@ -177,3 +238,90 @@ class TestFredSourceSeriesMappings:
 
     def test_cpi_au_maps_to_oecd_quarterly_series(self):
         assert FRED_SERIES["cpi_au"] == "CPALTT01AUQ659N"
+
+    def test_cpi_nz_maps_to_oecd_quarterly_index_series(self):
+        assert FRED_SERIES["cpi_nz"] == "NZLCPIALLQINMEI"
+
+    def test_rbnz_rate_maps_to_3month_interbank_series(self):
+        # IRSTCI01NZM156N (overnight) discontinued Jan 2025 — replaced by 3-month interbank rate
+        assert FRED_SERIES["rbnz_rate"] == "IR3TIB01NZM156N"
+
+    def test_snb_rate_maps_to_3month_interbank_series(self):
+        # IRSTCI01CHM156N (overnight) discontinued Apr 2024 — replaced by 3-month interbank rate
+        assert FRED_SERIES["snb_rate"] == "IR3TIB01CHM156N"
+
+
+class TestFredSourceRetry:
+    """Verify retry behaviour for transient FRED API errors."""
+
+    @pytest.fixture(autouse=True)
+    def fast_retry(self):
+        """Replace exponential wait with no-wait so tests don't actually sleep."""
+        original_wait = FredSource._fetch_from_api.retry.wait  # type: ignore[attr-defined]
+        FredSource._fetch_from_api.retry.wait = wait_none()  # type: ignore[attr-defined]
+        yield
+        FredSource._fetch_from_api.retry.wait = original_wait  # type: ignore[attr-defined]
+
+    @pytest.mark.asyncio
+    async def test_retry_succeeds_after_transient_failure(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        side_effects = [ConnectionError("transient network error"), pd.Series([5.25])]
+
+        with patch(_MODULE, new_callable=AsyncMock, side_effect=side_effects) as mock_to_thread:
+            result = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result == 5.25
+        assert mock_to_thread.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_retry_exhausted_returns_none(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        side_effects = [ConnectionError("err1"), ConnectionError("err2"), ConnectionError("err3")]
+
+        with patch(_MODULE, new_callable=AsyncMock, side_effect=side_effects) as mock_to_thread:
+            result = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result is None
+        assert mock_to_thread.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_permanent_error_not_retried(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+
+        with patch(_MODULE, new_callable=AsyncMock, side_effect=ValueError("bad series")) as mock_to_thread:
+            result = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result is None
+        assert mock_to_thread.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_retry_does_not_affect_cache(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        side_effects = [ConnectionError("transient"), pd.Series([5.25])]
+
+        with patch(_MODULE, new_callable=AsyncMock, side_effect=side_effects) as mock_to_thread:
+            result1 = await fred_source.fetch_series("FEDFUNDS")
+            result2 = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result1 == 5.25
+        assert result2 == 5.25
+        assert mock_to_thread.call_count == 2  # retry consumed 2 calls; cache served call 2
+
+    def test_before_sleep_log_sanitizes_api_key(self, caplog):
+        """_before_sleep_log must redact api_key from exception messages in retry logs."""
+        import logging
+
+        from app.modules.fundamental_analysis.data_sources.fred_source import _before_sleep_log
+
+        exc = ConnectionError("https://api.stlouisfed.org/series?api_key=SUPER_SECRET&series_id=FEDFUNDS")
+        outcome_mock = MagicMock()
+        outcome_mock.exception.return_value = exc
+        retry_state_mock = MagicMock()
+        retry_state_mock.outcome = outcome_mock
+        retry_state_mock.attempt_number = 1
+
+        with caplog.at_level(logging.WARNING):
+            _before_sleep_log(retry_state_mock)
+
+        assert "SUPER_SECRET" not in caplog.text
+        assert "api_key=***" in caplog.text

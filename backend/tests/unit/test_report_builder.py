@@ -302,3 +302,43 @@ def test_risk_reward_boundary_kept():
         risk_reward_ratio=1.0,
     )
     assert entry.risk_reward_ratio == 1.0  # boundary: kept (≤ 1.0)
+
+
+def test_risk_reward_tp2_more_favorable_than_tp1_short():
+    """R/R for TP2 should be <= R/R for TP1 for SHORT strategies (TP2 is farther target)."""
+    ohlcv = _make_ohlcv(20)
+    indicators = [
+        IndicatorValue(name="RSI(14)", value=25, signal=SignalType.SELL),
+        IndicatorValue(name="ADX(14)", value=40, signal=SignalType.SELL),
+    ]
+    summary = SignalSummary(
+        overall_summary=SignalType.STRONG_SELL,
+        overall_buy_count=0,
+        overall_sell_count=9,
+        overall_neutral_count=1,
+    )
+    patterns = [
+        PatternDetection(
+            pattern_type="S/R Level (resistance)",
+            confidence=0.8,
+            description="Resistance at 125.00 (4 touches)",
+            bullish=False,
+        ),
+    ]
+
+    report = build_report(
+        symbol="EURUSD",
+        timeframe=Timeframe.H1,
+        ohlcv=ohlcv,
+        indicators=indicators,
+        moving_averages=[],
+        pivot_points=[],
+        patterns=patterns,
+        signal_summary=summary,
+        direction=Direction.SHORT,
+        instrument_type=InstrumentType.FOREX,
+    )
+
+    for s in report.strategies:
+        if s.risk_reward_ratio is not None and s.risk_reward_ratio_tp2 is not None:
+            assert s.risk_reward_ratio_tp2 <= s.risk_reward_ratio

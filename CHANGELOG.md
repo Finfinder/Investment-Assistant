@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Support for 5 NZD cross pairs (NZDJPY, NZDCAD, NZDCHF, EURNZD, GBPNZD) across all layers: instrument classifier, three data providers (YFinance, TwelveData, FMP), fundamental analysis pair mapping, and frontend autocomplete suggestions
 - R/R (TP2) column in entry strategies table — second Risk/Reward ratio calculated against TP2 (aspirational target) alongside existing R/R (TP1); reuses `formatRiskReward` / `riskRewardClass` helpers; column headers renamed from "Risk/Reward" to "R/R (TP1)" and "R/R (TP2)"
 - Risk/Reward column in entry strategies table — displays ratio in trading-standard `1:X.XX` format with color coding (green ≤ 0.5, yellow 0.5–1.0)
 - Backend R/R calculation (`_calculate_risk_reward`) using TP1 as reward target
@@ -26,10 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Architecture test enforcing FOREX_PAIRS consistency across all data provider symbol maps
 
 ### Changed
+- `FredSource.fetch_series()` now retries transient FRED API errors (OSError, including ConnectionError and TimeoutError subclasses) with exponential backoff via tenacity (3 attempts, 1–10s wait); permanent errors (ValueError) and empty-data responses are not retried; improves reliability for GBP CPI and NZD interest rate data
+
+### Changed
 
 - Add Git Workflow section to `copilot-instructions.md` — branching strategy (semver branches + merge-forward), commit conventions, pre-commit checklist
 
 ### Fixed
+- Replace discontinued FRED overnight interbank rate series for NZD (`IRSTCI01NZM156N`, last obs Dec 2024) and CHF (`IRSTCI01CHM156N`, last obs Mar 2024) with active 3-month interbank rate series (`IR3TIB01NZM156N`, `IR3TIB01CHM156N`) — restores NZD_interest_rate and CHF_interest_rate fields in fundamental analysis for all NZD and CHF pairs
+- Add lookback override of 540 days for UK CPI series (`CPALTT01GBM659N`) to account for OECD publication lag (~6 weeks)
+- Fix null NZ inflation data caused by discontinued FRED series `CPALTT01NZQ659N` — switch to `NZLCPIALLQINMEI` (quarterly index) with FRED `units=pc1` transformation
 - Offload CPU-intensive technical analysis and pattern recognition to thread pool (`asyncio.to_thread`) — prevents blocking the async event loop which caused Gateway Timeout on health checks and stalled WebSocket progress updates
 
 - Replace discontinued/unavailable FRED CPI series: US (`CPIAUCSL` → `CPALTT01USM659N` YoY%), JP (`CPALTT01JPM659N` → `FPCPITOTLZGJPN` annual IMF), AU (`CPALTT01AUM659N` → `CPALTT01AUQ659N` quarterly OECD)

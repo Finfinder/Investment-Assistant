@@ -61,6 +61,11 @@ class TwelveDataProvider:
             "GBPCAD",
             "GBPCHF",
             "AUDNZD",
+            "NZDJPY",
+            "NZDCAD",
+            "NZDCHF",
+            "EURNZD",
+            "GBPNZD",
             "GOLD",
             "SILVER",
             "OIL",
@@ -93,6 +98,11 @@ class TwelveDataProvider:
             "GBPCAD",
             "GBPCHF",
             "AUDNZD",
+            "NZDJPY",
+            "NZDCAD",
+            "NZDCHF",
+            "EURNZD",
+            "GBPNZD",
         }
         if key in forex_pairs:
             return f"{key[:3]}/{key[3:]}"

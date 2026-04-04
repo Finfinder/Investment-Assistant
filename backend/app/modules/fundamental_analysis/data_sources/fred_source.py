@@ -2,10 +2,12 @@
 
 import asyncio
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from cachetools import TTLCache
+from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import get_settings
 
@@ -32,25 +34,43 @@ FRED_SERIES: dict[str, str] = {
     "boe_rate": "IUDSOIA",
     "rba_rate": "IRSTCI01AUM156N",
     "boc_rate": "IRSTCI01CAM156N",
-    "snb_rate": "IRSTCI01CHM156N",
-    "rbnz_rate": "IRSTCI01NZM156N",
-    "cpi_nz": "CPALTT01NZQ659N",  # Quarterly, OECD — Stats NZ publishes CPI quarterly
+    # IRSTCI01CHM156N (overnight rate) discontinued Apr 2024 — replaced by 3-month interbank rate (OECD MEI)
+    "snb_rate": "IR3TIB01CHM156N",
+    # IRSTCI01NZM156N (overnight rate) discontinued Jan 2025 — replaced by 3-month interbank rate (OECD MEI)
+    "rbnz_rate": "IR3TIB01NZM156N",
+    "cpi_nz": "NZLCPIALLQINMEI",  # Quarterly Index 2015=100, OECD — Stats NZ publishes CPI quarterly; needs units=pc1
 }
 
 # Series that return raw index values and need FRED units transformation to YoY%.
 # CP0000EZ19M086NEST is Eurostat HICP (Index 2015=100) — no OECD YoY% series exists for Euro Area on FRED.
 SERIES_YOY_UNITS: dict[str, str] = {
     "CP0000EZ19M086NEST": "pc1",  # Percent Change from Year Ago
+    "NZLCPIALLQINMEI": "pc1",  # Percent Change from Year Ago (NZ CPI Index → YoY%)
 }
 
 # Series with lower-than-monthly frequency need wider lookback windows.
 # Annual series: 730 days ensures the latest annual observation is always within range.
 SERIES_LOOKBACK_DAYS: dict[str, int] = {
     "FPCPITOTLZGJPN": 730,  # Annual JP CPI — need 2-year window
+    "NZLCPIALLQINMEI": 540,  # Quarterly NZ CPI Index — 1.5-year window for pc1 transformation safety
+    "CPALTT01GBM659N": 540,  # UK CPI (OECD) — publication lag ~6 weeks; 540 days ensures Mar observation is in range
 }
 
 CACHE_TTL_SECONDS = 86400  # 24h
 CACHE_MAX_SIZE = 64
+
+MAX_RETRIES = 3
+RETRY_MIN_WAIT_SECONDS = 1
+RETRY_MAX_WAIT_SECONDS = 10
+
+_API_KEY_RE = re.compile(r"api_key=[^&\s\"']+")
+
+
+def _before_sleep_log(retry_state: RetryCallState) -> None:
+    """Log retry attempts without exposing the FRED API key from exception URLs."""
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+    safe_msg = _API_KEY_RE.sub("api_key=***", str(exc)) if exc else "unknown error"
+    logger.warning("FRED: retry attempt %d after error: %s", retry_state.attempt_number, safe_msg)
 
 
 class FredSource:
@@ -69,6 +89,19 @@ class FredSource:
                 raise ValueError("FRED_API_KEY is not configured")
             self._fred = Fred(api_key=self._api_key)
         return self._fred
+
+    @retry(
+        stop=stop_after_attempt(MAX_RETRIES),
+        wait=wait_exponential(multiplier=1, min=RETRY_MIN_WAIT_SECONDS, max=RETRY_MAX_WAIT_SECONDS),
+        # OSError covers all network-level failures (ConnectionError, TimeoutError, BrokenPipeError, etc.).
+        # HTTP-level errors (4xx/5xx from fredapi) are not OSError and are intentionally excluded.
+        retry=retry_if_exception_type(OSError),
+        before_sleep=_before_sleep_log,
+        reraise=True,
+    )
+    async def _fetch_from_api(self, fred: Any, series_id: str, **kwargs: Any) -> Any:
+        """Call FRED API with retry on transient network errors."""
+        return await asyncio.to_thread(fred.get_series, series_id, **kwargs)
 
     async def fetch_series(self, series_id: str, lookback_days: int = 365) -> float | None:
         """Fetch the latest value for a FRED series.
@@ -89,7 +122,7 @@ class FredSource:
             units = SERIES_YOY_UNITS.get(series_id)
             if units:
                 kwargs["units"] = units
-            data = await asyncio.to_thread(fred.get_series, series_id, **kwargs)
+            data = await self._fetch_from_api(fred, series_id, **kwargs)
 
             if data is None or data.empty:
                 logger.warning("FRED: no data for series %s", series_id)
@@ -100,8 +133,9 @@ class FredSource:
             logger.info("FRED: %s = %.4f", series_id, value)
             return value
 
-        except Exception:
-            logger.warning("FRED: failed to fetch series %s", series_id, exc_info=True)
+        except Exception as exc:
+            safe_msg = _API_KEY_RE.sub("api_key=***", str(exc))
+            logger.error("FRED: failed to fetch series %s: %s", series_id, safe_msg)
             return None
 
     async def fetch_indicator(self, indicator_name: str, lookback_days: int = 365) -> float | None:

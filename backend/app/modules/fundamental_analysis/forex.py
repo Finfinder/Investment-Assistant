@@ -54,6 +54,11 @@ PAIR_CURRENCIES: dict[str, tuple[str, str]] = {
     "GBPCAD": ("GBP", "CAD"),
     "GBPCHF": ("GBP", "CHF"),
     "AUDNZD": ("AUD", "NZD"),
+    "NZDJPY": ("NZD", "JPY"),
+    "NZDCAD": ("NZD", "CAD"),
+    "NZDCHF": ("NZD", "CHF"),
+    "EURNZD": ("EUR", "NZD"),
+    "GBPNZD": ("GBP", "NZD"),
 }
 
 

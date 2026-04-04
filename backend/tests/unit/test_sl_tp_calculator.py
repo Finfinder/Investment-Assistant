@@ -77,6 +77,8 @@ def test_short_entry_with_sr():
     assert result["stop_loss"] > entry_price  # SL above entry
     assert result["tp1"] is not None
     assert result["tp1"] < entry_price  # TP1 below entry
+    assert result["tp2"] is not None
+    assert result["tp2"] < result["tp1"]  # TP2 farther from entry than TP1
 
 
 def test_atr_fallback_no_sr():
@@ -109,3 +111,82 @@ def test_tight_sr_levels():
     assert result["stop_loss"] < entry_price
     # TP may use ATR fallback if SR levels are too tight for R:R
     assert result["tp1"] is not None
+
+
+def test_short_mixed_sr_atr_fallback():
+    """Short: TP1 from S/R, TP2 from ATR fallback — reproduces the bug scenario.
+
+    With a low ATR (like forex ~0.001) and one distant support as TP1,
+    the raw ATR fallback for TP2 would land closer to entry than TP1.
+    After the fix, TP2 must be farther from entry than TP1.
+    """
+    # Build OHLCV with very small range to produce low ATR (~0.001)
+    data = []
+    for i in range(20):
+        ts = datetime(2024, 1, 1, hour=i % 24, tzinfo=UTC)
+        base = 1.17 + i * 0.0001
+        data.append(
+            OHLCVData(
+                timestamp=ts,
+                open=base,
+                high=base + 0.001,
+                low=base - 0.0005,
+                close=base + 0.0005,
+            )
+        )
+    entry_price = 1.17
+    # One support level far enough to be TP1 (matches screenshot scenario)
+    sr = [_make_sr(1.15, bullish=True)]
+
+    result = calculate_sl_tp(data, Direction.SHORT, entry_price, sr)
+
+    assert result["tp1"] is not None
+    assert result["tp1"] < entry_price  # TP1 below entry
+    assert result["tp2"] is not None
+    assert result["tp2"] < result["tp1"]  # TP2 farther from entry than TP1
+    # TP2 must satisfy R:R >= 1:2 (at least 2x the risk distance from entry)
+    risk = abs(entry_price - result["stop_loss"])
+    assert result["tp2"] <= entry_price - risk * 2
+
+
+def test_short_atr_fallback_no_sr():
+    """Short without S/R: both TP1 and TP2 use ATR fallback, TP2 < TP1."""
+    ohlcv = _make_ohlcv(20, base_price=100.0)
+    entry_price = 119.0
+
+    result = calculate_sl_tp(ohlcv, Direction.SHORT, entry_price)
+
+    assert result["stop_loss"] is not None
+    assert result["stop_loss"] > entry_price  # SL above entry
+    assert result["tp1"] is not None
+    assert result["tp1"] < entry_price  # TP1 below entry
+    assert result["tp2"] is not None
+    assert result["tp2"] < result["tp1"]  # TP2 farther from entry than TP1
+
+
+def test_long_mixed_sr_atr_fallback():
+    """Long: TP1 from distant S/R, TP2 from ATR fallback — TP2 > TP1 enforced."""
+    # Build OHLCV with very small range to produce low ATR
+    data = []
+    for i in range(20):
+        ts = datetime(2024, 1, 1, hour=i % 24, tzinfo=UTC)
+        base = 1.10 + i * 0.0001
+        data.append(
+            OHLCVData(
+                timestamp=ts,
+                open=base,
+                high=base + 0.001,
+                low=base - 0.0005,
+                close=base + 0.0005,
+            )
+        )
+    entry_price = 1.10
+    # One resistance level far enough to be TP1 with low ATR
+    sr = [_make_sr(1.12, bullish=False)]
+
+    result = calculate_sl_tp(data, Direction.LONG, entry_price, sr)
+
+    assert result["tp1"] is not None
+    assert result["tp1"] > entry_price  # TP1 above entry
+    assert result["tp2"] is not None
+    assert result["tp2"] > result["tp1"]  # TP2 farther from entry than TP1
