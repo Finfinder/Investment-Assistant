@@ -73,25 +73,27 @@ def _parse_pair(symbol: str) -> tuple[str, str]:
     raise ValueError(f"Cannot parse forex pair: {symbol}")
 
 
-def _compute_rate_differential(base_rate: float | None, quote_rate: float | None) -> float:
+def _compute_rate_differential(base_rate: float | None, quote_rate: float | None) -> float | None:
     """Higher interest rate attracts capital -> bullish for that currency.
 
     Positive differential means base currency has higher rate -> bullish for the pair.
+    Returns None when either rate is unavailable.
     """
     if base_rate is None or quote_rate is None:
-        return 0.0
+        return None
     return base_rate - quote_rate
 
 
-def _compute_inflation_differential(base_cpi: float | None, quote_cpi: float | None) -> float:
+def _compute_inflation_differential(base_cpi: float | None, quote_cpi: float | None) -> float | None:
     """Compare YoY inflation rates (%) between currencies.
 
     Lower inflation -> stronger currency.
     Positive means base has higher inflation -> bearish for the pair.
     Parameters are YoY inflation rates in %, not raw CPI index values.
+    Returns None when either CPI is unavailable.
     """
     if base_cpi is None or quote_cpi is None:
-        return 0.0
+        return None
     return base_cpi - quote_cpi
 
 
@@ -115,8 +117,8 @@ async def analyze_forex(symbol: str, fred: FredSource | None = None) -> Fundamen
     base_cpi = await source.fetch_indicator(base_cpi_name) if base_cpi_name else None
     quote_cpi = await source.fetch_indicator(quote_cpi_name) if quote_cpi_name else None
 
-    rate_diff = _compute_rate_differential(base_rate, quote_rate)
-    inflation_diff = _compute_inflation_differential(base_cpi, quote_cpi)
+    rate_diff: float | None = _compute_rate_differential(base_rate, quote_rate)
+    inflation_diff: float | None = _compute_inflation_differential(base_cpi, quote_cpi)
 
     # Build indicators dict
     indicators: dict[str, float | str | None] = {
@@ -134,13 +136,13 @@ async def analyze_forex(symbol: str, fred: FredSource | None = None) -> Fundamen
     score = 0.0
     components = 0
 
-    if base_rate is not None and quote_rate is not None:
+    if rate_diff is not None:
         # Clamp rate_diff contribution: each 1% diff = ~20 points, max 60
         rate_score = max(-60.0, min(60.0, rate_diff * 20.0))
         score += rate_score
         components += 1
 
-    if base_cpi is not None and quote_cpi is not None:
+    if inflation_diff is not None:
         # Higher base inflation = bearish for pair; each 1% = -10 points, max +-40
         inflation_score = max(-40.0, min(40.0, -inflation_diff * 10.0))
         score += inflation_score
@@ -155,9 +157,9 @@ async def analyze_forex(symbol: str, fred: FredSource | None = None) -> Fundamen
     else:
         direction = "bycza" if score > 10 else "niedzwiedzia" if score < -10 else "neutralna"
         parts = []
-        if base_rate is not None and quote_rate is not None:
+        if rate_diff is not None:
             parts.append(f"roznica stop {base} vs {quote}: {rate_diff:+.2f}%")
-        if base_cpi is not None and quote_cpi is not None:
+        if inflation_diff is not None:
             parts.append(f"roznica inflacji: {inflation_diff:+.2f}pp")
         summary = f"Analiza fundamentalna {base}/{quote}: {direction} ({', '.join(parts)})."
 

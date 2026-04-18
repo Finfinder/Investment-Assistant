@@ -48,12 +48,19 @@ SERIES_YOY_UNITS: dict[str, str] = {
     "NZLCPIALLQINMEI": "pc1",  # Percent Change from Year Ago (NZ CPI Index → YoY%)
 }
 
-# Series with lower-than-monthly frequency need wider lookback windows.
+# Series with lower-than-monthly frequency or stale OECD MEI data need wider lookback windows.
 # Annual series: 730 days ensures the latest annual observation is always within range.
+# OECD MEI series: all CPALTT01* series stopped updating on FRED since May 2025
+# ("Next Release Date: Not Available"). Monthly series (CA, US, CH, UK) and quarterly (AU, NZ)
+# all need 540-day windows to keep their last observations within range.
 SERIES_LOOKBACK_DAYS: dict[str, int] = {
     "FPCPITOTLZGJPN": 730,  # Annual JP CPI — need 2-year window
     "NZLCPIALLQINMEI": 540,  # Quarterly NZ CPI Index — 1.5-year window for pc1 transformation safety
-    "CPALTT01GBM659N": 540,  # UK CPI (OECD) — publication lag ~6 weeks; 540 days ensures Mar observation is in range
+    "CPALTT01GBM659N": 540,  # UK CPI (OECD MEI stale since May 2025) — 540 days ensures Mar 2025 obs is in range
+    "CPALTT01AUQ659N": 540,  # Quarterly AU CPI (OECD MEI stale since May 2025) — mirrors NZ CPI window
+    "CPALTT01CAM659N": 540,  # CA CPI (OECD MEI stale since May 2025) — last obs Mar 2025, 48 days outside 365d window
+    "CPALTT01USM659N": 540,  # US CPI (OECD MEI stale since May 2025) — last obs Apr 2025, 17 days outside 365d window
+    "CPALTT01CHM659N": 540,  # CH CPI (OECD MEI stale since May 2025) — last obs Apr 2025, 17 days outside 365d window
 }
 
 CACHE_TTL_SECONDS = 86400  # 24h

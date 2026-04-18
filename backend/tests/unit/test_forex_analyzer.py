@@ -104,6 +104,8 @@ class TestForexAnalyzerMissingData:
 
         assert result.score == 0.0
         assert "Brak danych" in result.summary
+        assert result.indicators["interest_rate_differential"] is None
+        assert result.indicators["inflation_differential"] is None
 
 
 class TestForexAnalyzerAudnzd:
@@ -142,3 +144,39 @@ class TestForexAnalyzerAudnzd:
         assert result.instrument_type == InstrumentType.FOREX
         assert result.score == 0.0
         assert "Brak danych" in result.summary
+
+    @pytest.mark.asyncio
+    async def test_audnzd_partial_missing_cpi_base_none(self, mock_fred: MagicMock):
+        """AUD CPI missing but NZD CPI available — inflation_differential must be None."""
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "rba_rate": 4.35,
+            "rbnz_rate": 5.50,
+            "cpi_au": None,
+            "cpi_nz": 2.5,
+        }.get(name)
+
+        result = await analyze_forex("AUDNZD", fred=mock_fred)
+
+        assert result.indicators["AUD_inflation_yoy"] is None
+        assert result.indicators["NZD_inflation_yoy"] == pytest.approx(2.5)
+        assert result.indicators["inflation_differential"] is None
+        assert result.score != 0.0  # rate component still contributes
+        assert "roznica inflacji" not in result.summary
+
+    @pytest.mark.asyncio
+    async def test_audnzd_partial_missing_rate_quote_none(self, mock_fred: MagicMock):
+        """RBNZ rate missing but RBA rate available — interest_rate_differential must be None."""
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "rba_rate": 4.35,
+            "rbnz_rate": None,
+            "cpi_au": 3.6,
+            "cpi_nz": 2.5,
+        }.get(name)
+
+        result = await analyze_forex("AUDNZD", fred=mock_fred)
+
+        assert result.indicators["interest_rate_differential"] is None
+        assert result.indicators["inflation_differential"] == pytest.approx(1.1)
+        assert result.score != 0.0  # inflation component still contributes
+        assert "roznica stop" not in result.summary
+        assert "roznica inflacji" in result.summary

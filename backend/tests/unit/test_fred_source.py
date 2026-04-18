@@ -177,7 +177,7 @@ class TestFredSourceLookbackOverride:
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.74])) as mock_to_thread:
             result = await fred_source.fetch_series(series_id)
 
-        assert result == 2.74
+        assert result == pytest.approx(2.74)
         call_args = mock_to_thread.call_args
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
@@ -206,7 +206,7 @@ class TestFredSourceLookbackOverride:
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.5])) as mock_to_thread:
             result = await fred_source.fetch_series(series_id)
 
-        assert result == 2.5
+        assert result == pytest.approx(2.5)
         call_args = mock_to_thread.call_args
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
@@ -222,7 +222,71 @@ class TestFredSourceLookbackOverride:
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([3.4])) as mock_to_thread:
             result = await fred_source.fetch_series(series_id)
 
-        assert result == 3.4
+        assert result == pytest.approx(3.4)
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 539 <= lookback <= 541
+
+    @pytest.mark.asyncio
+    async def test_quarterly_au_cpi_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "CPALTT01AUQ659N"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.4])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == pytest.approx(2.4)
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 539 <= lookback <= 541
+
+    @pytest.mark.asyncio
+    async def test_ca_cpi_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "CPALTT01CAM659N"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.32])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == pytest.approx(2.32)
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 539 <= lookback <= 541
+
+    @pytest.mark.asyncio
+    async def test_us_cpi_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "CPALTT01USM659N"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.31])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == pytest.approx(2.31)
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 539 <= lookback <= 541
+
+    @pytest.mark.asyncio
+    async def test_ch_cpi_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "CPALTT01CHM659N"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([0.03])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == pytest.approx(0.03)
         call_args = mock_to_thread.call_args
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]

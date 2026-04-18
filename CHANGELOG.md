@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- CA CPI (`CPALTT01CAM659N`), US CPI (`CPALTT01USM659N`) and CH CPI (`CPALTT01CHM659N`) added to `SERIES_LOOKBACK_DAYS` with 540-day windows — all OECD MEI CPI series on FRED stopped updating since May 2025 ("Next Release Date: Not Available"); the default 365-day window excluded their last observations (Mar/Apr 2025), causing `inflation_yoy = null` and `inflation_differential = null` for 17 of 26 supported forex pairs (65%), including all USD, CAD and CHF majors
+- AUD CPI (`CPALTT01AUQ659N`) added to `SERIES_LOOKBACK_DAYS` with a 540-day window, matching the NZ CPI override — the default 365-day window excluded the Q1 2025 observation (dated 2025-01-01) from April 2026 onward, causing `AUD_inflation_yoy = null` for AUD/NZD pairs
+- `_compute_inflation_differential()` and `_compute_rate_differential()` now return `None` instead of `0.0` when either component is missing — the UI correctly displays "–" instead of the misleading "0"
+
 ### Added
 - Support for 5 NZD cross pairs (NZDJPY, NZDCAD, NZDCHF, EURNZD, GBPNZD) across all layers: instrument classifier, three data providers (YFinance, TwelveData, FMP), fundamental analysis pair mapping, and frontend autocomplete suggestions
 - R/R (TP2) column in entry strategies table — second Risk/Reward ratio calculated against TP2 (aspirational target) alongside existing R/R (TP1); reuses `formatRiskReward` / `riskRewardClass` helpers; column headers renamed from "Risk/Reward" to "R/R (TP1)" and "R/R (TP2)"
@@ -28,9 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `FredSource.fetch_series()` now retries transient FRED API errors (OSError, including ConnectionError and TimeoutError subclasses) with exponential backoff via tenacity (3 attempts, 1–10s wait); permanent errors (ValueError) and empty-data responses are not retried; improves reliability for GBP CPI and NZD interest rate data
-
-### Changed
-
 - Add Git Workflow section to `copilot-instructions.md` — branching strategy (semver branches + merge-forward), commit conventions, pre-commit checklist
 
 ### Fixed
