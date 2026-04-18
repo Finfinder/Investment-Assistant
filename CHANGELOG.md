@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Support for 15 new CFD instruments across all layers: 7 PLN forex pairs (EURPLN, USDPLN, GBPPLN, CHFPLN, JPYPLN, AUDPLN, CADPLN), 5 commodities (COFFEE, COPPER, PLATINUM, PALLADIUM, OILWTI) and W20 index — instrument classifier, all three data providers (YFinance, TwelveData, FMP) and frontend autocomplete suggestions
+- Architecture tests enforcing COMMODITY_SYMBOLS and INDEX_SYMBOLS consistency across all data provider symbol maps; fixes pre-existing gaps for BRENT, NATGAS, COPPER, PLATINUM and PALLADIUM
+- Unit tests for COFFEE (commodity, not forex via 6-char heuristic), EURPLN, OILWTI and W20 classification
+
 - Price pattern filtering by category in `PatternList` component — tab bar with five categories (Świecowe, Wykresowe, S/R, Fibonacci, IKI) plus "Wszystkie" aggregate view; default shows top 5 patterns with expand toggle
 - `PatternCategory` enum (`candlestick`, `chart_pattern`, `support_resistance`, `fibonacci`, `iki`) in `core/models.py` — all five detectors now set `category` and `detected_at_index` on every `PatternDetection`
 - `relevance_scorer` module with `score_patterns()` (formula: 0.5 × confidence + 0.35 × recency + 0.15 × proximity) and `calculate_target_prices()` (ATR-based per category); patterns sorted by `relevance_score` DESC in both pipeline and `/patterns` endpoint

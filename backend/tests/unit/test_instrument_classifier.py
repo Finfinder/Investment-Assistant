@@ -45,3 +45,16 @@ class TestClassifyInstrument:
     def test_all_index_symbols_classified(self):
         for symbol in INDEX_SYMBOLS:
             assert classify_instrument(symbol) == InstrumentType.INDEX
+
+    def test_coffee_is_commodity_not_forex(self):
+        """COFFEE ma 6 liter — bez wpisu w COMMODITY_SYMBOLS byłby błędnie klasyfikowany jako FOREX przez heurystykę."""
+        assert classify_instrument("COFFEE") == InstrumentType.COMMODITY
+
+    def test_eurpln_is_forex(self):
+        assert classify_instrument("EURPLN") == InstrumentType.FOREX
+
+    def test_oilwti_is_commodity(self):
+        assert classify_instrument("OILWTI") == InstrumentType.COMMODITY
+
+    def test_w20_is_index(self):
+        assert classify_instrument("W20") == InstrumentType.INDEX

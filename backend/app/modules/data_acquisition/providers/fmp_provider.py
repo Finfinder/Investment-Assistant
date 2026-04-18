@@ -50,6 +50,14 @@ SYMBOL_MAP: dict[str, str] = {
     "NZDCHF": "NZDCHF",
     "EURNZD": "EURNZD",
     "GBPNZD": "GBPNZD",
+    # PLN pairs
+    "AUDPLN": "AUDPLN",
+    "CADPLN": "CADPLN",
+    "CHFPLN": "CHFPLN",
+    "EURPLN": "EURPLN",
+    "GBPPLN": "GBPPLN",
+    "JPYPLN": "JPYPLN",
+    "USDPLN": "USDPLN",
     # Commodities
     "GOLD": "XAUUSD",
     "XAUUSD": "XAUUSD",
@@ -57,9 +65,18 @@ SYMBOL_MAP: dict[str, str] = {
     "XAGUSD": "XAGUSD",
     "OIL": "CLUSD",
     "WTIUSD": "CLUSD",
+    "OILWTI": "CLUSD",
+    "BRENT": "BZUSD",
+    "NATGAS": "NGUSD",
+    "COFFEE": "KCUSD",
+    "COPPER": "HGUSD",
+    "PLATINUM": "PLUSD",
+    "PALLADIUM": "PAUSD",
+    # Indices
     "US500": "^GSPC",
     "US30": "^DJI",
     "US100": "^IXIC",
+    "W20": "WIG20",
 }
 
 

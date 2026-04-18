@@ -29,6 +29,14 @@ FOREX_PAIRS: set[str] = {
     "NZDCHF",
     "EURNZD",
     "GBPNZD",
+    # PLN pairs
+    "AUDPLN",
+    "CADPLN",
+    "CHFPLN",
+    "EURPLN",
+    "GBPPLN",
+    "JPYPLN",
+    "USDPLN",
 }
 
 COMMODITY_SYMBOLS: set[str] = {
@@ -38,8 +46,10 @@ COMMODITY_SYMBOLS: set[str] = {
     "XAGUSD",
     "OIL",
     "WTIUSD",
+    "OILWTI",
     "BRENT",
     "NATGAS",
+    "COFFEE",
     "COPPER",
     "PLATINUM",
     "PALLADIUM",
@@ -61,6 +71,7 @@ INDEX_SYMBOLS: set[str] = {
     "NIKKEI",
     "AU200",
     "CA60",
+    "W20",
 }
 
 

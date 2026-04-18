@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { Timeframe, IndicatorPreset } from "@/types";
 
 const POPULAR_INSTRUMENTS = [
+  // Forex majors
   "EURUSD",
   "GBPUSD",
   "USDJPY",
@@ -14,6 +15,7 @@ const POPULAR_INSTRUMENTS = [
   "EURGBP",
   "EURJPY",
   "GBPJPY",
+  // Forex cross pairs
   "AUDCAD",
   "AUDCHF",
   "AUDJPY",
@@ -30,20 +32,35 @@ const POPULAR_INSTRUMENTS = [
   "NZDCHF",
   "EURNZD",
   "GBPNZD",
+  // PLN pairs
+  "AUDPLN",
+  "CADPLN",
+  "CHFPLN",
+  "EURPLN",
+  "GBPPLN",
+  "JPYPLN",
+  "USDPLN",
+  // Commodities
   "GOLD",
   "SILVER",
   "XAUUSD",
   "XAGUSD",
   "OIL",
   "USOIL",
+  "OILWTI",
   "BRENT",
+  "NATGAS",
+  "COFFEE",
+  "COPPER",
+  "PLATINUM",
+  // Indices
   "US500",
   "US30",
   "US100",
   "DE40",
   "UK100",
   "JP225",
-  "NATGAS",
+  "W20",
 ];
 
 const TIMEFRAMES: { value: Timeframe; label: string }[] = [

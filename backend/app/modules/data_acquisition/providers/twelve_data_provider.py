@@ -66,12 +66,30 @@ class TwelveDataProvider:
             "NZDCHF",
             "EURNZD",
             "GBPNZD",
+            # PLN pairs
+            "AUDPLN",
+            "CADPLN",
+            "CHFPLN",
+            "EURPLN",
+            "GBPPLN",
+            "JPYPLN",
+            "USDPLN",
+            # Commodities
             "GOLD",
             "SILVER",
             "OIL",
+            "OILWTI",
+            "BRENT",
+            "NATGAS",
+            "COFFEE",
+            "COPPER",
+            "PLATINUM",
+            "PALLADIUM",
+            # Indices
             "US500",
             "US30",
             "US100",
+            "W20",
         ]
 
     def _map_symbol(self, symbol: str) -> str:
@@ -103,6 +121,14 @@ class TwelveDataProvider:
             "NZDCHF",
             "EURNZD",
             "GBPNZD",
+            # PLN pairs
+            "AUDPLN",
+            "CADPLN",
+            "CHFPLN",
+            "EURPLN",
+            "GBPPLN",
+            "JPYPLN",
+            "USDPLN",
         }
         if key in forex_pairs:
             return f"{key[:3]}/{key[3:]}"
@@ -114,8 +140,13 @@ class TwelveDataProvider:
             "XAGUSD": "XAG/USD",
             "OIL": "CL",
             "WTIUSD": "CL",
+            "OILWTI": "CL",
             "BRENT": "BZ",
             "NATGAS": "NG",
+            "COFFEE": "KC",
+            "COPPER": "HG",
+            "PLATINUM": "PL",
+            "PALLADIUM": "PA",
         }
         if key in commodity_map:
             return commodity_map[key]
@@ -127,6 +158,7 @@ class TwelveDataProvider:
             "DE40": "DAX",
             "UK100": "FTSE",
             "JP225": "NI225",
+            "W20": "WIG20",
         }
         if key in index_map:
             return index_map[key]
