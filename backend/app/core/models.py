@@ -53,6 +53,10 @@ class PatternCategory(StrEnum):
     IKI = "iki"
 
 
+# Mnożnik wagi reliability dla ważonego scoringu (★=1.0, ★★=1.3, ★★★=1.6)
+RELIABILITY_MULTIPLIER: dict[int, float] = {1: 1.0, 2: 1.3, 3: 1.6}
+
+
 class IndicatorPreset(StrEnum):
     INVESTING = "investing"
     TRADINGVIEW = "tradingview"
@@ -106,6 +110,9 @@ class PatternDetection(BaseModel):
     detected_at_timestamp: str = ""
     relevance_score: float = Field(ge=0.0, le=1.0, default=0.0)
     target_price: float | None = None
+    indication: str = ""
+    reliability: int = Field(ge=1, le=3, default=1)
+    detailed_description: str = ""
 
 
 class FundamentalData(BaseModel):

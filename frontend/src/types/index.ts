@@ -66,6 +66,9 @@ export interface PatternDetection {
   detected_at_timestamp: string;
   relevance_score: number;
   target_price: number | null;
+  indication: string;
+  reliability: number;
+  detailed_description: string;
 }
 
 export interface FundamentalData {

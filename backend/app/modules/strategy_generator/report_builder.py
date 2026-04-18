@@ -8,6 +8,7 @@ from app.core.models import (
     InstrumentType,
     MovingAverage,
     OHLCVData,
+    PatternCategory,
     PatternDetection,
     PivotPoints,
     SignalSummary,
@@ -107,7 +108,16 @@ def _build_strategies(
     fib_patterns: list[PatternDetection],
 ) -> list[StrategyEntry]:
     """Build 2-3 strategy scenarios with entry/SL/TP/confidence."""
-    entries = calculate_entry_points(ohlcv, direction, sr_patterns, fib_patterns)
+    # Formacje świecowe ★★+ zgodne z kierunkiem — do entry_condition
+    confirming_patterns = [
+        p
+        for p in patterns
+        if p.category == PatternCategory.CANDLESTICK
+        and p.reliability >= 2
+        and p.bullish == (direction == Direction.LONG)
+    ]
+
+    entries = calculate_entry_points(ohlcv, direction, sr_patterns, fib_patterns, confirming_patterns)
     strategies: list[StrategyEntry] = []
 
     for entry in entries:

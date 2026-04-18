@@ -1,6 +1,7 @@
 """Confidence scorer — rates scenario certainty from 0% to 100%."""
 
 from app.core.models import (
+    RELIABILITY_MULTIPLIER,
     Direction,
     FundamentalData,
     IndicatorValue,
@@ -80,7 +81,11 @@ def _ta_agreement(
 
 
 def _pattern_confirmation(direction: Direction, patterns: list[PatternDetection]) -> float:
-    """Return pattern confirmation score (0..1)."""
+    """Return pattern confirmation score (0..1).
+
+    Formacje z wyższym reliability mają większy wpływ na score
+    (mnożnik: ★=1.0, ★★=1.3, ★★★=1.6).
+    """
     if not patterns:
         return 0.0
 
@@ -88,9 +93,11 @@ def _pattern_confirmation(direction: Direction, patterns: list[PatternDetection]
     if not confirming:
         return 0.0
 
-    avg_confidence = sum(p.confidence for p in confirming) / len(confirming)
+    weighted_confidence_sum = sum(p.confidence * RELIABILITY_MULTIPLIER.get(p.reliability, 1.0) for p in confirming)
+    total_weight = sum(RELIABILITY_MULTIPLIER.get(p.reliability, 1.0) for p in confirming)
+    weighted_avg_confidence = weighted_confidence_sum / total_weight if total_weight > 0 else 0.0
     ratio = len(confirming) / len(patterns)
-    return avg_confidence * ratio
+    return weighted_avg_confidence * ratio
 
 
 def _fundamental_alignment(direction: Direction, fundamental: FundamentalData | None) -> float:

@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 13 new candlestick patterns via TA-Lib (total: 28) — Abandoned Baby, Dark Cloud Cover, Dragonfly/Gravestone Doji, Evening/Morning Doji Star, Harami Cross, Kicking Bull/Bear, Ladder Bottom, Long-Legged Doji, Mat Hold, Rising/Falling Three Methods, Three Outside Up/Down — with Polish `indication` and `detailed_description` for each
+- `indication`, `reliability` (★–★★★, int 1–3) and `detailed_description` fields on `PatternDetection` model (Pydantic + TypeScript); backward-compatible defaults for all non-candlestick detectors
+- Multi-candle scanning: `detect_candlestick_patterns` now scans last 10 candles (was: last candle only); `location` field set to `"emerging"` (last candle) or `"completed"` (older); duplicate suppression per pattern × candle index
+- `RELIABILITY_MULTIPLIER` constant (`{1: 1.0, 2: 1.3, 3: 1.6}`) in `core/models.py`; used in `normalize_pattern_signal()` (aggregator) and `_pattern_confirmation()` (confidence scorer) — patterns with higher reliability get proportionally larger weight
+- Confirming patterns (★★+, same direction, candlestick category) appended to `entry_condition` text in `calculate_entry_points()` via new `confirming_patterns` parameter; `report_builder` filters and passes them
+- `PatternDetailModal` component — modal opened on pattern row click showing name, direction badge, reliability stars, indication, Polish description, confidence bar, and candle index; closes on Escape key, X button, or overlay click; `role="dialog"`, `aria-modal="true"` (WCAG)
+- Reliability stars (★/★★/★★★) rendered in `PatternRow` next to direction badge
+- 4 new E2E tests for `PatternDetailModal` (`pattern-detail-modal.spec.ts`): open on click, close on Escape, close on X button, WCAG aria attributes
+- 21 new backend unit tests covering: 28-pattern dictionary completeness, multi-candle scanning, reliability/confidence mapping, indication direction, deduplication, `RELIABILITY_MULTIPLIER` effect in aggregator and confidence scorer, `entry_condition` confirming patterns text
+
+### Added
 - Support for 15 new CFD instruments across all layers: 7 PLN forex pairs (EURPLN, USDPLN, GBPPLN, CHFPLN, JPYPLN, AUDPLN, CADPLN), 5 commodities (COFFEE, COPPER, PLATINUM, PALLADIUM, OILWTI) and W20 index — instrument classifier, all three data providers (YFinance, TwelveData, FMP) and frontend autocomplete suggestions
 - Architecture tests enforcing COMMODITY_SYMBOLS and INDEX_SYMBOLS consistency across all data provider symbol maps; fixes pre-existing gaps for BRENT, NATGAS, COPPER, PLATINUM and PALLADIUM
 - Unit tests for COFFEE (commodity, not forex via 6-char heuristic), EURPLN, OILWTI and W20 classification

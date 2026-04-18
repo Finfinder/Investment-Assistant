@@ -150,7 +150,7 @@ POST /api/v1/patterns
 {"symbol": "EURUSD", "timeframe": "H1", "period": "180d"}
 ```
 
-Detects candlestick patterns (15 types via TA-Lib), support/resistance levels with strength scoring, Fibonacci retracement levels, IKI (Impulse-Correction-Impulse) patterns, and geometric chart patterns (triangle, wedge, flag, pennant).
+Detects candlestick patterns (28 types via TA-Lib, scanned across last 10 candles) with reliability rating (★–★★★), signal indication and Polish description. Also detects support/resistance levels with strength scoring, Fibonacci retracement levels, IKI (Impulse-Correction-Impulse) patterns, and geometric chart patterns (triangle, wedge, flag, pennant).
 
 ### Fundamental Analysis
 

@@ -96,3 +96,52 @@ def test_conservative_entry_at_fibonacci():
 def test_empty_ohlcv():
     """Empty OHLCV → no entries."""
     assert calculate_entry_points([], Direction.LONG) == []
+
+
+def _make_candlestick_pattern(name: str, bullish: bool, reliability: int) -> PatternDetection:
+    from app.core.models import PatternCategory
+
+    return PatternDetection(
+        pattern_type=name,
+        confidence=0.7,
+        bullish=bullish,
+        category=PatternCategory.CANDLESTICK,
+        reliability=reliability,
+    )
+
+
+def test_confirming_patterns_appended_to_entry_condition():
+    """Entry condition powinien zawierać nazwy formacji ★★+ gdy przekazano confirming_patterns."""
+    ohlcv = _make_ohlcv(1.1000)
+    confirming = [
+        _make_candlestick_pattern("Hammer", bullish=True, reliability=2),
+        _make_candlestick_pattern("Three White Soldiers", bullish=True, reliability=3),
+    ]
+    entries = calculate_entry_points(ohlcv, Direction.LONG, confirming_patterns=confirming)
+
+    assert len(entries) >= 1
+    condition = str(entries[0]["condition"])
+    assert "Potwierdzone:" in condition
+    assert "Hammer" in condition
+    assert "★★" in condition
+    assert "Three White Soldiers" in condition
+    assert "★★★" in condition
+
+
+def test_no_confirming_patterns_no_suffix():
+    """Bez formacji ★★+ entry_condition nie zawiera 'Potwierdzone'."""
+    ohlcv = _make_ohlcv(1.1000)
+    entries = calculate_entry_points(ohlcv, Direction.LONG, confirming_patterns=[])
+
+    condition = str(entries[0]["condition"])
+    assert "Potwierdzone" not in condition
+
+
+def test_backward_compatibility_no_confirming_param():
+    """Wywołanie bez parametru confirming_patterns działa jak przed zmianą."""
+    ohlcv = _make_ohlcv(1.1000)
+    entries = calculate_entry_points(ohlcv, Direction.LONG)
+
+    assert len(entries) >= 1
+    condition = str(entries[0]["condition"])
+    assert "Potwierdzone" not in condition

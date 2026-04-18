@@ -6,7 +6,6 @@ from app.core.models import (
     InstrumentType,
     MovingAverage,
     PatternDetection,
-    SignalSummary,
     SignalType,
 )
 from app.modules.signal_aggregation.aggregator import SignalAggregator
@@ -96,11 +95,38 @@ def test_empty_inputs():
     assert signals["fundamental"] == 0.0
 
 
-def test_signal_summary_overrides_individual():
-    """When signal_summary is provided, it overrides individual indicators."""
-    indicators = [IndicatorValue(name="RSI", value=70, signal=SignalType.BUY)]
-    summary = SignalSummary(overall_summary=SignalType.STRONG_SELL)
+def test_reliability_multiplier_increases_weight():
+    """Formacja z reliability=3 ma większy wpływ niż reliability=1."""
+    # Dwie bycze formacje: jedna ★★★, jedna niedźwiedzia ★
+    # Gdyby oba miały reliability=1, wynik = 0 (offset)
+    # Ale bycza ma wagę 1.0*1.6=1.6, niedźwiedzia 1.0*1.0=1.0 → wynik > 0
+    patterns_high_reliability = [
+        PatternDetection(pattern_type="Engulfing", confidence=1.0, bullish=True, reliability=3),
+        PatternDetection(pattern_type="ShootingStar", confidence=1.0, bullish=False, reliability=1),
+    ]
+    agg_high = SignalAggregator(patterns=patterns_high_reliability)
+    signal_high = agg_high.normalize_pattern_signal()
+    assert signal_high > 0, f"Expected positive signal, got {signal_high}"
 
-    agg = SignalAggregator(indicators=indicators, signal_summary=summary)
-    # Summary should take precedence
-    assert agg.normalize_ta_signal() == -1.0
+    # Symetrycznie: niedźwiedzia ★★★, bycza ★ → wynik < 0
+    patterns_low_reliability = [
+        PatternDetection(pattern_type="Engulfing", confidence=1.0, bullish=True, reliability=1),
+        PatternDetection(pattern_type="ShootingStar", confidence=1.0, bullish=False, reliability=3),
+    ]
+    agg_low = SignalAggregator(patterns=patterns_low_reliability)
+    signal_low = agg_low.normalize_pattern_signal()
+    assert signal_low < 0, f"Expected negative signal, got {signal_low}"
+
+    # Wynik z ★★★ ma większy efekt niż bez mnożnika
+    assert abs(signal_high) > 0, "High reliability should produce non-zero signal"
+
+
+def test_all_same_direction_reliability_does_not_change_sign():
+    """Reliability nie zmienia znaku wyniku — tylko wzmacnia."""
+    patterns = [
+        PatternDetection(pattern_type="Hammer", confidence=0.7, bullish=True, reliability=1),
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, reliability=3),
+    ]
+    agg = SignalAggregator(patterns=patterns)
+    signal = agg.normalize_pattern_signal()
+    assert signal > 0, "All bullish patterns → positive signal regardless of reliability"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PatternCategory, PatternDetection } from "@/types";
 import { confidenceBarClass } from "@/lib/format";
+import PatternDetailModal from "./PatternDetailModal";
 
 interface PatternListProps {
   patterns: PatternDetection[];
@@ -30,9 +31,16 @@ const CATEGORY_ORDER: Array<PatternCategory | "all"> = [
 
 const TOP_N = 5;
 
+const RELIABILITY_STARS: Record<number, string> = {
+  1: "★",
+  2: "★★",
+  3: "★★★",
+};
+
 export default function PatternList({ patterns, totalCandles, onPatternClick }: Readonly<PatternListProps>) {
   const [activeCategory, setActiveCategory] = useState<PatternCategory | "all">("all");
   const [expanded, setExpanded] = useState(false);
+  const [selectedPattern, setSelectedPattern] = useState<PatternDetection | null>(null);
 
   if (patterns.length === 0) {
     return (
@@ -54,61 +62,73 @@ export default function PatternList({ patterns, totalCandles, onPatternClick }: 
     (c) => c === "all" || categoriesPresent.has(c)
   );
 
+  const handlePatternClick = (pattern: PatternDetection) => {
+    setSelectedPattern(pattern);
+    onPatternClick?.(pattern);
+  };
+
   return (
-    <div className="rounded-xl border border-border bg-card">
-      <h3 className="border-b border-border px-4 py-3 text-lg font-semibold">Formacje cenowe</h3>
+    <>
+      <div className="rounded-xl border border-border bg-card">
+        <h3 className="border-b border-border px-4 py-3 text-lg font-semibold">Formacje cenowe</h3>
 
-      {/* Zakładki kategorii */}
-      <div className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2">
-        {visibleTabs.map((cat) => {
-          const count = cat === "all" ? patterns.length : patterns.filter((p) => p.category === cat).length;
-          return (
+        {/* Zakładki kategorii */}
+        <div className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2">
+          {visibleTabs.map((cat) => {
+            const count = cat === "all" ? patterns.length : patterns.filter((p) => p.category === cat).length;
+            return (
+              <button
+                key={cat}
+                onClick={() => {
+                  setActiveCategory(cat);
+                  setExpanded(false);
+                }}
+                className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  activeCategory === cat
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted hover:bg-border/40"
+                }`}
+              >
+                {CATEGORY_LABELS[cat]} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Lista formacji */}
+        <div className="divide-y divide-border/50">
+          {visible.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted">Brak formacji w tej kategorii</p>
+          ) : (
+            visible.map((pattern, i) => (
+              <PatternRow
+                key={`${pattern.pattern_type}-${i}`}
+                pattern={pattern}
+                totalCandles={totalCandles}
+                onPatternClick={handlePatternClick}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Rozwiń / Zwiń */}
+        {hasMore && (
+          <div className="border-t border-border px-4 py-2">
             <button
-              key={cat}
-              onClick={() => {
-                setActiveCategory(cat);
-                setExpanded(false);
-              }}
-              className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                activeCategory === cat
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted hover:bg-border/40"
-              }`}
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-muted transition-colors hover:text-foreground"
             >
-              {CATEGORY_LABELS[cat]} ({count})
+              {expanded ? "Zwiń ▲" : `Pokaż wszystkie (${filtered.length}) ▼`}
             </button>
-          );
-        })}
-      </div>
-
-      {/* Lista formacji */}
-      <div className="divide-y divide-border/50">
-        {visible.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-muted">Brak formacji w tej kategorii</p>
-        ) : (
-          visible.map((pattern, i) => (
-            <PatternRow
-              key={`${pattern.pattern_type}-${i}`}
-              pattern={pattern}
-              totalCandles={totalCandles}
-              onPatternClick={onPatternClick}
-            />
-          ))
+          </div>
         )}
       </div>
 
-      {/* Rozwiń / Zwiń */}
-      {hasMore && (
-        <div className="border-t border-border px-4 py-2">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-muted transition-colors hover:text-foreground"
-          >
-            {expanded ? "Zwiń ▲" : `Pokaż wszystkie (${filtered.length}) ▼`}
-          </button>
-        </div>
-      )}
-    </div>
+      <PatternDetailModal
+        pattern={selectedPattern}
+        onClose={() => setSelectedPattern(null)}
+      />
+    </>
   );
 }
 
@@ -125,6 +145,8 @@ function PatternRow({ pattern, totalCandles, onPatternClick }: Readonly<PatternR
       : null;
 
   const isStale = candlesAgo !== null && candlesAgo > 20;
+  const reliability = pattern.reliability ?? 1;
+  const stars = RELIABILITY_STARS[reliability];
 
   return (
     <button
@@ -145,6 +167,15 @@ function PatternRow({ pattern, totalCandles, onPatternClick }: Readonly<PatternR
           >
             {pattern.bullish ? "Bycza" : "Niedźwiedzia"}
           </span>
+          {stars && (
+            <span
+              className="text-xs text-amber-400"
+              title={`Wiarygodność: ${reliability}/3`}
+              aria-label={`Wiarygodność ${reliability} z 3`}
+            >
+              {stars}
+            </span>
+          )}
           {candlesAgo !== null && (
             <span className={`text-xs ${isStale ? "text-red-400/70" : "text-muted"}`}>
               {candlesAgo === 0 ? "ostatnia świeca" : `${candlesAgo} świec temu`}

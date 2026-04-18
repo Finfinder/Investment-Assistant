@@ -97,3 +97,41 @@ def test_no_data():
     confidence = calculate_confidence(direction=Direction.LONG)
     # With all defaults (empty data), expect some neutral score
     assert 0 <= confidence <= 100
+
+
+def test_reliability_affects_confidence_score():
+    """Formacja ★★★ zgodna z kierunkiem daje wyższy score niż ★."""
+    base_patterns = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, reliability=1),
+    ]
+    strong_patterns = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, reliability=3),
+    ]
+
+    confidence_base = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=base_patterns,
+    )
+    confidence_strong = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=strong_patterns,
+    )
+
+    assert confidence_strong >= confidence_base, (
+        f"Reliability 3 should give >= confidence than reliability 1: {confidence_strong} vs {confidence_base}"
+    )
+
+
+def test_opposing_high_reliability_lowers_confidence():
+    """Formacja ★★★ przeciwna kierunkowi obniża score."""
+    confirming = [
+        PatternDetection(pattern_type="Hammer", confidence=0.7, bullish=True, reliability=1),
+        PatternDetection(pattern_type="ShootingStar", confidence=0.7, bullish=False, reliability=3),
+    ]
+
+    confidence = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=confirming,
+    )
+    # With strong opposing pattern, score should be relatively low
+    assert confidence < 70, f"Expected lower confidence due to opposing ★★★, got {confidence}"

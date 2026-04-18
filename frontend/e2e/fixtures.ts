@@ -49,7 +49,21 @@ function mockReport(symbol: string, timeframe: string) {
       { type: "classic", pp: 1.105, s1: 1.1, s2: 1.095, s3: 1.09, r1: 1.11, r2: 1.115, r3: 1.12 },
     ],
     patterns: [
-      { pattern_type: "Hammer", confidence: 0.85, description: "Formacja młota", location: "recent", bullish: true },
+      {
+        pattern_type: "Hammer",
+        confidence: 0.85,
+        description: "Formacja młota",
+        location: "emerging",
+        bullish: true,
+        category: "candlestick",
+        detected_at_index: 29,
+        detected_at_timestamp: new Date().toISOString(),
+        relevance_score: 0.9,
+        target_price: null,
+        indication: "Odwrót bycza",
+        reliability: 2,
+        detailed_description: "Formacja młota pojawia się po trendzie spadkowym i sygnalizuje potencjalne odwrócenie na wzrostowy.",
+      },
     ],
     fundamental: {
       instrument_type: "forex",

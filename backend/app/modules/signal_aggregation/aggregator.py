@@ -1,6 +1,7 @@
 """Signal aggregator — combines TA, pattern, and fundamental signals."""
 
 from app.core.models import (
+    RELIABILITY_MULTIPLIER,
     FundamentalData,
     IndicatorValue,
     MovingAverage,
@@ -60,7 +61,7 @@ class SignalAggregator:
         """Normalize pattern detection signals to -1.0..+1.0.
 
         Bullish patterns contribute positive scores, bearish contribute negative.
-        Weighted by confidence.
+        Weighted by confidence x reliability multiplier (★=1.0, ★★=1.3, ★★★=1.6).
         """
         if not self._patterns:
             return 0.0
@@ -69,8 +70,10 @@ class SignalAggregator:
         total_weight = 0.0
         for p in self._patterns:
             direction = 1.0 if p.bullish else -1.0
-            weighted_sum += direction * p.confidence
-            total_weight += p.confidence
+            multiplier = RELIABILITY_MULTIPLIER.get(p.reliability, 1.0)
+            effective_weight = p.confidence * multiplier
+            weighted_sum += direction * effective_weight
+            total_weight += effective_weight
 
         if total_weight == 0.0:
             return 0.0

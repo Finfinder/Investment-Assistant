@@ -6,12 +6,23 @@ from app.core.models import Direction, OHLCVData, PatternDetection
 
 _PRICE_RE = re.compile(r"(?:at|Level|level)\s+(\d+\.?\d*)")
 
+_RELIABILITY_STARS = {1: "★", 2: "★★", 3: "★★★"}
+
+
+def _format_confirming_patterns(confirming: list[PatternDetection]) -> str:
+    """Formatuje listę potwierdzających formacji do tekstu entry_condition."""
+    if not confirming:
+        return ""
+    parts = [f"{p.pattern_type} {_RELIABILITY_STARS.get(p.reliability, '★')}" for p in confirming]
+    return "Potwierdzone: " + ", ".join(parts)
+
 
 def calculate_entry_points(
     ohlcv: list[OHLCVData],
     direction: Direction,
     support_resistance: list[PatternDetection] | None = None,
     fibonacci_levels: list[PatternDetection] | None = None,
+    confirming_patterns: list[PatternDetection] | None = None,
 ) -> list[dict[str, object]]:
     """Calculate entry points for the given direction.
 
@@ -20,12 +31,19 @@ def calculate_entry_points(
     - Conservative: entry at nearest S/R or Fibonacci level
 
     Each entry dict has: type, price, condition (descriptive text).
+    Parametr confirming_patterns zawiera formacje świecowe ★★+ zgodne z kierunkiem.
     """
     if not ohlcv:
         return []
 
     current_price = ohlcv[-1].close
+    confirming_suffix = _format_confirming_patterns(confirming_patterns or [])
     entries: list[dict[str, object]] = []
+
+    def _with_confirming(base_condition: str) -> str:
+        if confirming_suffix:
+            return f"{base_condition}. {confirming_suffix}"
+        return base_condition
 
     # Aggressive entry — at current market price
     if direction == Direction.LONG:
@@ -33,7 +51,7 @@ def calculate_entry_points(
             {
                 "type": "aggressive",
                 "price": current_price,
-                "condition": f"Wejscie po cenie rynkowej {current_price:.5f} (long)",
+                "condition": _with_confirming(f"Wejscie po cenie rynkowej {current_price:.5f} (long)"),
             }
         )
     else:
@@ -41,7 +59,7 @@ def calculate_entry_points(
             {
                 "type": "aggressive",
                 "price": current_price,
-                "condition": f"Wejscie po cenie rynkowej {current_price:.5f} (short)",
+                "condition": _with_confirming(f"Wejscie po cenie rynkowej {current_price:.5f} (short)"),
             }
         )
 
@@ -49,12 +67,14 @@ def calculate_entry_points(
     sr_levels = support_resistance or []
     sr_entry = _find_conservative_sr_entry(current_price, direction, sr_levels)
     if sr_entry:
+        sr_entry["condition"] = _with_confirming(str(sr_entry["condition"]))
         entries.append(sr_entry)
 
     # Conservative entry — at Fibonacci level
     fib_levels = fibonacci_levels or []
     fib_entry = _find_conservative_fib_entry(current_price, direction, fib_levels)
     if fib_entry:
+        fib_entry["condition"] = _with_confirming(str(fib_entry["condition"]))
         entries.append(fib_entry)
 
     return entries
