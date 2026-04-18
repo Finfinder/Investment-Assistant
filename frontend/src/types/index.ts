@@ -48,12 +48,24 @@ export interface PivotPoints {
   r3: number | null;
 }
 
+export type PatternCategory =
+  | "candlestick"
+  | "chart_pattern"
+  | "support_resistance"
+  | "fibonacci"
+  | "iki";
+
 export interface PatternDetection {
   pattern_type: string;
   confidence: number;
   description: string;
   location: string;
   bullish: boolean;
+  category: PatternCategory;
+  detected_at_index: number | null;
+  detected_at_timestamp: string;
+  relevance_score: number;
+  target_price: number | null;
 }
 
 export interface FundamentalData {

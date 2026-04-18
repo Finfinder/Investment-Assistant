@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.signal import argrelextrema
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 
 
 def detect_chart_patterns(
@@ -74,6 +74,8 @@ def detect_chart_patterns(
                 description=f"{name} detected (upper slope: {upper_slope:.4f}, lower slope: {lower_slope:.4f})",
                 location=f"last_{lookback}_candles",
                 bullish=bullish,
+                category=PatternCategory.CHART_PATTERN,
+                detected_at_index=len(ohlcv) - lookback,
             )
         )
 

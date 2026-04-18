@@ -1,6 +1,6 @@
 """Tests for IKI (Impuls-Korekta-Impuls) pattern detector."""
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 from app.modules.pattern_recognition.iki_detector import detect_iki_pattern
 from tests.helpers import make_ohlcv
 
@@ -91,6 +91,8 @@ class TestIKIDetector:
         assert len(bullish) > 0
         assert bullish[0].pattern_type == "IKI (Bullish)"
         assert "impulse" in bullish[0].description.lower()
+        assert bullish[0].category == PatternCategory.IKI
+        assert bullish[0].detected_at_index is not None
 
     def test_detects_bearish_iki(self):
         data = _make_bearish_iki_data()

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Price pattern filtering by category in `PatternList` component — tab bar with five categories (Świecowe, Wykresowe, S/R, Fibonacci, IKI) plus "Wszystkie" aggregate view; default shows top 5 patterns with expand toggle
+- `PatternCategory` enum (`candlestick`, `chart_pattern`, `support_resistance`, `fibonacci`, `iki`) in `core/models.py` — all five detectors now set `category` and `detected_at_index` on every `PatternDetection`
+- `relevance_scorer` module with `score_patterns()` (formula: 0.5 × confidence + 0.35 × recency + 0.15 × proximity) and `calculate_target_prices()` (ATR-based per category); patterns sorted by `relevance_score` DESC in both pipeline and `/patterns` endpoint
+- Staleness indicator in `PatternList` — shows "X świec temu" badge when `detected_at_index` is available
+- Target price display per pattern row with color coding (bullish green / bearish red)
+- Chart markers positioned at `detected_at_timestamp` instead of the last candle — markers sorted by time ascending (required by lightweight-charts v5 API)
+- Dashed target price line on chart when a pattern is selected in `PatternList`
+- `detected_at_timestamp` and `relevance_score` and `target_price` fields added to `PatternDetection` Pydantic model and TypeScript `PatternDetection` interface
+
 ### Fixed
 - CA CPI (`CPALTT01CAM659N`), US CPI (`CPALTT01USM659N`) and CH CPI (`CPALTT01CHM659N`) added to `SERIES_LOOKBACK_DAYS` with 540-day windows — all OECD MEI CPI series on FRED stopped updating since May 2025 ("Next Release Date: Not Available"); the default 365-day window excluded their last observations (Mar/Apr 2025), causing `inflation_yoy = null` and `inflation_differential = null` for 17 of 26 supported forex pairs (65%), including all USD, CAD and CHF majors
 - AUD CPI (`CPALTT01AUQ659N`) added to `SERIES_LOOKBACK_DAYS` with a 540-day window, matching the NZ CPI override — the default 365-day window excluded the Q1 2025 observation (dated 2025-01-01) from April 2026 onward, causing `AUD_inflation_yoy = null` for AUD/NZD pairs

@@ -284,6 +284,7 @@ class AnalysisPipeline:
         from app.modules.pattern_recognition.chart_patterns import detect_chart_patterns
         from app.modules.pattern_recognition.fibonacci import calculate_fibonacci_levels
         from app.modules.pattern_recognition.iki_detector import detect_iki_pattern
+        from app.modules.pattern_recognition.relevance_scorer import calculate_target_prices, score_patterns
         from app.modules.pattern_recognition.support_resistance import detect_support_resistance
 
         patterns: list[PatternDetection] = []
@@ -299,6 +300,29 @@ class AnalysisPipeline:
                 patterns.extend(func(ohlcv))
             except Exception as exc:
                 logger.warning("Pattern detection (%s) failed: %s", func.__name__, exc)
+
+        # Wypełnij detected_at_timestamp z danych OHLCV
+        for pattern in patterns:
+            idx = pattern.detected_at_index if pattern.detected_at_index is not None else len(ohlcv) - 1
+            idx = max(0, min(idx, len(ohlcv) - 1))
+            pattern.detected_at_timestamp = ohlcv[idx].timestamp.isoformat()
+
+        # Oblicz target_price per formacja
+        try:
+            calculate_target_prices(patterns, ohlcv)
+        except Exception as exc:
+            logger.warning("calculate_target_prices failed: %s", exc)
+
+        # Oblicz relevance_score per formacja
+        try:
+            current_price = float(ohlcv[-1].close)
+            score_patterns(patterns, len(ohlcv), current_price)
+        except Exception as exc:
+            logger.warning("score_patterns failed: %s", exc)
+
+        # Sortuj malejąco po relevance_score
+        patterns.sort(key=lambda p: p.relevance_score, reverse=True)
+
         return patterns
 
     async def _step_fundamental_analysis(self, instrument_type: InstrumentType | None) -> FundamentalData | None:

@@ -2,7 +2,7 @@
 
 import talib
 
-from app.core.models import PatternDetection
+from app.core.models import PatternCategory, PatternDetection
 from app.modules.pattern_recognition.candlestick import CANDLESTICK_PATTERNS, detect_candlestick_patterns
 from tests.helpers import make_ohlcv
 
@@ -26,6 +26,8 @@ class TestDetectCandlestickPatterns:
             assert isinstance(r, PatternDetection)
             assert 0.0 <= r.confidence <= 1.0
             assert r.location == "last_candle"
+            assert r.category == PatternCategory.CANDLESTICK
+            assert r.detected_at_index == len(data) - 1
 
     def test_bearish_engulfing_marked_as_noz(self):
         # Small bullish candle followed by large bearish engulfing

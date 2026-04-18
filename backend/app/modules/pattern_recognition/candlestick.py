@@ -3,7 +3,7 @@
 import numpy as np
 import talib
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 
 # Mapping: ta-lib function name → (human-readable name, description)
 CANDLESTICK_PATTERNS: dict[str, tuple[str, str]] = {
@@ -63,6 +63,8 @@ def detect_candlestick_patterns(ohlcv: list[OHLCVData]) -> list[PatternDetection
                 description=desc,
                 location="last_candle",
                 bullish=bullish,
+                category=PatternCategory.CANDLESTICK,
+                detected_at_index=len(ohlcv) - 1,
             )
         )
 

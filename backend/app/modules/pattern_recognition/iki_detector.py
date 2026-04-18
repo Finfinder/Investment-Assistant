@@ -3,7 +3,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 
 FIBO_RETRACEMENT_MIN = 0.382
 FIBO_RETRACEMENT_MAX = 0.618
@@ -132,6 +132,8 @@ def _find_iki(
                 ),
                 location=f"candle_{start}_{m}",
                 bullish=bullish,
+                category=PatternCategory.IKI,
+                detected_at_index=start,
             )
 
     return None

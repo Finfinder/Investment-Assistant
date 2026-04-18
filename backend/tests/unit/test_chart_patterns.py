@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 from app.modules.pattern_recognition.chart_patterns import (
     _classify_pattern,
     _fit_line,
@@ -112,6 +112,8 @@ class TestChartPatterns:
             assert isinstance(r.pattern_type, str)
             assert isinstance(r.description, str)
             assert "slope" in r.description.lower()
+            assert r.category == PatternCategory.CHART_PATTERN
+            assert r.detected_at_index == len(data) - 60
 
 
 class TestClassifyPatternDirect:

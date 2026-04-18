@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import type { Timeframe, IndicatorPreset, AnalysisReport } from "@/types";
+import type { Timeframe, IndicatorPreset, AnalysisReport, PatternDetection } from "@/types";
 import { triggerAnalysis, getAnalysis } from "@/lib/api";
 import AnalysisForm from "@/components/AnalysisForm";
 import ProgressIndicator from "@/components/ProgressIndicator";
@@ -38,7 +38,7 @@ export default function HomePage() {
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [error, setError] = useState<string>("");
-  const [highlightedPattern, setHighlightedPattern] = useState<string | null>(null);
+  const [highlightedPattern, setHighlightedPattern] = useState<PatternDetection | null>(null);
   const [activeSection, setActiveSection] = useState<string>("");
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -232,7 +232,7 @@ export default function HomePage() {
                   movingAverages={report.moving_averages}
                   pivotPoints={report.pivot_points}
                   patterns={report.patterns}
-                  highlightedPattern={highlightedPattern}
+                  highlightedPatternData={highlightedPattern}
                   symbol={report.symbol}
                   instrumentType={report.instrument_type}
                   timeframe={report.timeframe}
@@ -260,7 +260,11 @@ export default function HomePage() {
 
             {/* Patterns */}
             <Section title="Formacje cenowe" id="patterns">
-              <PatternList patterns={report.patterns} onPatternClick={setHighlightedPattern} />
+              <PatternList
+                patterns={report.patterns}
+                totalCandles={report.ohlcv_data.length}
+                onPatternClick={setHighlightedPattern}
+              />
             </Section>
 
             {/* Fundamental */}

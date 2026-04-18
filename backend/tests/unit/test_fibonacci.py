@@ -1,6 +1,6 @@
 """Tests for Fibonacci retracement level calculator."""
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 from app.modules.pattern_recognition.fibonacci import FIBO_LEVELS, calculate_fibonacci_levels
 from tests.helpers import make_ohlcv
 
@@ -57,6 +57,8 @@ class TestFibonacciLevels:
             assert isinstance(r.description, str)
             assert 0.0 <= r.confidence <= 1.0
             assert "retracement" in r.description.lower()
+            assert r.category == PatternCategory.FIBONACCI
+            assert r.detected_at_index is not None
 
     def test_downtrend_retracement(self):
         data = _make_downtrend_then_bounce()

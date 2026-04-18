@@ -14,6 +14,7 @@ from app.modules.pattern_recognition.candlestick import detect_candlestick_patte
 from app.modules.pattern_recognition.chart_patterns import detect_chart_patterns
 from app.modules.pattern_recognition.fibonacci import calculate_fibonacci_levels
 from app.modules.pattern_recognition.iki_detector import detect_iki_pattern
+from app.modules.pattern_recognition.relevance_scorer import calculate_target_prices, score_patterns
 from app.modules.pattern_recognition.support_resistance import detect_support_resistance
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,20 @@ async def detect_patterns(request: Request, body: PatternsRequest) -> PatternsRe
     patterns.extend(calculate_fibonacci_levels(ohlcv))
     patterns.extend(detect_iki_pattern(ohlcv))
     patterns.extend(detect_chart_patterns(ohlcv))
+
+    # Wypełnij detected_at_timestamp z danych OHLCV
+    for pattern in patterns:
+        idx = pattern.detected_at_index if pattern.detected_at_index is not None else len(ohlcv) - 1
+        idx = max(0, min(idx, len(ohlcv) - 1))
+        pattern.detected_at_timestamp = ohlcv[idx].timestamp.isoformat()
+
+    calculate_target_prices(patterns, ohlcv)
+    current_price = float(ohlcv[-1].close)
+    try:
+        score_patterns(patterns, len(ohlcv), current_price)
+    except Exception as exc:
+        logger.warning("score_patterns failed: %s", exc)
+    patterns.sort(key=lambda p: p.relevance_score, reverse=True)
 
     return PatternsResponse(
         symbol=body.symbol.upper(),

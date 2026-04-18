@@ -45,6 +45,14 @@ class Direction(StrEnum):
     SHORT = "short"
 
 
+class PatternCategory(StrEnum):
+    CANDLESTICK = "candlestick"
+    CHART_PATTERN = "chart_pattern"
+    SUPPORT_RESISTANCE = "support_resistance"
+    FIBONACCI = "fibonacci"
+    IKI = "iki"
+
+
 class IndicatorPreset(StrEnum):
     INVESTING = "investing"
     TRADINGVIEW = "tradingview"
@@ -93,6 +101,11 @@ class PatternDetection(BaseModel):
     description: str = ""
     location: str = ""
     bullish: bool = True
+    category: PatternCategory = PatternCategory.CANDLESTICK
+    detected_at_index: int | None = None
+    detected_at_timestamp: str = ""
+    relevance_score: float = Field(ge=0.0, le=1.0, default=0.0)
+    target_price: float | None = None
 
 
 class FundamentalData(BaseModel):

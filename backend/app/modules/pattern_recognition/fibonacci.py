@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.signal import argrelextrema
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 
 FIBO_LEVELS = (0.236, 0.382, 0.5, 0.618, 0.786)
 
@@ -69,6 +69,8 @@ def calculate_fibonacci_levels(
                 ),
                 location=f"fibo_{level * 100:.1f}",
                 bullish=is_uptrend,
+                category=PatternCategory.FIBONACCI,
+                detected_at_index=last_high_idx if is_uptrend else last_low_idx,
             )
         )
 

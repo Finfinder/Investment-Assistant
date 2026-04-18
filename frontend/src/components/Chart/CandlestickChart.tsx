@@ -18,7 +18,7 @@ interface CandlestickChartProps {
   movingAverages: MovingAverage[];
   pivotPoints: PivotPoints[];
   patterns: PatternDetection[];
-  highlightedPattern?: string | null;
+  highlightedPatternData?: PatternDetection | null;
   symbol: string;
   instrumentType: InstrumentType | null;
   timeframe: Timeframe;
@@ -94,13 +94,15 @@ function buildFibonacciLevels(pivotPoints: Readonly<PivotPoints[]>): PriceLevelD
 function buildPatternMarkers(
   patterns: Readonly<PatternDetection[]>,
   lastTimestamp: UTCTimestamp,
-  highlightedPattern: string | null | undefined,
+  highlightedPatternData: PatternDetection | null | undefined,
 ) {
   return patterns.map((p) => {
-    const isHighlighted = highlightedPattern === p.pattern_type;
+    const isHighlighted = highlightedPatternData?.pattern_type === p.pattern_type;
     const baseColor = p.bullish ? "#22c55e" : "#ef4444";
+    const markerTime =
+      p.detected_at_timestamp ? toChartTime(p.detected_at_timestamp) : lastTimestamp;
     return {
-      time: lastTimestamp,
+      time: markerTime,
       position: p.bullish ? ("belowBar" as const) : ("aboveBar" as const),
       color: isHighlighted ? "#eab308" : baseColor,
       shape: p.bullish ? ("arrowUp" as const) : ("arrowDown" as const),
@@ -134,7 +136,7 @@ export default function CandlestickChart({
   movingAverages,
   pivotPoints,
   patterns,
-  highlightedPattern,
+  highlightedPatternData,
   symbol,
   instrumentType,
   timeframe,
@@ -255,11 +257,33 @@ export default function CandlestickChart({
     if (!series || ohlcvData.length === 0) return;
 
     if (patterns.length > 0) {
-      const markers = buildPatternMarkers(patterns, lastTimestamp, highlightedPattern);
+      const markers = buildPatternMarkers(patterns, lastTimestamp, highlightedPatternData);
+      markers.sort((a, b) => (a.time as number) - (b.time as number));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       createSeriesMarkers(series as any, markers as any);
     }
-  }, [patterns, highlightedPattern, ohlcvData.length, lastTimestamp]);
+  }, [patterns, highlightedPatternData, ohlcvData.length, lastTimestamp]);
+
+  // Linia target_price dla wyróżnionej formacji
+  useEffect(() => {
+    const series = candleSeriesRef.current;
+    if (!series) return;
+    if (!highlightedPatternData?.target_price) return;
+
+    const color = highlightedPatternData.bullish ? "#22c55e" : "#ef4444";
+    const line = series.createPriceLine({
+      price: highlightedPatternData.target_price,
+      color,
+      lineWidth: 1 as const,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: "Cel",
+    });
+
+    return () => {
+      try { series.removePriceLine(line); } catch { /* seria mogła zniknąć */ }
+    };
+  }, [highlightedPatternData]);
 
   // Resize observer
   useEffect(() => {

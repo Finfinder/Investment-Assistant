@@ -2,7 +2,7 @@
 
 import math
 
-from app.core.models import OHLCVData, PatternDetection
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 from app.modules.pattern_recognition.support_resistance import detect_support_resistance
 from tests.helpers import make_ohlcv
 
@@ -32,6 +32,8 @@ class TestSupportResistance:
         for r in results:
             assert isinstance(r, PatternDetection)
             assert "S/R Level" in r.pattern_type or "EMA" in r.pattern_type
+            assert r.category == PatternCategory.SUPPORT_RESISTANCE
+            assert r.detected_at_index == len(data) - 1
 
     def test_levels_have_correct_types(self):
         data = _make_oscillating_data(120)
