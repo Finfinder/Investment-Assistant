@@ -14,6 +14,20 @@ export type Direction = "long" | "short";
 
 export type IndicatorPreset = "investing" | "tradingview";
 
+export interface ChartLayerVisibility {
+  ema: boolean;
+  pivotPoints: boolean;
+  fibonacci: boolean;
+  patterns: boolean;
+}
+
+export const DEFAULT_LAYER_VISIBILITY: ChartLayerVisibility = {
+  ema: true,
+  pivotPoints: false,
+  fibonacci: false,
+  patterns: true,
+};
+
 export interface OHLCVData {
   timestamp: string;
   open: number;

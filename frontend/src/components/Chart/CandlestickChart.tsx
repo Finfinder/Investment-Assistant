@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import {
   createChart,
   createSeriesMarkers,
@@ -11,7 +11,9 @@ import {
   ColorType,
   LineStyle,
 } from "lightweight-charts";
-import type { OHLCVData, MovingAverage, PivotPoints, PatternDetection, InstrumentType, Timeframe } from "@/types";
+import type { OHLCVData, MovingAverage, PivotPoints, PatternDetection, InstrumentType, Timeframe, ChartLayerVisibility } from "@/types";
+import { DEFAULT_LAYER_VISIBILITY } from "@/types";
+import ChartToolbar from "./ChartToolbar";
 
 interface CandlestickChartProps {
   ohlcvData: OHLCVData[];
@@ -34,6 +36,7 @@ interface PriceLevelDef {
   label: string;
   style: typeof LineStyle.Dashed | typeof LineStyle.Dotted | typeof LineStyle.Solid;
   axisLabel: boolean;
+  lineWidth?: 1 | 2;
 }
 
 function addPriceLines(series: ISeriesApi<"Candlestick">, levels: Readonly<PriceLevelDef[]>): void {
@@ -42,7 +45,7 @@ function addPriceLines(series: ISeriesApi<"Candlestick">, levels: Readonly<Price
       series.createPriceLine({
         price: level.value,
         color: level.color,
-        lineWidth: 1 as const,
+        lineWidth: level.lineWidth ?? 1,
         lineStyle: level.style,
         axisLabelVisible: level.axisLabel,
         title: level.label,
@@ -68,13 +71,13 @@ function buildClassicPivotLevels(pivotPoints: Readonly<PivotPoints[]>): PriceLev
   const classicPivot = pivotPoints.find((p) => p.type === "classic");
   if (!classicPivot) return [];
   return [
-    { value: classicPivot.r3, color: "#ef4444", label: "R3", style: LineStyle.Dashed, axisLabel: true },
-    { value: classicPivot.r2, color: "#f87171", label: "R2", style: LineStyle.Dashed, axisLabel: true },
+    { value: classicPivot.r3, color: "#ef4444", label: "R3", style: LineStyle.Dashed, axisLabel: false },
+    { value: classicPivot.r2, color: "#f87171", label: "R2", style: LineStyle.Dashed, axisLabel: false },
     { value: classicPivot.r1, color: "#fca5a5", label: "R1", style: LineStyle.Dashed, axisLabel: true },
-    { value: classicPivot.pp, color: "#eab308", label: "PP", style: LineStyle.Dashed, axisLabel: true },
+    { value: classicPivot.pp, color: "#eab308", label: "PP", style: LineStyle.Dashed, axisLabel: true, lineWidth: 2 },
     { value: classicPivot.s1, color: "#86efac", label: "S1", style: LineStyle.Dashed, axisLabel: true },
-    { value: classicPivot.s2, color: "#4ade80", label: "S2", style: LineStyle.Dashed, axisLabel: true },
-    { value: classicPivot.s3, color: "#22c55e", label: "S3", style: LineStyle.Dashed, axisLabel: true },
+    { value: classicPivot.s2, color: "#4ade80", label: "S2", style: LineStyle.Dashed, axisLabel: false },
+    { value: classicPivot.s3, color: "#22c55e", label: "S3", style: LineStyle.Dashed, axisLabel: false },
   ];
 }
 
@@ -91,22 +94,40 @@ function buildFibonacciLevels(pivotPoints: Readonly<PivotPoints[]>): PriceLevelD
   ];
 }
 
-function buildPatternMarkers(
+export function buildPatternMarkers(
   patterns: Readonly<PatternDetection[]>,
   lastTimestamp: UTCTimestamp,
   highlightedPatternData: PatternDetection | null | undefined,
 ) {
-  return patterns.map((p) => {
-    const isHighlighted = highlightedPatternData?.pattern_type === p.pattern_type;
-    const baseColor = p.bullish ? "#22c55e" : "#ef4444";
-    const markerTime =
-      p.detected_at_timestamp ? toChartTime(p.detected_at_timestamp) : lastTimestamp;
+  // Grupowanie formacji po timestamp — formacje na tej samej świecy łączone w jeden marker
+  const groups = new Map<number, PatternDetection[]>();
+  for (const p of patterns) {
+    const markerTime = p.detected_at_timestamp ? toChartTime(p.detected_at_timestamp) : lastTimestamp;
+    const key = markerTime as number;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(p);
+    } else {
+      groups.set(key, [p]);
+    }
+  }
+
+  return Array.from(groups.entries()).map(([timeKey, group]) => {
+    const allBullish = group.every((p) => p.bullish);
+    const allBearish = group.every((p) => !p.bullish);
+    const isHighlighted = group.some((p) => highlightedPatternData?.pattern_type === p.pattern_type);
+
+    const baseColor = allBullish ? "#22c55e" : allBearish ? "#ef4444" : "#94a3b8";
+    const position = allBullish ? ("belowBar" as const) : ("aboveBar" as const);
+    const shape = allBullish ? ("arrowUp" as const) : ("arrowDown" as const);
+    const text = group.map((p) => p.pattern_type).join(" / ");
+
     return {
-      time: markerTime,
-      position: p.bullish ? ("belowBar" as const) : ("aboveBar" as const),
+      time: timeKey as UTCTimestamp,
+      position,
       color: isHighlighted ? "#eab308" : baseColor,
-      shape: p.bullish ? ("arrowUp" as const) : ("arrowDown" as const),
-      text: p.pattern_type,
+      shape,
+      text,
     };
   });
 }
@@ -145,6 +166,36 @@ export default function CandlestickChart({
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const wheelCleanupRef = useRef<(() => void) | null>(null);
+
+  const [layerVisibility, setLayerVisibility] = useState<ChartLayerVisibility>(() => {
+    try {
+      const stored = localStorage.getItem("chart-layer-visibility");
+      if (stored) {
+        const parsed = JSON.parse(stored) as unknown;
+        if (
+          parsed !== null &&
+          typeof parsed === "object" &&
+          "ema" in parsed &&
+          "pivotPoints" in parsed &&
+          "fibonacci" in parsed &&
+          "patterns" in parsed
+        ) {
+          return parsed as ChartLayerVisibility;
+        }
+      }
+    } catch {
+      // localStorage niedostępny lub JSON nieprawidłowy — użyj domyślnych
+    }
+    return DEFAULT_LAYER_VISIBILITY;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("chart-layer-visibility", JSON.stringify(layerVisibility));
+    } catch {
+      // localStorage niedostępny — ignoruj
+    }
+  }, [layerVisibility]);
 
   const buildChart = useCallback(() => {
     if (!containerRef.current || ohlcvData.length === 0) return;
@@ -194,13 +245,19 @@ export default function CandlestickChart({
     candleSeries.setData(candleData as Parameters<typeof candleSeries.setData>[0]);
 
     // EMA levels as horizontal price lines (backend provides snapshot values, not time series)
-    addPriceLines(candleSeries, buildEmaLevels(movingAverages));
+    if (layerVisibility.ema) {
+      addPriceLines(candleSeries, buildEmaLevels(movingAverages));
+    }
 
     // S/R levels from Classic pivot points
-    addPriceLines(candleSeries, buildClassicPivotLevels(pivotPoints));
+    if (layerVisibility.pivotPoints) {
+      addPriceLines(candleSeries, buildClassicPivotLevels(pivotPoints));
+    }
 
     // Fibonacci levels
-    addPriceLines(candleSeries, buildFibonacciLevels(pivotPoints));
+    if (layerVisibility.fibonacci) {
+      addPriceLines(candleSeries, buildFibonacciLevels(pivotPoints));
+    }
 
     const dataLength = ohlcvData.length;
     const bars = VISIBLE_BARS_BY_TIMEFRAME[timeframe] ?? null;
@@ -236,7 +293,7 @@ export default function CandlestickChart({
     wheelCleanupRef.current = () => {
       containerRef.current?.removeEventListener("wheel", handleWheel, { capture: true });
     };
-  }, [ohlcvData, movingAverages, pivotPoints, symbol, instrumentType, timeframe]);
+  }, [ohlcvData, movingAverages, pivotPoints, symbol, instrumentType, timeframe, layerVisibility]);
 
   useEffect(() => {
     buildChart();
@@ -256,13 +313,16 @@ export default function CandlestickChart({
     const series = candleSeriesRef.current;
     if (!series || ohlcvData.length === 0) return;
 
-    if (patterns.length > 0) {
+    if (layerVisibility.patterns && patterns.length > 0) {
       const markers = buildPatternMarkers(patterns, lastTimestamp, highlightedPatternData);
       markers.sort((a, b) => (a.time as number) - (b.time as number));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       createSeriesMarkers(series as any, markers as any);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      createSeriesMarkers(series as any, []);
     }
-  }, [patterns, highlightedPatternData, ohlcvData.length, lastTimestamp]);
+  }, [patterns, highlightedPatternData, ohlcvData.length, lastTimestamp, layerVisibility]);
 
   // Linia target_price dla wyróżnionej formacji
   useEffect(() => {
@@ -283,7 +343,7 @@ export default function CandlestickChart({
     return () => {
       try { series.removePriceLine(line); } catch { /* seria mogła zniknąć */ }
     };
-  }, [highlightedPatternData]);
+  }, [highlightedPatternData, layerVisibility]);
 
   // Resize observer
   useEffect(() => {
@@ -306,6 +366,7 @@ export default function CandlestickChart({
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <h3 className="mb-3 text-lg font-semibold">Wykres</h3>
+      <ChartToolbar visibility={layerVisibility} onChange={setLayerVisibility} />
       <figure aria-label={chartDescription}>
         <div ref={containerRef} className="w-full" />
       </figure>

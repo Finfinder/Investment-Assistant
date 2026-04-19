@@ -157,3 +157,73 @@ test.describe("Invalid Symbol", () => {
     await expect(page.getByText(/błąd|error|nieprawidłow/i)).toBeVisible({ timeout: 10_000 });
   });
 });
+
+test.describe("ChartToolbar — widoczność warstw wykresu", () => {
+  test("toolbar zawiera 4 przyciski z poprawnymi domyślnymi stanami", async ({ mockedPage: page }) => {
+    await page.goto("/");
+
+    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
+    await symbolInput.fill("EURUSD");
+
+    const option = page.getByRole("option", { name: /EURUSD/i });
+    if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await option.click();
+    }
+
+    const submitButton = page.getByRole("button", { name: /analiz/i });
+    await submitButton.click();
+
+    await expect(
+      page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
+    ).toBeVisible({ timeout: 60_000 });
+
+    // Wszystkie 4 przyciski są widoczne — scope do sekcji wykresu (unikamy kolizji z innymi "Pivot Points" na stronie)
+    const chartSection = page.getByLabel("Wykres", { exact: true });
+    const emaButton = chartSection.getByRole("button", { name: "EMA" });
+    const pivotButton = chartSection.getByRole("button", { name: "Pivot Points" });
+    const fibButton = chartSection.getByRole("button", { name: "Fibonacci" });
+    const patternsButton = chartSection.getByRole("button", { name: "Formacje" });
+
+    await expect(emaButton).toBeVisible({ timeout: 5_000 });
+    await expect(pivotButton).toBeVisible({ timeout: 5_000 });
+    await expect(fibButton).toBeVisible({ timeout: 5_000 });
+    await expect(patternsButton).toBeVisible({ timeout: 5_000 });
+
+    // Domyślne stany: EMA i Formacje ON, Pivots i Fibonacci OFF
+    await expect(emaButton).toHaveAttribute("aria-pressed", "true");
+    await expect(patternsButton).toHaveAttribute("aria-pressed", "true");
+    await expect(pivotButton).toHaveAttribute("aria-pressed", "false");
+    await expect(fibButton).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("kliknięcie przycisku przełącza stan aria-pressed", async ({ mockedPage: page }) => {
+    await page.goto("/");
+
+    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
+    await symbolInput.fill("EURUSD");
+
+    const option = page.getByRole("option", { name: /EURUSD/i });
+    if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await option.click();
+    }
+
+    const submitButton = page.getByRole("button", { name: /analiz/i });
+    await submitButton.click();
+
+    await expect(
+      page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
+    ).toBeVisible({ timeout: 60_000 });
+
+    const chartSection = page.getByLabel("Wykres", { exact: true });
+    const emaButton = chartSection.getByRole("button", { name: "EMA" });
+    await expect(emaButton).toHaveAttribute("aria-pressed", "true");
+
+    // Kliknięcie wyłącza warstwę
+    await emaButton.click();
+    await expect(emaButton).toHaveAttribute("aria-pressed", "false");
+
+    // Ponowne kliknięcie włącza
+    await emaButton.click();
+    await expect(emaButton).toHaveAttribute("aria-pressed", "true");
+  });
+});

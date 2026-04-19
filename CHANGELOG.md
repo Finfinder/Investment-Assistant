@@ -8,7 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- 13 new candlestick patterns via TA-Lib (total: 28) — Abandoned Baby, Dark Cloud Cover, Dragonfly/Gravestone Doji, Evening/Morning Doji Star, Harami Cross, Kicking Bull/Bear, Ladder Bottom, Long-Legged Doji, Mat Hold, Rising/Falling Three Methods, Three Outside Up/Down — with Polish `indication` and `detailed_description` for each
+- Chart layer visibility toolbar — 4 chip-style toggle buttons (EMA, Pivot Points, Fibonacci, Formacje) above the candlestick chart; preferences persisted in `localStorage`
+- `ChartLayerVisibility` interface and `DEFAULT_LAYER_VISIBILITY` constant in `src/types/index.ts`
+- `ChartToolbar` component with `aria-pressed` accessibility attribute for each toggle
+- Unit tests for `buildPatternMarkers` grouping logic (6 cases) with Vitest; `vitest.config.ts` added
+- 2 new E2E tests for `ChartToolbar` (toolbar default states, toggle interaction)
+
+### Changed
+- Classic Pivot Points visual hierarchy: PP rendered with `lineWidth: 2`, R2/R3/S2/S3 with `axisLabelVisible: false` — reduces axis label clutter from 7 to 3 pivot labels
+- `buildPatternMarkers()` now groups patterns detected on the same candle into a single marker with combined name (e.g. "Hammer / Doji"); color: all bullish → green, all bearish → red, mixed → gray
+
+### Fixed
+- Target price "Cel" line disappearing after chart layer toggle — added `layerVisibility` to `useEffect` dependencies
+- `createPriceLine` `lineWidth` type error (`as const` on expression) causing Next.js build failure
+- E2E toolbar locators scoped to chart `aria-label` to avoid strict mode violation with duplicate button names
+
+13 new candlestick patterns via TA-Lib (total: 28) — Abandoned Baby, Dark Cloud Cover, Dragonfly/Gravestone Doji, Evening/Morning Doji Star, Harami Cross, Kicking Bull/Bear, Ladder Bottom, Long-Legged Doji, Mat Hold, Rising/Falling Three Methods, Three Outside Up/Down — with Polish `indication` and `detailed_description` for each
 - `indication`, `reliability` (★–★★★, int 1–3) and `detailed_description` fields on `PatternDetection` model (Pydantic + TypeScript); backward-compatible defaults for all non-candlestick detectors
 - Multi-candle scanning: `detect_candlestick_patterns` now scans last 10 candles (was: last candle only); `location` field set to `"emerging"` (last candle) or `"completed"` (older); duplicate suppression per pattern × candle index
 - `RELIABILITY_MULTIPLIER` constant (`{1: 1.0, 2: 1.3, 3: 1.6}`) in `core/models.py`; used in `normalize_pattern_signal()` (aggregator) and `_pattern_confirmation()` (confidence scorer) — patterns with higher reliability get proportionally larger weight
