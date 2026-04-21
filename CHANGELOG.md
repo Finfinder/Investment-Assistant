@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Upgraded `pytest` from `8.x` to `>=9.0.3,<10.0.0` and `pytest-asyncio` from `0.x` to `>=1.3.0,<2.0.0` in `backend/pyproject.toml` to remediate CVE-2025-71176 (CWE-379: insecure temp directory creation; CVSS 6.8 MEDIUM)
+
 ### Added
 - Chart layer visibility toolbar — 4 chip-style toggle buttons (EMA, Pivot Points, Fibonacci, Formacje) above the candlestick chart; preferences persisted in `localStorage`
 - `ChartLayerVisibility` interface and `DEFAULT_LAYER_VISIBILITY` constant in `src/types/index.ts`
