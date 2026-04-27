@@ -1,0 +1,10 @@
+[
+  {
+    "path": "backend/pyproject.toml",
+    "strategy": "pyproject_project_version"
+  },
+  {
+    "path": "frontend/package.json",
+    "strategy": "npm_package_version"
+  }
+]
