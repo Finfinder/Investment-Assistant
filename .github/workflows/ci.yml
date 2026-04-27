@@ -7,7 +7,17 @@ on:
     branches: [main]
 
 jobs:
+  version-consistency:
+    permissions:
+      contents: read
+    uses: Finfinder/AI_Instruction/.github/workflows/reusable-version-consistency.yml@main
+    with:
+      source-repository: ${{ github.repository }}
+      repository-ref: ${{ github.sha }}
+    secrets: inherit
+
   lint:
+    needs: [version-consistency]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,6 +40,7 @@ jobs:
         run: ruff format --check app/ tests/
 
   type-check:
+    needs: [version-consistency]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -49,6 +60,7 @@ jobs:
         run: mypy app/
 
   test:
+    needs: [version-consistency]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -71,6 +83,7 @@ jobs:
         run: coverage report --fail-under=80
 
   security:
+    needs: [version-consistency]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -92,6 +105,7 @@ jobs:
         run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539
 
   frontend-lint:
+    needs: [version-consistency]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -114,7 +128,7 @@ jobs:
 
   frontend-e2e:
     runs-on: ubuntu-latest
-    needs: [frontend-lint]
+    needs: [version-consistency, frontend-lint]
     defaults:
       run:
         working-directory: frontend
