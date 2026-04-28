@@ -8,16 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Full release publishing for tagged versions: GitHub Release notes from `CHANGELOG.md` plus GHCR images for `backend`, `frontend`, and repo-local `nginx`
 
 ### Changed
+
 - `docker-compose.yml` now builds the local `nginx` service from `nginx/Dockerfile` so local deployments and released reverse-proxy images use the same source
 - `.github/workflows/release.yml`: inline validation of `next_version` manifest replaced by shared reusable workflow `Finfinder/AI_Instruction/.github/workflows/reusable-next-version-request.yml`; added `backend/tests/unit/test_release_workflow_contract.py` asserting the shared adapter is used and no inline validator remains.
 
 ### Security
+
 - Upgraded `pytest` from `8.x` to `>=9.0.3,<10.0.0` and `pytest-asyncio` from `0.x` to `>=1.3.0,<2.0.0` in `backend/pyproject.toml` to remediate CVE-2025-71176 (CWE-379: insecure temp directory creation; CVSS 6.8 MEDIUM)
 
 ### Added
+
 - `.github/workflows/open-next-version-branch.yml`: automated next-version branch creation triggered by successful Release workflow; updates `backend/pyproject.toml`, `frontend/package.json` and `README.md` with the `next_version` provided before the release
 - `.github/workflows/release.yml`: new Release workflow adapter uploading `next-version-request` artifact for the central automation workflow in `AI_Instruction`
 - Chart layer visibility toolbar — 4 chip-style toggle buttons (EMA, Pivot Points, Fibonacci, Formacje) above the candlestick chart; preferences persisted in `localStorage`
@@ -31,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `buildPatternMarkers()` now groups patterns detected on the same candle into a single marker with combined name (e.g. "Hammer / Doji"); color: all bullish → green, all bearish → red, mixed → gray
 
 ### Fixed
+- `.gitignore`: add `!.github/release/` exception so `next-version.json` is not blocked by the blanket `.github/*` rule during release validation
 - Target price "Cel" line disappearing after chart layer toggle — added `layerVisibility` to `useEffect` dependencies
 - `createPriceLine` `lineWidth` type error (`as const` on expression) causing Next.js build failure
 - E2E toolbar locators scoped to chart `aria-label` to avoid strict mode violation with duplicate button names
