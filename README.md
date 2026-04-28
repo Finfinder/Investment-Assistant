@@ -74,6 +74,22 @@ docker compose up --build
 
 The application is available at `http://localhost` (nginx reverse proxy). Health check: `GET /api/v1/health`. API documentation: `http://localhost/api/v1/docs`.
 
+The local `docker compose` stack builds the same `backend`, `frontend`, and `nginx` Dockerfiles that are published during tagged releases.
+
+---
+
+## Release Artifacts
+
+Tagged releases publish three container images to GHCR:
+
+- `ghcr.io/<owner>/<repo>-backend`
+- `ghcr.io/<owner>/<repo>-frontend`
+- `ghcr.io/<owner>/<repo>-nginx`
+
+Each image is published with a semver tag matching the release, an immutable `sha-<commit>` tag, and `latest` only for stable tags without a prerelease suffix.
+
+GitHub Release notes are generated from `CHANGELOG.md`. The supported release artifacts are container images only; this repository does not publish a frontend npm package or a backend PyPI package.
+
 ---
 
 ## Architecture

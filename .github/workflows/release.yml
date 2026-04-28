@@ -22,14 +22,69 @@ jobs:
     needs: [version-consistency]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
+      packages: write
+    concurrency:
+      group: release-${{ github.ref_name }}
+      cancel-in-progress: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare release metadata
+        id: prepare
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          python3 <<'PY'
+          import os
+          from pathlib import Path
+
+          tag_name = os.environ['TAG_NAME']
+          version = tag_name.removeprefix('v')
+          changelog_path = Path('CHANGELOG.md')
+          notes_path = Path(os.environ['RUNNER_TEMP']) / 'release_notes.md'
+
+          lines = changelog_path.read_text(encoding='utf-8').splitlines()
+          start = None
+          end = None
+
+          for index, line in enumerate(lines):
+              if line.startswith('## ['):
+                  if line.startswith(f'## [{version}]'):
+                      start = index + 1
+                  elif start is not None:
+                      end = index
+                      break
+
+          if start is None:
+              notes = f'Release {version}\n\nNo dedicated entry found in CHANGELOG.md for this version.\n'
+          else:
+              selected_lines = lines[start:end]
+              while selected_lines and not selected_lines[0].strip():
+                  selected_lines.pop(0)
+              while selected_lines and not selected_lines[-1].strip():
+                  selected_lines.pop()
+
+              notes = '\n'.join(selected_lines).strip()
+              if not notes:
+                  notes = f'Release {version}\n\nNo detailed notes were recorded in CHANGELOG.md for this version.\n'
+              else:
+                  notes += '\n'
+
+          notes_path.write_text(notes, encoding='utf-8')
+
+          github_output = Path(os.environ['GITHUB_OUTPUT'])
+          with github_output.open('a', encoding='utf-8') as handle:
+              handle.write(f'tag_name={tag_name}\n')
+              handle.write(f'version={version}\n')
+              handle.write(f'release_title=Investment Assistant {version}\n')
+              handle.write(f'notes_path={notes_path.as_posix()}\n')
+          PY
+
       - name: Validate next version request
         env:
-          EXPECTED_RELEASE_VERSION: ${{ github.ref_name }}
+          EXPECTED_RELEASE_VERSION: ${{ steps.prepare.outputs.version }}
         run: |
           python3 <<'PY'
           import json
@@ -72,3 +127,175 @@ jobs:
           name: next-version-request
           path: ${{ runner.temp }}/next-version-request/next-version.json
           if-no-files-found: error
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[dev]" pip-audit
+
+      - name: Run backend Ruff checks
+        working-directory: backend
+        run: |
+          ruff format --check app/ tests/
+          ruff check app/ tests/
+
+      - name: Run backend type-check and tests
+        working-directory: backend
+        run: |
+          mypy app/
+          pytest --cov=app --cov-branch --cov-report=xml --cov-report=term-missing
+          coverage report --fail-under=80
+
+      - name: Audit backend dependencies
+        working-directory: backend
+        run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run frontend E2E tests
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - name: Log in to GHCR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and push release images
+        env:
+          VERSION: ${{ steps.prepare.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          COMMIT_SHA: ${{ github.sha }}
+          IMAGE_LIST_PATH: ${{ runner.temp }}/release-images.md
+        run: |
+          set -euo pipefail
+
+          owner="$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          repo_name="$(printf '%s' "${REPOSITORY#*/}" | tr '[:upper:]' '[:lower:]')"
+          stable_release=true
+
+          if [[ "$VERSION" == *-* ]]; then
+            stable_release=false
+          fi
+
+          publish_image() {
+            local suffix="$1"
+            local title="$2"
+            local description="$3"
+            local context_path="$4"
+            shift 4
+
+            local image_ref="ghcr.io/${owner}/${repo_name}-${suffix}"
+            local semver_tag="${image_ref}:${VERSION}"
+            local sha_tag="${image_ref}:sha-${COMMIT_SHA}"
+
+            docker build \
+              --label "org.opencontainers.image.source=https://github.com/${REPOSITORY}" \
+              --label "org.opencontainers.image.revision=${COMMIT_SHA}" \
+              --label "org.opencontainers.image.version=${VERSION}" \
+              --label "org.opencontainers.image.licenses=MIT" \
+              --label "org.opencontainers.image.title=${title}" \
+              --label "org.opencontainers.image.description=${description}" \
+              -t "$semver_tag" \
+              -t "$sha_tag" \
+              "$@" \
+              "$context_path"
+
+            docker push "$semver_tag"
+            docker push "$sha_tag"
+
+            {
+              echo "- ${semver_tag}"
+              echo "- ${sha_tag}"
+            } >> "$IMAGE_LIST_PATH"
+
+            if [[ "$stable_release" == true ]]; then
+              local latest_tag="${image_ref}:latest"
+              docker tag "$semver_tag" "$latest_tag"
+              docker push "$latest_tag"
+              echo "- ${latest_tag}" >> "$IMAGE_LIST_PATH"
+            fi
+          }
+
+          : > "$IMAGE_LIST_PATH"
+
+          publish_image \
+            backend \
+            "Investment Assistant backend" \
+            "Backend API image for Investment Assistant." \
+            ./backend
+
+          publish_image \
+            frontend \
+            "Investment Assistant frontend" \
+            "Next.js frontend image for Investment Assistant." \
+            ./frontend \
+            --build-arg NEXT_PUBLIC_API_URL=/api/v1 \
+            --build-arg NEXT_PUBLIC_WS_URL=/api/v1
+
+          publish_image \
+            nginx \
+            "Investment Assistant nginx" \
+            "Reverse proxy image for Investment Assistant." \
+            ./nginx
+
+      - name: Prepare GitHub release body
+        env:
+          NOTES_PATH: ${{ steps.prepare.outputs.notes_path }}
+          IMAGE_LIST_PATH: ${{ runner.temp }}/release-images.md
+          RELEASE_BODY_PATH: ${{ runner.temp }}/release_body.md
+        run: |
+          cp "$NOTES_PATH" "$RELEASE_BODY_PATH"
+          {
+            echo
+            echo "## Container images"
+            cat "$IMAGE_LIST_PATH"
+          } >> "$RELEASE_BODY_PATH"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.prepare.outputs.tag_name }}
+          RELEASE_TITLE: ${{ steps.prepare.outputs.release_title }}
+          RELEASE_BODY_PATH: ${{ runner.temp }}/release_body.md
+        run: |
+          set -euo pipefail
+
+          release_view_stderr="${{ runner.temp }}/release_view.stderr"
+
+          if gh release view "$TAG_NAME" >/dev/null 2>"$release_view_stderr"; then
+            gh release edit "$TAG_NAME" --title "$RELEASE_TITLE" --notes-file "$RELEASE_BODY_PATH"
+          else
+            view_status=$?
+
+            if grep -qi "release not found" "$release_view_stderr"; then
+              gh release create "$TAG_NAME" --verify-tag --title "$RELEASE_TITLE" --notes-file "$RELEASE_BODY_PATH"
+            else
+              cat "$release_view_stderr" >&2
+              exit "$view_status"
+            fi
+          fi
