@@ -66,3 +66,4 @@ backend/alembic/versions/__pycache__/
 !.github/copilot-instructions.md
 !.github/PULL_REQUEST_TEMPLATE.md
 !.github/ISSUE_TEMPLATE/
+!.github/release/
