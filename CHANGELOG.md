@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Full release publishing for tagged versions: GitHub Release notes from `CHANGELOG.md` plus GHCR images for `backend`, `frontend`, and repo-local `nginx`
+
+### Changed
+- `docker-compose.yml` now builds the local `nginx` service from `nginx/Dockerfile` so local deployments and released reverse-proxy images use the same source
+
 ### Security
 - Upgraded `pytest` from `8.x` to `>=9.0.3,<10.0.0` and `pytest-asyncio` from `0.x` to `>=1.3.0,<2.0.0` in `backend/pyproject.toml` to remediate CVE-2025-71176 (CWE-379: insecure temp directory creation; CVSS 6.8 MEDIUM)
 
