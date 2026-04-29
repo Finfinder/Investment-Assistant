@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Replaced cross-repository `uses: Finfinder/AI_Instruction/.github/workflows/reusable-*.yml@main` calls in `ci.yml`, `release.yml` and `open-next-version-branch.yml` with local wrapper copies to fix GitHub Actions parse-time "workflow was not found" error
+- Replaced cross-repository `uses: Finfinder/AI_Instruction/.github/workflows/reusable-*.yml@main` calls in `ci.yml`, `release.yml` and `open-next-version-branch.yml` with local wrapper copies, and vendored the version-consistency validator into the repo to remove the failing runtime dependency on `AI_Instruction`
 
 ### Added
 
