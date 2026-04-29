@@ -15,7 +15,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: Finfinder/AI_Instruction/.github/workflows/reusable-open-next-version-branch.yml@main
+    uses: ./.github/workflows/reusable-open-next-version-branch.yml
     with:
       workflow-run-id: ${{ github.event.workflow_run.id }}
       source-repository: ${{ github.repository }}

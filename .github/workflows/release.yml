@@ -11,7 +11,7 @@ jobs:
   version-consistency:
     permissions:
       contents: read
-    uses: Finfinder/AI_Instruction/.github/workflows/reusable-version-consistency.yml@main
+    uses: ./.github/workflows/reusable-version-consistency.yml
     with:
       source-repository: ${{ github.repository }}
       repository-ref: ${{ github.ref }}
@@ -21,7 +21,7 @@ jobs:
   next-version-request:
     permissions:
       contents: read
-    uses: Finfinder/AI_Instruction/.github/workflows/reusable-next-version-request.yml@main
+    uses: ./.github/workflows/reusable-next-version-request.yml
     with:
       source-repository: ${{ github.repository }}
       repository-ref: ${{ github.ref }}

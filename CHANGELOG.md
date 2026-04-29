@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Replaced cross-repository `uses: Finfinder/AI_Instruction/.github/workflows/reusable-*.yml@main` calls in `ci.yml`, `release.yml` and `open-next-version-branch.yml` with local wrapper copies to fix GitHub Actions parse-time "workflow was not found" error
+
 ### Added
 
 - Full release publishing for tagged versions: GitHub Release notes from `CHANGELOG.md` plus GHCR images for `backend`, `frontend`, and repo-local `nginx`
