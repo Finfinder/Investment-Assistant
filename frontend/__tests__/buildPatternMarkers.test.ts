@@ -6,20 +6,21 @@ import type { PatternDetection } from "@/types";
 const TS1 = 1700000000 as UTCTimestamp;
 const TS2 = 1700003600 as UTCTimestamp;
 
-function makePattern(overrides: Partial<PatternDetection> & { pattern_type: string; bullish: boolean }): PatternDetection {
+function makePattern({ pattern_type, bullish, ...overrides }: Partial<PatternDetection> & { pattern_type: string; bullish: boolean }): PatternDetection {
   return {
-    pattern_type: overrides.pattern_type,
-    bullish: overrides.bullish,
+    pattern_type,
+    bullish,
     confidence: 0.8,
     description: "",
     location: "body",
-    category: "reversal",
+    category: "candlestick",
+    timeframe: null,
     detected_at_index: null,
     detected_at_timestamp: "2023-11-14T22:13:20Z",
     relevance_score: 0.8,
     target_price: null,
     indication: "buy",
-    reliability: 0.7,
+    reliability: 1,
     detailed_description: "",
     ...overrides,
   };

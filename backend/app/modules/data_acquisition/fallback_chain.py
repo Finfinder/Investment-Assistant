@@ -1,8 +1,9 @@
 import logging
 import time
 
-from app.core.models import OHLCVData, Timeframe
+from app.core.models import OHLCVData
 from app.modules.data_acquisition.interfaces import DataProvider
+from app.modules.data_acquisition.timeframes import TimeframeLike, normalize_data_timeframe
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,14 @@ class FallbackChainManager:
     def providers(self) -> list[DataProvider]:
         return list(self._providers)
 
-    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: TimeframeLike, period: str) -> list[OHLCVData]:
         errors: list[str] = []
+        data_timeframe = normalize_data_timeframe(timeframe)
 
         for provider in self._providers:
             start = time.monotonic()
             try:
-                result = await provider.fetch_ohlcv(symbol, timeframe, period)
+                result = await provider.fetch_ohlcv(symbol, data_timeframe, period)
                 elapsed = time.monotonic() - start
 
                 if result:
@@ -59,7 +61,7 @@ class FallbackChainManager:
                 )
                 errors.append(f"{provider.name}: {exc}")
 
-        raise DataProviderError(f"All providers failed for {symbol}/{timeframe}/{period}: " + "; ".join(errors))
+        raise DataProviderError(f"All providers failed for {symbol}/{data_timeframe}/{period}: " + "; ".join(errors))
 
 
 def build_fallback_chain() -> FallbackChainManager:

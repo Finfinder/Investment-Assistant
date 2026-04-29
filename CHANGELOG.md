@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Analysis now runs as a native multi-timeframe pipeline: daily data powers pivot points, an internal weekly context powers long-term trend, and pattern scanning consolidates results from D1/H1/M15 into the report and the "Ramy czasowe" UI while preserving the single public request timeframe and main-timeframe chart markers
+
 - `docker-compose.yml` now builds the local `nginx` service from `nginx/Dockerfile` so local deployments and released reverse-proxy images use the same source
 - `.github/workflows/release.yml`: inline validation of `next_version` manifest replaced by shared reusable workflow `Finfinder/AI_Instruction/.github/workflows/reusable-next-version-request.yml`; added `backend/tests/unit/test_release_workflow_contract.py` asserting the shared adapter is used and no inline validator remains.
 

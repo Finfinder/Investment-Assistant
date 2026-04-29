@@ -5,18 +5,19 @@ from typing import Any
 import httpx
 
 from app.core.daily_rate_limiter import DailyRateLimiter
-from app.core.models import OHLCVData, Timeframe
+from app.core.models import OHLCVData
 from app.modules.data_acquisition.interfaces import DataProviderPriority
+from app.modules.data_acquisition.timeframes import DataTimeframe, TimeframeLike, normalize_data_timeframe
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://financialmodelingprep.com/api/v3"
 
-TIMEFRAME_MAP: dict[Timeframe, str] = {
-    Timeframe.M15: "15min",
-    Timeframe.H1: "1hour",
-    Timeframe.H4: "4hour",
-    Timeframe.D1: "1day",
+TIMEFRAME_MAP: dict[DataTimeframe, str] = {
+    DataTimeframe.M15: "15min",
+    DataTimeframe.H1: "1hour",
+    DataTimeframe.H4: "4hour",
+    DataTimeframe.D1: "1day",
 }
 
 DAILY_RATE_LIMIT = 250
@@ -80,6 +81,44 @@ SYMBOL_MAP: dict[str, str] = {
 }
 
 
+def _build_weekly_candle(candles: list[OHLCVData]) -> OHLCVData:
+    return OHLCVData(
+        timestamp=candles[0].timestamp,
+        open=candles[0].open,
+        high=max(candle.high for candle in candles),
+        low=min(candle.low for candle in candles),
+        close=candles[-1].close,
+        volume=sum(candle.volume for candle in candles),
+    )
+
+
+def _resample_to_weekly(candles: list[OHLCVData]) -> list[OHLCVData]:
+    if not candles:
+        return []
+
+    result: list[OHLCVData] = []
+    bucket: list[OHLCVData] = []
+    current_week: tuple[int, int] | None = None
+
+    for candle in candles:
+        iso_week = candle.timestamp.isocalendar()
+        week_key = (iso_week.year, iso_week.week)
+
+        if current_week is None or week_key == current_week:
+            current_week = week_key
+            bucket.append(candle)
+            continue
+
+        result.append(_build_weekly_candle(bucket))
+        current_week = week_key
+        bucket = [candle]
+
+    if bucket:
+        result.append(_build_weekly_candle(bucket))
+
+    return result
+
+
 class FMPProvider:
     """TERTIARY data provider using Financial Modeling Prep REST API."""
 
@@ -119,13 +158,20 @@ class FMPProvider:
             logger.warning("FMP availability check failed", exc_info=True)
             return False
 
-    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: TimeframeLike, period: str) -> list[OHLCVData]:
+        data_timeframe = normalize_data_timeframe(timeframe)
+
+        if data_timeframe == DataTimeframe.W1:
+            logger.info("FMP: resampling weekly candles from daily data for %s", symbol)
+            daily = await self.fetch_ohlcv(symbol, DataTimeframe.D1, period)
+            return _resample_to_weekly(daily)
+
         self._rate_limiter.check()
 
         fmp_symbol = self._map_symbol(symbol)
-        fmp_interval = TIMEFRAME_MAP[timeframe]
+        fmp_interval = TIMEFRAME_MAP[data_timeframe]
 
-        if timeframe == Timeframe.D1:
+        if data_timeframe == DataTimeframe.D1:
             url = f"{BASE_URL}/historical-price-full/{fmp_symbol}"
         else:
             url = f"{BASE_URL}/historical-chart/{fmp_interval}/{fmp_symbol}"
@@ -133,7 +179,7 @@ class FMPProvider:
         logger.info("FMP: fetching %s interval=%s", fmp_symbol, fmp_interval)
 
         params: dict[str, str | int] = {"apikey": self._api_key}
-        if timeframe == Timeframe.D1:
+        if data_timeframe == DataTimeframe.D1:
             params["timeseries"] = self._period_to_days(period)
 
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -146,10 +192,10 @@ class FMPProvider:
             resp.raise_for_status()
             data = resp.json()
 
-        return self._parse_response(data, timeframe)
+        return self._parse_response(data, data_timeframe)
 
-    def _parse_response(self, data: Any, timeframe: Timeframe) -> list[OHLCVData]:
-        if timeframe == Timeframe.D1:
+    def _parse_response(self, data: Any, timeframe: DataTimeframe) -> list[OHLCVData]:
+        if timeframe == DataTimeframe.D1:
             items = data.get("historical", []) if isinstance(data, dict) else []
         else:
             items = data if isinstance(data, list) else []

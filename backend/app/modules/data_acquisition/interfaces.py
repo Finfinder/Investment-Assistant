@@ -1,7 +1,8 @@
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
-from app.core.models import OHLCVData, Timeframe
+from app.core.models import OHLCVData
+from app.modules.data_acquisition.timeframes import TimeframeLike
 
 
 class DataProviderPriority(StrEnum):
@@ -21,7 +22,7 @@ class DataProvider(Protocol):
     @property
     def priority(self) -> DataProviderPriority: ...
 
-    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]: ...
+    async def fetch_ohlcv(self, symbol: str, timeframe: TimeframeLike, period: str) -> list[OHLCVData]: ...
 
     def get_supported_symbols(self) -> list[str]: ...
 

@@ -7,7 +7,9 @@ from app.core.models import Timeframe
 from app.modules.data_acquisition.providers.fmp_provider import (
     DAILY_RATE_LIMIT,
     FMPProvider,
+    _resample_to_weekly,
 )
+from app.modules.data_acquisition.timeframes import DataTimeframe
 
 FOREX_PAIRS_NEW = [
     "NZDUSD",
@@ -135,3 +137,40 @@ class TestFMPProvider:
 
         with pytest.raises(RuntimeError, match="rate limit"):
             await provider.fetch_ohlcv("EURUSD", Timeframe.H1, "30d")
+
+    @pytest.mark.asyncio
+    async def test_fetch_ohlcv_weekly_resamples_daily_data(self) -> None:
+        provider = FMPProvider(api_key="test_key")
+
+        mock_response = httpx.Response(
+            200,
+            json={
+                "symbol": "EURUSD",
+                "historical": [
+                    {"date": "2024-01-12", "open": 1.40, "high": 1.45, "low": 1.38, "close": 1.42, "volume": 40},
+                    {"date": "2024-01-11", "open": 1.30, "high": 1.35, "low": 1.28, "close": 1.32, "volume": 30},
+                    {"date": "2024-01-05", "open": 1.20, "high": 1.25, "low": 1.18, "close": 1.22, "volume": 20},
+                    {"date": "2024-01-04", "open": 1.10, "high": 1.15, "low": 1.08, "close": 1.12, "volume": 10},
+                ],
+            },
+            request=httpx.Request("GET", "https://financialmodelingprep.com/api/v3/historical-price-full/EURUSD"),
+        )
+
+        with patch("app.modules.data_acquisition.providers.fmp_provider.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = mock_client
+
+            result = await provider.fetch_ohlcv("EURUSD", DataTimeframe.W1, "30d")
+
+        assert len(result) == 2
+        assert result[0].open == 1.10
+        assert result[0].close == 1.22
+        assert result[1].open == 1.30
+        assert result[1].close == 1.42
+
+
+def test_resample_to_weekly_returns_empty_for_empty_data() -> None:
+    assert _resample_to_weekly([]) == []

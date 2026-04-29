@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import OHLCVCache
 from app.core.models import OHLCVData
+from app.modules.data_acquisition.timeframes import DataTimeframe
 
 # Type alias for the async fetch function passed to OHLCVCacheService
 FetchFn = Callable[[str, str, str], Awaitable[list[OHLCVData]]]
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 _STALENESS_MINUTES = 5
 
 # Timeframes considered intraday (subject to staleness check)
-_INTRADAY_TIMEFRAMES = frozenset({"M15", "H1", "H4"})
+_INTRADAY_TIMEFRAMES = frozenset({DataTimeframe.M15.value, DataTimeframe.H1.value, DataTimeframe.H4.value})
 
 # Max rows per INSERT statement (500 x 8 columns = 4000 params, safely under SQLite 32766 limit)
 _UPSERT_CHUNK_SIZE = 500

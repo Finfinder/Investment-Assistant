@@ -8,6 +8,7 @@ from app.modules.data_acquisition.providers.twelve_data_provider import (
     DAILY_RATE_LIMIT,
     TwelveDataProvider,
 )
+from app.modules.data_acquisition.timeframes import DataTimeframe
 
 CROSS_PAIRS = ["AUDCAD", "AUDCHF", "AUDJPY", "CADJPY", "CHFJPY", "EURCHF", "EURAUD", "EURCAD", "GBPCAD", "GBPCHF"]
 
@@ -126,3 +127,28 @@ class TestTwelveDataProvider:
 
             with pytest.raises(RuntimeError, match="Invalid symbol"):
                 await provider.fetch_ohlcv("INVALID", Timeframe.H1, "30d")
+
+    @pytest.mark.asyncio
+    async def test_fetch_ohlcv_weekly_uses_native_interval(self) -> None:
+        provider = TwelveDataProvider(api_key="test_key")
+
+        mock_response = httpx.Response(
+            200,
+            json={"values": []},
+            request=httpx.Request("GET", "https://api.twelvedata.com/time_series"),
+        )
+
+        with patch("app.modules.data_acquisition.providers.twelve_data_provider.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = mock_client
+
+            await provider.fetch_ohlcv("EURUSD", DataTimeframe.W1, "30d")
+
+        _, kwargs = mock_client.get.call_args
+        assert kwargs["params"]["interval"] == "1w"
+
+    def test_period_to_outputsize_weekly_rounds_up_to_weeks(self) -> None:
+        assert TwelveDataProvider._period_to_outputsize("30d", DataTimeframe.W1) == 5

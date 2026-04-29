@@ -42,6 +42,10 @@ test.describe("PatternDetailModal", () => {
     await expect(dialog.getByText("★★")).toBeVisible();
     await expect(dialog.getByText("Odwrót bycza")).toBeVisible();
     await expect(dialog.getByText(/Formacja młota pojawia się/)).toBeVisible();
+    await expect(dialog.getByText(/Interwał reprezentatywny/i)).toBeVisible();
+    await expect(dialog.getByText(/Ramy czasowe/i)).toBeVisible();
+    await expect(dialog.getByText(/^D1$/)).toBeVisible();
+    await expect(dialog.getByText(/^H1$/).first()).toBeVisible();
   });
 
   test("zamyka modal klawiszem Escape", async ({ mockedPage: page }) => {
@@ -71,6 +75,32 @@ test.describe("PatternDetailModal", () => {
 
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible({ timeout: 2_000 });
+  });
+
+  test("otwiera modal klawiszem Enter z fokusem na wierszu formacji", async ({ mockedPage: page }) => {
+    await page.goto("/");
+
+    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
+    await symbolInput.fill("EURUSD");
+
+    const option = page.getByRole("option", { name: /EURUSD/i });
+    if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await option.click();
+    }
+
+    await page.getByRole("combobox", { name: /timeframe/i }).selectOption("H1");
+    await page.getByRole("button", { name: /analiz/i }).click();
+
+    await expect(
+      page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
+    ).toBeVisible({ timeout: 60_000 });
+
+    const patternRow = page.getByRole("button", { name: /Hammer/i }).first();
+    await patternRow.focus();
+    await expect(patternRow).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 3_000 });
   });
 
   test("zamyka modal przyciskiem X", async ({ mockedPage: page }) => {
@@ -124,7 +154,7 @@ test.describe("PatternDetailModal", () => {
     await expect(patternRow).toBeVisible({ timeout: 5_000 });
     await patternRow.click();
 
-    const dialogEl = page.locator('[role="dialog"][aria-modal="true"]');
+    const dialogEl = page.getByRole("dialog");
     await expect(dialogEl).toBeVisible({ timeout: 3_000 });
   });
 });

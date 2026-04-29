@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import type { Timeframe, IndicatorPreset, AnalysisReport, PatternDetection } from "@/types";
+import type { SignalType, Timeframe, IndicatorPreset, AnalysisReport, PatternDetection } from "@/types";
 import { triggerAnalysis, getAnalysis } from "@/lib/api";
 import AnalysisForm from "@/components/AnalysisForm";
 import ProgressIndicator from "@/components/ProgressIndicator";
@@ -20,6 +20,7 @@ const CandlestickChart = dynamic(() => import("@/components/Chart/CandlestickCha
 type AppState = "idle" | "analyzing" | "done" | "error";
 
 const SECTION_NAV = [
+  { id: "context", label: "Kontekst TF" },
   { id: "signals", label: "Sygnały" },
   { id: "chart", label: "Wykres" },
   { id: "strategies", label: "Strategie" },
@@ -31,6 +32,34 @@ const SECTION_NAV = [
 
 function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function longTermTrendLabel(signal: SignalType): string {
+  switch (signal) {
+    case "strong_buy":
+      return "Silny trend wzrostowy";
+    case "buy":
+      return "Trend wzrostowy";
+    case "sell":
+      return "Trend spadkowy";
+    case "strong_sell":
+      return "Silny trend spadkowy";
+    default:
+      return "Trend boczny";
+  }
+}
+
+function longTermTrendClass(signal: SignalType): string {
+  switch (signal) {
+    case "strong_buy":
+    case "buy":
+      return "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30";
+    case "sell":
+    case "strong_sell":
+      return "bg-red-500/15 text-red-400 border border-red-500/30";
+    default:
+      return "bg-slate-500/15 text-slate-300 border border-slate-500/30";
+  }
 }
 
 export default function HomePage() {
@@ -195,6 +224,48 @@ export default function HomePage() {
         {/* Report */}
         {state === "done" && report && (
           <div className="space-y-6">
+            <Section title="Kontekst multi-timeframe" id="context">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <article className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Rama główna raportu</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">{report.timeframe}</p>
+                  <p className="mt-1 text-sm text-muted">Wskaźniki, średnie, wykres i strategie korzystają z wybranego interwału.</p>
+                </article>
+
+                <article className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Źródła pomocnicze</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                    <span className="rounded-full border border-border px-2 py-1 text-foreground">
+                      Pivot Points: {report.timeframe_context.pivot_points_timeframe}
+                    </span>
+                    <span className="rounded-full border border-border px-2 py-1 text-foreground">
+                      Skaner: {report.timeframe_context.pattern_scanner_timeframes.join(", ")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted">Pivoty liczone są z `D1`, a skaner formacji konsoliduje stały zestaw `D1`, `H1`, `M15`.</p>
+                </article>
+
+                <article className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Trend długoterminowy</p>
+                  {report.long_term_trend ? (
+                    <>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full px-2 py-1 text-sm font-medium ${longTermTrendClass(report.long_term_trend.signal)}`}>
+                          {longTermTrendLabel(report.long_term_trend.signal)}
+                        </span>
+                        <span className="rounded-full border border-border px-2 py-1 text-sm text-foreground">
+                          Źródło: {report.long_term_trend.source_label}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-muted">{report.long_term_trend.summary}</p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted">Brak danych weekly. Raport zachował główną analizę i skaner bez anulowania całości.</p>
+                  )}
+                </article>
+              </div>
+            </Section>
+
             {/* Signal Summary Gauges */}
             {report.signal_summary && (
               <Section title="Podsumowanie sygnałów" id="signals">
@@ -261,8 +332,8 @@ export default function HomePage() {
             {/* Patterns */}
             <Section title="Formacje cenowe" id="patterns">
               <PatternList
-                patterns={report.patterns}
-                totalCandles={report.ohlcv_data.length}
+                patterns={report.pattern_scanner_results}
+                currentTimeframe={report.timeframe}
                 onPatternClick={setHighlightedPattern}
               />
             </Section>

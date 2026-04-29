@@ -73,6 +73,10 @@ class TestFullPipelineForex:
         assert report.symbol == "EURUSD"
         assert report.timeframe == Timeframe.H1
         assert report.instrument_type == InstrumentType.FOREX
+        assert report.timeframe_context.pivot_points_timeframe == Timeframe.D1
+        assert report.timeframe_context.pattern_scanner_timeframes == [Timeframe.D1, Timeframe.H1, Timeframe.M15]
+        if report.patterns:
+            assert all(pattern.timeframe == Timeframe.H1 for pattern in report.patterns)
 
         # Verify report contains all required sections
         assert len(report.technical_indicators) > 0, "Report must have technical indicators"
@@ -120,6 +124,7 @@ class TestFullPipelineCommodity:
         assert report is not None
         assert report.symbol == "GOLD"
         assert report.timeframe == Timeframe.D1
+        assert report.timeframe_context.pivot_points_timeframe == Timeframe.D1
         assert len(report.technical_indicators) > 0
         assert len(report.moving_averages) > 0
         assert len(report.strategies) > 0

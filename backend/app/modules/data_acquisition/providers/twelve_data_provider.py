@@ -4,18 +4,20 @@ from datetime import UTC, datetime
 import httpx
 
 from app.core.daily_rate_limiter import DailyRateLimiter
-from app.core.models import OHLCVData, Timeframe
+from app.core.models import OHLCVData
 from app.modules.data_acquisition.interfaces import DataProviderPriority
+from app.modules.data_acquisition.timeframes import DataTimeframe, TimeframeLike, normalize_data_timeframe
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.twelvedata.com"
 
-TIMEFRAME_MAP: dict[Timeframe, str] = {
-    Timeframe.M15: "15min",
-    Timeframe.H1: "1h",
-    Timeframe.H4: "4h",
-    Timeframe.D1: "1day",
+TIMEFRAME_MAP: dict[DataTimeframe, str] = {
+    DataTimeframe.M15: "15min",
+    DataTimeframe.H1: "1h",
+    DataTimeframe.H4: "4h",
+    DataTimeframe.D1: "1day",
+    DataTimeframe.W1: "1w",
 }
 
 DAILY_RATE_LIMIT = 800
@@ -177,12 +179,13 @@ class TwelveDataProvider:
             logger.warning("Twelve Data availability check failed", exc_info=True)
             return False
 
-    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: TimeframeLike, period: str) -> list[OHLCVData]:
         self._rate_limiter.check()
+        data_timeframe = normalize_data_timeframe(timeframe)
 
         td_symbol = self._map_symbol(symbol)
-        td_interval = TIMEFRAME_MAP[timeframe]
-        outputsize = self._period_to_outputsize(period, timeframe)
+        td_interval = TIMEFRAME_MAP[data_timeframe]
+        outputsize = self._period_to_outputsize(period, data_timeframe)
 
         logger.info("TwelveData: fetching %s interval=%s outputsize=%d", td_symbol, td_interval, outputsize)
 
@@ -234,15 +237,18 @@ class TwelveDataProvider:
         return result
 
     @staticmethod
-    def _period_to_outputsize(period: str, timeframe: Timeframe) -> int:
+    def _period_to_outputsize(period: str, timeframe: DataTimeframe) -> int:
         num = int(period[:-1])
         unit = period[-1].lower()
         days = num if unit == "d" else num * 365
 
+        if timeframe == DataTimeframe.W1:
+            return min(max(1, -(-days // 7)), 5000)
+
         candles_per_day = {
-            Timeframe.M15: 96,
-            Timeframe.H1: 24,
-            Timeframe.H4: 6,
-            Timeframe.D1: 1,
+            DataTimeframe.M15: 96,
+            DataTimeframe.H1: 24,
+            DataTimeframe.H4: 6,
+            DataTimeframe.D1: 1,
         }
         return min(days * candles_per_day[timeframe], 5000)
