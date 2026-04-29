@@ -6,6 +6,7 @@ import pytest
 from app.core.models import OHLCVData
 from app.modules.data_acquisition.ohlcv_cache import (
     OHLCVCacheService,
+    _is_stale,
     clear_cache,
     get_cached_ohlcv,
     get_latest_fetched_at,
@@ -249,3 +250,7 @@ class TestOHLCVCacheService:
         fetch_fn.assert_called_once()
         assert len(result) == 5
         assert result[0].open == 100.0
+
+
+def test_weekly_timeframe_is_not_marked_stale() -> None:
+    assert _is_stale(None, "W1") is False

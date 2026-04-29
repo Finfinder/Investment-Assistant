@@ -13,10 +13,12 @@ from app.core.models import (
     AnalysisReport,
     AnalysisStatus,
     AnalysisStatusType,
+    AnalysisTimeframeContext,
     FundamentalData,
     IndicatorPreset,
     IndicatorValue,
     InstrumentType,
+    LongTermTrend,
     MovingAverage,
     OHLCVData,
     PatternDetection,
@@ -25,6 +27,10 @@ from app.core.models import (
     Timeframe,
 )
 from app.modules.data_acquisition.fallback_chain import FallbackChainManager, build_fallback_chain
+from app.modules.data_acquisition.multi_timeframe import MultiTimeframeFetchBundle, MultiTimeframeFetcher
+from app.modules.data_acquisition.timeframes import AnalysisTimeframePlan, DataTimeframe, resolve_analysis_timeframes
+from app.modules.pattern_recognition.consolidator import consolidate_patterns
+from app.modules.technical_analysis.long_term_trend import build_long_term_trend
 from app.modules.technical_analysis.pivot_points import get_pivot_candle
 
 if TYPE_CHECKING:
@@ -59,6 +65,7 @@ class AnalysisPipeline:
         self.analysis_id = str(uuid.uuid4())
         self.symbol = symbol
         self.timeframe = timeframe
+        self.timeframe_plan: AnalysisTimeframePlan = resolve_analysis_timeframes(timeframe)
         self.preset = preset
         self._chain = chain or build_fallback_chain()
         self._status = AnalysisStatus(
@@ -113,29 +120,38 @@ class AnalysisPipeline:
 
             # Step 1: Data fetch
             self._update_status(0, PIPELINE_STEPS[0])
-            ohlcv = await self._step_fetch_data()
+            fetch_bundle = await self._step_fetch_data()
+            ohlcv = fetch_bundle.main_ohlcv
             self._complete_step(PIPELINE_STEPS[0])
 
             if not ohlcv:
                 self._fail("Brak danych rynkowych dla podanego symbolu")
                 return None
 
-            # Fetch D1 candle for Pivot Points (before step 2)
-            if self.timeframe == Timeframe.D1:
-                pivot_candle = get_pivot_candle(ohlcv)
-            else:
-                pivot_candle = await self._fetch_pivot_candle()
+            daily_ohlcv = fetch_bundle.get(DataTimeframe.D1)
+            pivot_source = daily_ohlcv or ohlcv
+            pivot_candle = get_pivot_candle(pivot_source)
 
             # Step 2: Technical Analysis (offload to thread — CPU-intensive)
             self._update_status(1, PIPELINE_STEPS[1])
             indicators, moving_averages, pivot_points, signal_summary = await asyncio.to_thread(
                 self._step_technical_analysis, ohlcv, pivot_candle
             )
+            long_term_trend = await asyncio.to_thread(
+                self._step_long_term_trend,
+                fetch_bundle.get(DataTimeframe.W1),
+            )
             self._complete_step(PIPELINE_STEPS[1])
 
             # Step 3: Pattern Recognition (offload to thread — CPU-intensive)
             self._update_status(2, PIPELINE_STEPS[2])
-            patterns = await asyncio.to_thread(self._step_pattern_recognition, ohlcv)
+            patterns = await asyncio.to_thread(self._step_pattern_recognition, ohlcv, self.timeframe)
+            scanner_patterns = await asyncio.to_thread(
+                self._step_multi_timeframe_pattern_recognition,
+                fetch_bundle,
+                patterns,
+            )
+            pattern_scanner_results = await asyncio.to_thread(consolidate_patterns, scanner_patterns)
             self._complete_step(PIPELINE_STEPS[2])
 
             # Step 4: Fundamental Analysis (graceful degradation)
@@ -171,6 +187,9 @@ class AnalysisPipeline:
                 moving_averages=moving_averages,
                 pivot_points=pivot_points,
                 patterns=patterns,
+                timeframe_context=self._build_timeframe_context(),
+                pattern_scanner_results=pattern_scanner_results,
+                long_term_trend=long_term_trend,
                 signal_summary=signal_summary,
                 fundamental=fundamental,
                 direction=direction,
@@ -194,52 +213,18 @@ class AnalysisPipeline:
             self._fail(str(exc))
             return None
 
-    async def _step_fetch_data(self) -> list[OHLCVData]:
-        # Try delta-fetch via OHLCVCacheService
+    async def _step_fetch_data(self) -> MultiTimeframeFetchBundle:
         try:
-            from app.modules.data_acquisition.ohlcv_cache import OHLCVCacheService
-
             session_factory = get_session_factory()
-            async with session_factory() as session:
-                cache_service = OHLCVCacheService(session)
-
-                async def _fetch(symbol: str, timeframe: str, period: str) -> list[OHLCVData]:
-                    return await self._chain.fetch_ohlcv(symbol, Timeframe(timeframe), period)
-
-                ohlcv = await cache_service.get_ohlcv(self.symbol, self.timeframe.value, "200d", _fetch)
-                if ohlcv:
-                    return ohlcv
+            fetcher = MultiTimeframeFetcher(self._chain, session_factory)
+            return await fetcher.fetch(self.symbol, self.timeframe_plan)
         except Exception as exc:
-            logger.warning("OHLCVCacheService failed, falling back to direct fetch: %s", exc)
-
-        # Fallback: direct fetch without cache
-        try:
-            return await self._chain.fetch_ohlcv(self.symbol, self.timeframe, "200d")
-        except Exception as exc:
-            # Last resort: try reading from cache
-            try:
-                from app.modules.data_acquisition.ohlcv_cache import get_cached_ohlcv
-
-                session_factory = get_session_factory()
-                async with session_factory() as session:
-                    cached = await get_cached_ohlcv(session, self.symbol, self.timeframe.value)
-                if cached:
-                    logger.info("Using %d cached candles for %s/%s", len(cached), self.symbol, self.timeframe)
-                    return cached
-            except Exception as cache_exc:
-                logger.warning("OHLCV cache read also failed: %s", cache_exc)
-
             logger.warning("Data fetch failed: %s", exc)
-            return []
-
-    async def _fetch_pivot_candle(self) -> OHLCVData | None:
-        """Fetch daily candles and return the previous completed day for Pivot Points."""
-        try:
-            daily = await self._chain.fetch_ohlcv(self.symbol, Timeframe.D1, "5d")
-            return get_pivot_candle(daily)
-        except Exception as exc:
-            logger.warning("D1 candle fetch for pivot points failed: %s", exc)
-            return None
+            return MultiTimeframeFetchBundle(
+                main_timeframe=self.timeframe_plan.main_timeframe,
+                candles_by_timeframe={self.timeframe_plan.main_timeframe: []},
+                errors={self.timeframe_plan.main_timeframe: str(exc)},
+            )
 
     def _step_technical_analysis(
         self, ohlcv: list[OHLCVData], pivot_candle: OHLCVData | None = None
@@ -279,7 +264,11 @@ class AnalysisPipeline:
 
         return indicators, moving_averages, pivot_points, signal_summary
 
-    def _step_pattern_recognition(self, ohlcv: list[OHLCVData]) -> list[PatternDetection]:
+    def _step_pattern_recognition(
+        self,
+        ohlcv: list[OHLCVData],
+        timeframe: Timeframe | None = None,
+    ) -> list[PatternDetection]:
         from app.modules.pattern_recognition.candlestick import detect_candlestick_patterns
         from app.modules.pattern_recognition.chart_patterns import detect_chart_patterns
         from app.modules.pattern_recognition.fibonacci import calculate_fibonacci_levels
@@ -306,6 +295,7 @@ class AnalysisPipeline:
             idx = pattern.detected_at_index if pattern.detected_at_index is not None else len(ohlcv) - 1
             idx = max(0, min(idx, len(ohlcv) - 1))
             pattern.detected_at_timestamp = ohlcv[idx].timestamp.isoformat()
+            pattern.timeframe = timeframe
 
         # Oblicz target_price per formacja
         try:
@@ -324,6 +314,45 @@ class AnalysisPipeline:
         patterns.sort(key=lambda p: p.relevance_score, reverse=True)
 
         return patterns
+
+    def _step_long_term_trend(self, weekly_ohlcv: list[OHLCVData]) -> LongTermTrend | None:
+        return build_long_term_trend(weekly_ohlcv, self.preset)
+
+    def _step_multi_timeframe_pattern_recognition(
+        self,
+        fetch_bundle: MultiTimeframeFetchBundle,
+        main_patterns: list[PatternDetection],
+    ) -> list[PatternDetection]:
+        scanner_patterns: list[PatternDetection] = []
+
+        for data_timeframe in self.timeframe_plan.pattern_scanner_timeframes:
+            public_timeframe = data_timeframe.to_public()
+            if public_timeframe is None:
+                continue
+
+            candles = fetch_bundle.get(data_timeframe)
+            if not candles:
+                continue
+
+            if public_timeframe == self.timeframe:
+                scanner_patterns.extend(main_patterns)
+                continue
+
+            scanner_patterns.extend(self._step_pattern_recognition(candles, public_timeframe))
+
+        return scanner_patterns
+
+    def _build_timeframe_context(self) -> AnalysisTimeframeContext:
+        scanner_timeframes: list[Timeframe] = []
+        for data_timeframe in self.timeframe_plan.pattern_scanner_timeframes:
+            timeframe = data_timeframe.to_public()
+            if timeframe is not None:
+                scanner_timeframes.append(timeframe)
+
+        return AnalysisTimeframeContext(
+            pivot_points_timeframe=Timeframe.D1,
+            pattern_scanner_timeframes=scanner_timeframes,
+        )
 
     async def _step_fundamental_analysis(self, instrument_type: InstrumentType | None) -> FundamentalData | None:
         if instrument_type is None:

@@ -4,8 +4,9 @@ from datetime import UTC
 
 import yfinance as yf
 
-from app.core.models import OHLCVData, Timeframe
+from app.core.models import OHLCVData
 from app.modules.data_acquisition.interfaces import DataProviderPriority
+from app.modules.data_acquisition.timeframes import DataTimeframe, TimeframeLike, normalize_data_timeframe
 
 logger = logging.getLogger(__name__)
 
@@ -71,11 +72,12 @@ SYMBOL_MAP: dict[str, str] = {
     "W20": "WIG20.WA",
 }
 
-TIMEFRAME_MAP: dict[Timeframe, str] = {
-    Timeframe.M15: "15m",
-    Timeframe.H1: "1h",
-    Timeframe.H4: "1h",  # yfinance doesn't support 4h natively; we resample
-    Timeframe.D1: "1d",
+TIMEFRAME_MAP: dict[DataTimeframe, str] = {
+    DataTimeframe.M15: "15m",
+    DataTimeframe.H1: "1h",
+    DataTimeframe.H4: "1h",  # yfinance doesn't support 4h natively; we resample
+    DataTimeframe.D1: "1d",
+    DataTimeframe.W1: "1wk",
 }
 
 # yfinance restricts intraday intervals to short periods
@@ -172,9 +174,10 @@ class YFinanceProvider:
             logger.warning("yfinance availability check failed", exc_info=True)
             return False
 
-    async def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, period: str) -> list[OHLCVData]:
+    async def fetch_ohlcv(self, symbol: str, timeframe: TimeframeLike, period: str) -> list[OHLCVData]:
+        data_timeframe = normalize_data_timeframe(timeframe)
         yf_symbol = _map_symbol(symbol)
-        yf_interval = TIMEFRAME_MAP[timeframe]
+        yf_interval = TIMEFRAME_MAP[data_timeframe]
         yf_period = _clamp_period(period, yf_interval)
 
         logger.info("yfinance: fetching %s interval=%s period=%s", yf_symbol, yf_interval, yf_period)
@@ -202,7 +205,7 @@ class YFinanceProvider:
                 )
             )
 
-        if timeframe == Timeframe.H4:
+        if data_timeframe == DataTimeframe.H4:
             result = _resample_to_4h(result)
 
         logger.info("yfinance: returned %d candles for %s", len(result), yf_symbol)

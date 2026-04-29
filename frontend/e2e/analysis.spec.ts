@@ -33,6 +33,9 @@ test.describe("Analysis Flow — EURUSD (Forex)", () => {
 
     // Verify result contains key report sections
     await expect(page.getByText(/RSI|MACD|ADX/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("heading", { name: /kontekst multi-timeframe/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/Trend długoterminowy/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/Ramy czasowe/i).first()).toBeVisible({ timeout: 5_000 });
 
     // Verify candlestick chart renders canvas
     const chartFigure = page.getByRole("figure", { name: /wykres świecowy/i });

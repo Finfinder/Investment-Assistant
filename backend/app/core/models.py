@@ -106,6 +106,7 @@ class PatternDetection(BaseModel):
     location: str = ""
     bullish: bool = True
     category: PatternCategory = PatternCategory.CANDLESTICK
+    timeframe: Timeframe | None = None
     detected_at_index: int | None = None
     detected_at_timestamp: str = ""
     relevance_score: float = Field(ge=0.0, le=1.0, default=0.0)
@@ -113,6 +114,29 @@ class PatternDetection(BaseModel):
     indication: str = ""
     reliability: int = Field(ge=1, le=3, default=1)
     detailed_description: str = ""
+
+
+class AnalysisTimeframeContext(BaseModel):
+    pivot_points_timeframe: Timeframe = Timeframe.D1
+    pattern_scanner_timeframes: list[Timeframe] = Field(
+        default_factory=lambda: [Timeframe.D1, Timeframe.H1, Timeframe.M15]
+    )
+    long_term_trend_label: str = "weekly"
+
+
+class LongTermTrend(BaseModel):
+    signal: SignalType = SignalType.NEUTRAL
+    summary: str = ""
+    source_label: str = "weekly"
+
+
+class PatternScannerResult(BaseModel):
+    pattern_type: str
+    category: PatternCategory = PatternCategory.CANDLESTICK
+    bullish: bool = True
+    confidence: float = Field(ge=0.0, le=1.0)
+    timeframes: list[Timeframe] = Field(default_factory=list)
+    representative_pattern: PatternDetection
 
 
 class FundamentalData(BaseModel):
@@ -154,11 +178,14 @@ class AnalysisReport(BaseModel):
     timeframe: Timeframe
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     instrument_type: InstrumentType | None = None
+    timeframe_context: AnalysisTimeframeContext = Field(default_factory=AnalysisTimeframeContext)
     ohlcv_data: list[OHLCVData] = Field(default_factory=list)
     technical_indicators: list[IndicatorValue] = Field(default_factory=list)
     moving_averages: list[MovingAverage] = Field(default_factory=list)
     pivot_points: list[PivotPoints] = Field(default_factory=list)
     patterns: list[PatternDetection] = Field(default_factory=list)
+    pattern_scanner_results: list[PatternScannerResult] = Field(default_factory=list)
+    long_term_trend: LongTermTrend | None = None
     fundamental: FundamentalData | None = None
     signal_summary: SignalSummary | None = None
     strategies: list[StrategyEntry] = Field(default_factory=list)

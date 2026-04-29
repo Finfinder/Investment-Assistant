@@ -3,13 +3,16 @@
 from datetime import UTC, datetime
 
 from app.core.models import (
+    AnalysisTimeframeContext,
     Direction,
     FundamentalData,
     IndicatorValue,
     InstrumentType,
+    LongTermTrend,
     MovingAverage,
     OHLCVData,
     PatternDetection,
+    PatternScannerResult,
     SignalSummary,
     SignalType,
     StrategyEntry,
@@ -174,6 +177,47 @@ def test_build_report_default_instrument_type():
     )
 
     assert report.instrument_type is None
+
+
+def test_build_report_preserves_multi_timeframe_sections():
+    ohlcv = _make_ohlcv(20)
+    representative_pattern = PatternDetection(
+        pattern_type="Hammer",
+        confidence=0.8,
+        bullish=True,
+        timeframe=Timeframe.H1,
+    )
+    scanner_result = PatternScannerResult(
+        pattern_type="Hammer",
+        category=representative_pattern.category,
+        bullish=True,
+        confidence=0.8,
+        timeframes=[Timeframe.D1, Timeframe.H1],
+        representative_pattern=representative_pattern,
+    )
+    timeframe_context = AnalysisTimeframeContext(
+        pivot_points_timeframe=Timeframe.D1,
+        pattern_scanner_timeframes=[Timeframe.D1, Timeframe.H1, Timeframe.M15],
+    )
+    long_term_trend = LongTermTrend(signal=SignalType.BUY, summary="Trend wzrostowy")
+
+    report = build_report(
+        symbol="EURUSD",
+        timeframe=Timeframe.H1,
+        ohlcv=ohlcv,
+        indicators=[],
+        moving_averages=[],
+        pivot_points=[],
+        patterns=[representative_pattern],
+        timeframe_context=timeframe_context,
+        pattern_scanner_results=[scanner_result],
+        long_term_trend=long_term_trend,
+        instrument_type=InstrumentType.FOREX,
+    )
+
+    assert report.timeframe_context == timeframe_context
+    assert report.pattern_scanner_results == [scanner_result]
+    assert report.long_term_trend == long_term_trend
 
 
 # --- Risk/Reward calculation tests ---

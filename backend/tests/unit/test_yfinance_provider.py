@@ -11,6 +11,7 @@ from app.modules.data_acquisition.providers.yfinance_provider import (
     _map_symbol,
     _resample_to_4h,
 )
+from app.modules.data_acquisition.timeframes import DataTimeframe
 
 
 class TestSymbolMapping:
@@ -139,6 +140,32 @@ class TestYFinanceProvider:
             result = await provider.fetch_ohlcv("EURUSD", Timeframe.H1, "30d")
 
         assert result == []
+
+    @pytest.mark.asyncio
+    async def test_fetch_ohlcv_weekly_uses_native_interval(self) -> None:
+        provider = YFinanceProvider()
+
+        mock_df = pd.DataFrame(
+            {
+                "Open": [1.1],
+                "High": [1.15],
+                "Low": [1.05],
+                "Close": [1.12],
+                "Volume": [1000],
+            },
+            index=pd.to_datetime(["2024-01-01 10:00:00+00:00"]),
+        )
+
+        mock_ticker = MagicMock()
+        mock_ticker.history = MagicMock(return_value=mock_df)
+
+        with patch(
+            "app.modules.data_acquisition.providers.yfinance_provider.yf.Ticker",
+            return_value=mock_ticker,
+        ):
+            await provider.fetch_ohlcv("EURUSD", DataTimeframe.W1, "30d")
+
+        mock_ticker.history.assert_called_once_with(period="30d", interval="1wk")
 
     @pytest.mark.asyncio
     async def test_fetch_ohlcv_timeout(self) -> None:

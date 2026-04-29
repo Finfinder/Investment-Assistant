@@ -76,6 +76,7 @@ export interface PatternDetection {
   location: string;
   bullish: boolean;
   category: PatternCategory;
+  timeframe: Timeframe | null;
   detected_at_index: number | null;
   detected_at_timestamp: string;
   relevance_score: number;
@@ -83,6 +84,27 @@ export interface PatternDetection {
   indication: string;
   reliability: number;
   detailed_description: string;
+}
+
+export interface AnalysisTimeframeContext {
+  pivot_points_timeframe: Timeframe;
+  pattern_scanner_timeframes: Timeframe[];
+  long_term_trend_label: string;
+}
+
+export interface LongTermTrend {
+  signal: SignalType;
+  summary: string;
+  source_label: string;
+}
+
+export interface PatternScannerResult {
+  pattern_type: string;
+  category: PatternCategory;
+  bullish: boolean;
+  confidence: number;
+  timeframes: Timeframe[];
+  representative_pattern: PatternDetection;
 }
 
 export interface FundamentalData {
@@ -124,11 +146,14 @@ export interface AnalysisReport {
   timeframe: Timeframe;
   timestamp: string;
   instrument_type: InstrumentType | null;
+  timeframe_context: AnalysisTimeframeContext;
   ohlcv_data: OHLCVData[];
   technical_indicators: IndicatorValue[];
   moving_averages: MovingAverage[];
   pivot_points: PivotPoints[];
   patterns: PatternDetection[];
+  pattern_scanner_results: PatternScannerResult[];
+  long_term_trend: LongTermTrend | null;
   fundamental: FundamentalData | null;
   signal_summary: SignalSummary | null;
   strategies: StrategyEntry[];
