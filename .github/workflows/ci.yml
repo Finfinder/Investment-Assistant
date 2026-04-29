@@ -10,7 +10,7 @@ jobs:
   version-consistency:
     permissions:
       contents: read
-    uses: Finfinder/AI_Instruction/.github/workflows/reusable-version-consistency.yml@main
+    uses: ./.github/workflows/reusable-version-consistency.yml
     with:
       source-repository: ${{ github.repository }}
       repository-ref: ${{ github.sha }}
