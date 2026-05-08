@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Export `toChartTime()` from `CandlestickChart.tsx` and add Vitest unit tests covering UTC conversion, intraday timestamp differentiation, timezone normalization, and `buildPatternMarkers` regression scenarios
+
 ### Fixed
 
 - Corrected the `commit-created` workflow output in `reusable-open-next-version-branch.yml` so the push step no longer skips when the automation creates the next-version branch commit

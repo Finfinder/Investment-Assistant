@@ -26,7 +26,7 @@ interface CandlestickChartProps {
   timeframe: Timeframe;
 }
 
-function toChartTime(timestamp: string): UTCTimestamp {
+export function toChartTime(timestamp: string): UTCTimestamp {
   return Math.floor(new Date(timestamp).getTime() / 1000) as UTCTimestamp;
 }
 

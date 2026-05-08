@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPatternMarkers } from "@/components/Chart/CandlestickChart";
+import { buildPatternMarkers, toChartTime } from "@/components/Chart/CandlestickChart";
 import type { UTCTimestamp } from "lightweight-charts";
 import type { PatternDetection } from "@/types";
 
@@ -25,6 +25,25 @@ function makePattern({ pattern_type, bullish, ...overrides }: Partial<PatternDet
     ...overrides,
   };
 }
+
+describe("toChartTime", () => {
+  it("konwertuje timestamp UTC do oczekiwanego UTCTimestamp", () => {
+    expect(toChartTime("2023-11-14T22:13:20Z")).toBe(TS1);
+  });
+
+  it("rozróżnia dwa timestampy intraday z tego samego dnia", () => {
+    const first = toChartTime("2023-11-14T22:13:20Z");
+    const second = toChartTime("2023-11-14T23:13:20Z");
+
+    expect(second).toBe(TS2);
+    expect(second).not.toBe(first);
+    expect((second as number) - (first as number)).toBe(3600);
+  });
+
+  it("normalizuje różne strefy czasowe do tej samej chwili", () => {
+    expect(toChartTime("2023-11-14T22:13:20Z")).toBe(toChartTime("2023-11-14T23:13:20+01:00"));
+  });
+});
 
 describe("buildPatternMarkers", () => {
   it("pojedyncza formacja → 1 marker z oryginalną nazwą", () => {
@@ -90,7 +109,7 @@ describe("buildPatternMarkers", () => {
     expect(markers[0].color).toBe("#eab308");
   });
 
-  it("różne timestampy → osobne markery (brak grupowania)", () => {
+  it("różne timestampy intraday tego samego dnia → osobne markery (regresja wykresu intraday)", () => {
     const patterns = [
       makePattern({ pattern_type: "Hammer", bullish: true, detected_at_timestamp: "2023-11-14T22:13:20Z" }),
       makePattern({ pattern_type: "Doji", bullish: true, detected_at_timestamp: "2023-11-14T23:13:20Z" }),
@@ -98,7 +117,16 @@ describe("buildPatternMarkers", () => {
     const markers = buildPatternMarkers(patterns, TS2, null);
 
     expect(markers).toHaveLength(2);
+    expect(markers.map((marker) => marker.time)).toEqual([TS1, TS2]);
     expect(markers.find((m) => m.text === "Hammer")).toBeDefined();
     expect(markers.find((m) => m.text === "Doji")).toBeDefined();
+  });
+
+  it("używa lastTimestamp jako fallback, gdy detected_at_timestamp nie jest dostępny", () => {
+    const patterns = [makePattern({ pattern_type: "Hammer", bullish: true, detected_at_timestamp: "" })];
+    const markers = buildPatternMarkers(patterns, TS1, null);
+
+    expect(markers).toHaveLength(1);
+    expect(markers[0].time).toBe(TS1);
   });
 });
