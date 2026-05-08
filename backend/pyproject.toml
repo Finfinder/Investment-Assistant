@@ -1,4 +1,6 @@
-﻿$10.2.0"
+[project]
+name = "investment-assistant"
+version = "0.2.0"
 description = "CFD instrument technical and fundamental analysis application"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
