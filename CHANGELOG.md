@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected the `commit-created` workflow output in `reusable-open-next-version-branch.yml` so the push step no longer skips when the automation creates the next-version branch commit
 - Removed the duplicate `## [0.1.0]` heading so changelog-based release notes always resolve to a single version section
 - Restored valid TOML/JSON in `backend/pyproject.toml` and `frontend/package.json` after `open-next-version-branch` script corrupted them via ambiguous `$1` regex backreference (root cause fixed in `AI_Instruction/scripts/version-target-strategies.ps1`)
+- Extracted duplicated `"Analysis not found"` string literal in `backend/app/api/v1/analysis.py` into a module-level constant `_ANALYSIS_NOT_FOUND`
 
 ## [0.1.0] - 2026-05-08
 
