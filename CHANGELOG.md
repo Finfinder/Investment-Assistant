@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Corrected the `commit-created` workflow output in `reusable-open-next-version-branch.yml` so the push step no longer skips when the automation creates the next-version branch commit
+- Removed the duplicate `## [0.1.0]` heading so changelog-based release notes always resolve to a single version section
+- Restored valid TOML/JSON in `backend/pyproject.toml` and `frontend/package.json` after `open-next-version-branch` script corrupted them via ambiguous `$1` regex backreference (root cause fixed in `AI_Instruction/scripts/version-target-strategies.ps1`)
+
 ## [0.1.0] - 2026-05-08
 
 ### Fixed
@@ -323,8 +329,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolve 36 mypy strict-mode errors: list variance, nullable arithmetic, NDArray types, unused type:ignore suppressions
 - Fix chart pattern test data generators to produce oscillating data for `argrelextrema` peak/trough detection
 - Fix `fred_source.py` returning untyped cached value (`Any`) instead of `float`
-
-## [0.1.0] - 2025-03-26
 
 ### Added
 

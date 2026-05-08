@@ -113,7 +113,7 @@ jobs:
 
           "status=$($result.Status)" >> $env:GITHUB_OUTPUT
           "branch-name=$($result.BranchName)" >> $env:GITHUB_OUTPUT
-          "commit-created=$([string]$result.CommitCreated).ToLowerInvariant()" >> $env:GITHUB_OUTPUT
+          "commit-created=$(([string]$result.CommitCreated).ToLowerInvariant())" >> $env:GITHUB_OUTPUT
 
       - name: Clean workflow scratch files
         if: always()
