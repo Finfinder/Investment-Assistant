@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["analysis"])
 
+_ANALYSIS_NOT_FOUND = "Analysis not found"
+
 # Limit concurrent pipeline executions to avoid exhausting external API rate limits
 _MAX_CONCURRENT_ANALYSES = 5
 _analysis_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_ANALYSES)
@@ -85,7 +87,7 @@ async def get_analysis(analysis_id: str) -> AnalysisReport | AnalysisStatus:
     """
     status: AnalysisStatus | None = analysis_tasks.get(analysis_id)
     if status is None:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+        raise HTTPException(status_code=404, detail=_ANALYSIS_NOT_FOUND)
 
     if status.status == AnalysisStatusType.COMPLETED:
         report: AnalysisReport | None = _analysis_results.get(analysis_id)
@@ -106,7 +108,7 @@ async def get_analysis_status(analysis_id: str) -> AnalysisStatus:
     """Get current analysis status (progress, steps)."""
     status: AnalysisStatus | None = analysis_tasks.get(analysis_id)
     if status is None:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+        raise HTTPException(status_code=404, detail=_ANALYSIS_NOT_FOUND)
     return status
 
 
@@ -120,7 +122,7 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str) -> None:
         while True:
             status = analysis_tasks.get(analysis_id)
             if status is None:
-                await websocket.send_json({"error": "Analysis not found"})
+                await websocket.send_json({"error": _ANALYSIS_NOT_FOUND})
                 break
 
             status_json = status.model_dump_json()
