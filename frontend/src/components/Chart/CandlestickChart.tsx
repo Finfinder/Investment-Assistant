@@ -117,7 +117,14 @@ export function buildPatternMarkers(
     const allBearish = group.every((p) => !p.bullish);
     const isHighlighted = group.some((p) => highlightedPatternData?.pattern_type === p.pattern_type);
 
-    const baseColor = allBullish ? "#22c55e" : allBearish ? "#ef4444" : "#94a3b8";
+    let baseColor: string;
+    if (allBullish) {
+      baseColor = "#22c55e";
+    } else if (allBearish) {
+      baseColor = "#ef4444";
+    } else {
+      baseColor = "#94a3b8";
+    }
     const position = allBullish ? ("belowBar" as const) : ("aboveBar" as const);
     const shape = allBullish ? ("arrowUp" as const) : ("arrowDown" as const);
     const text = group.map((p) => p.pattern_type).join(" / ");
