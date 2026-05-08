@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "frontend",
-  "version": "0.1.0",
+  $10.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -33,3 +33,4 @@
     "vitest": "^4.1.4"
   }
 }
+

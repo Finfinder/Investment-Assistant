@@ -1,6 +1,4 @@
-[project]
-name = "investment-assistant"
-version = "0.1.0"
+﻿$10.2.0"
 description = "CFD instrument technical and fundamental analysis application"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
@@ -159,3 +157,4 @@ name = "Modules do not import from API"
 type = "forbidden"
 source_modules = ["app.modules"]
 forbidden_modules = ["app.api"]
+
