@@ -2,6 +2,8 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
 from app.core.models import OHLCVData
 from app.modules.data_acquisition.fallback_chain import FallbackChainManager
 from app.modules.data_acquisition.ohlcv_cache import OHLCVCacheService, get_cached_ohlcv
@@ -25,7 +27,11 @@ class MultiTimeframeFetchBundle:
 
 
 class MultiTimeframeFetcher:
-    def __init__(self, chain: FallbackChainManager, session_factory) -> None:
+    def __init__(
+        self,
+        chain: FallbackChainManager,
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> None:
         self._chain = chain
         self._session_factory = session_factory
 

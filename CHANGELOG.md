@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-08
+
 ### Fixed
 
+- Updated the backend release workflow contract test to validate the repo-local reusable workflow adapters instead of the retired cross-repository `@main` references
+- Added the missing `session_factory` type annotation in `MultiTimeframeFetcher` so release mypy validation for `backend/app/modules/data_acquisition/multi_timeframe.py` passes again
 - Replaced cross-repository `uses: Finfinder/AI_Instruction/.github/workflows/reusable-*.yml@main` calls in `ci.yml`, `release.yml` and `open-next-version-branch.yml` with local wrapper copies, and vendored the version-consistency validator into the repo to remove the failing runtime dependency on `AI_Instruction`
 
 ### Added
