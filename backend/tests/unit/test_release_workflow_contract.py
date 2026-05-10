@@ -14,3 +14,20 @@ def test_release_workflow_uses_local_release_workflow_adapters() -> None:
     assert "needs: [version-consistency, next-version-request]" in workflow_text
     assert "expected-release-version: ${{ github.ref_name }}" in workflow_text
     assert "Validate next version request" not in workflow_text
+
+
+def test_third_party_action_pinning_uses_repo_local_policy_bundle() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    wrapper_text = (repository_root / ".github" / "workflows" / "third-party-action-pinning.yml").read_text(
+        encoding="utf-8"
+    )
+    reusable_text = (repository_root / ".github" / "workflows" / "reusable-third-party-action-pinning.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "uses: ./.github/workflows/reusable-third-party-action-pinning.yml" in wrapper_text
+    assert "Join-Path $repositoryRoot '.github/actions-security/zizmor.yml'" in reusable_text
+    assert "Policy source: repo-local mirror" in reusable_text
+    assert "automation-repository:" not in reusable_text
+    assert "Join-Path $env:RUNNER_TEMP 'zizmor-third-party-action-pinning.yml'" not in reusable_text
+    assert (repository_root / ".github" / "actions-security" / "zizmor.yml").exists()
