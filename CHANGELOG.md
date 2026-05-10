@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `.github/workflows/reusable-version-consistency.yml`, `reusable-next-version-request.yml`, `reusable-open-next-version-branch.yml` — synced to canonical mirror via centralized sync engine; removed cross-repo AI_Instruction checkout; workflows now invoke local `repository/scripts/` instead of `ai_instruction/scripts/`
+- `.github/workflows/reusable-version-consistency.yml`, `reusable-next-version-request.yml`, `reusable-open-next-version-branch.yml` — synced to canonical mirror via centralized sync engine; replaced locally vendored scripts (`repository/.github/scripts/`) with cross-repo AI_Instruction checkout invoking `ai_instruction/scripts/`; sensitive env vars now set via `$env:*` instead of inline `${{ inputs.* }}` expressions
 - `.github/workflows/reusable-third-party-action-pinning.yml` — synced to repo-local policy bundle; policy resolved from `.github/actions-security/zizmor.yml` instead of cross-repo checkout
+- `.github/actions-security/zizmor.yml` and `.gitignore` — added repo-local zizmor policy bundle and unblocked `.github/actions-security/` from gitignore so the policy file is tracked
 - `backend/tests/unit/test_release_workflow_contract.py` — extended with `test_third_party_action_pinning_uses_repo_local_policy_bundle` asserting the local policy bundle contract
 
 - Corrected the `commit-created` workflow output in `reusable-open-next-version-branch.yml` so the push step no longer skips when the automation creates the next-version branch commit
