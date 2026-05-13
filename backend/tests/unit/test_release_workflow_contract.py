@@ -31,3 +31,18 @@ def test_third_party_action_pinning_uses_repo_local_policy_bundle() -> None:
     assert "automation-repository:" not in reusable_text
     assert "Join-Path $env:RUNNER_TEMP 'zizmor-third-party-action-pinning.yml'" not in reusable_text
     assert (repository_root / ".github" / "actions-security" / "zizmor.yml").exists()
+
+
+def test_reusable_version_consistency_uses_repo_local_validator() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    reusable_text = (repository_root / ".github" / "workflows" / "reusable-version-consistency.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert reusable_text.count("uses: actions/checkout@v5") == 1
+    assert "Checkout automation repository" not in reusable_text
+    assert (
+        '"${{ github.workspace }}/repository/.github/scripts/validate-version-consistency.ps1"' in reusable_text
+    )
+    assert '"${{ github.workspace }}/ai_instruction/scripts/validate-version-consistency.ps1"' not in reusable_text
+    assert (repository_root / ".github" / "scripts" / "validate-version-consistency.ps1").exists()

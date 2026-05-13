@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/actions-security/zizmor.yml` and `.gitignore` — added repo-local zizmor policy bundle and unblocked `.github/actions-security/` from gitignore so the policy file is tracked
 - `backend/tests/unit/test_release_workflow_contract.py` — extended with `test_third_party_action_pinning_uses_repo_local_policy_bundle` asserting the local policy bundle contract
 
+### Fixed
+
+- `.github/workflows/reusable-version-consistency.yml` — restored the repo-local `validate-version-consistency.ps1` path for release/CI validation so the workflow no longer depends on a stale cross-repo checkout of `AI_Instruction` that can fail with `Join-Path` missing `ChildPath`; added a workflow contract test covering the local validator path
+
 - Corrected the `commit-created` workflow output in `reusable-open-next-version-branch.yml` so the push step no longer skips when the automation creates the next-version branch commit
 - Removed the duplicate `## [0.1.0]` heading so changelog-based release notes always resolve to a single version section
 - Restored valid TOML/JSON in `backend/pyproject.toml` and `frontend/package.json` after `open-next-version-branch` script corrupted them via ambiguous `$1` regex backreference (root cause fixed in `AI_Instruction/scripts/version-target-strategies.ps1`)
