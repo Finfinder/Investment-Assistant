@@ -53,15 +53,6 @@ jobs:
           token: ${{ github.token }}
           path: repository
 
-      - name: Checkout automation repository
-        uses: actions/checkout@v5
-        with:
-          repository: ${{ inputs.automation-repository }}
-          ref: main
-          token: ${{ secrets.AI_INSTRUCTION_WORKFLOW_TOKEN != '' && secrets.AI_INSTRUCTION_WORKFLOW_TOKEN || github.token }}
-          fetch-depth: 1
-          path: ai_instruction
-
       - name: Validate version consistency
         id: validate
         shell: pwsh
@@ -84,7 +75,7 @@ jobs:
           }
 
           try {
-            $result = & "${{ github.workspace }}/ai_instruction/scripts/validate-version-consistency.ps1" @arguments
+            $result = & "${{ github.workspace }}/repository/.github/scripts/validate-version-consistency.ps1" @arguments
             "detected-version=$($result.Version)" >> $env:GITHUB_OUTPUT
 
             Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '## Version Consistency'
