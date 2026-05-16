@@ -68,7 +68,12 @@ def _score_interest_rate(rate: float | None) -> tuple[float, str]:
     score = -(rate - baseline) * 12.0
     score = max(-40.0, min(40.0, score))
 
-    stance = "luzna" if rate < baseline else "restrykcyjna" if rate > baseline else "neutralna"
+    if rate < baseline:
+        stance = "luzna"
+    elif rate > baseline:
+        stance = "restrykcyjna"
+    else:
+        stance = "neutralna"
     desc = f"Stopa procentowa: {rate:.2f}% (polityka {stance})"
     return score, desc
 
@@ -150,7 +155,12 @@ async def analyze_index(symbol: str, fred: FredSource | None = None) -> Fundamen
         "unemployment_score": unemp_score,
     }
 
-    direction = "bycza" if total_score > 10 else "niedzwiedzia" if total_score < -10 else "neutralna"
+    if total_score > 10:
+        direction = "bycza"
+    elif total_score < -10:
+        direction = "niedzwiedzia"
+    else:
+        direction = "neutralna"
     parts = [rate_desc]
     if unemp_desc:
         parts.append(unemp_desc)

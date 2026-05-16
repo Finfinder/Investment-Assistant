@@ -31,7 +31,7 @@ class TestFredSourceSuccess:
 
         with patch(_MODULE, new_callable=AsyncMock, return_value=mock_series):
             result = await fred_source.fetch_series("FEDFUNDS")
-        assert result == 5.50
+        assert result == pytest.approx(5.50)
 
     @pytest.mark.asyncio
     async def test_fetch_indicator_maps_name_to_series(self, fred_source: FredSource):
@@ -40,7 +40,7 @@ class TestFredSourceSuccess:
 
         with patch(_MODULE, new_callable=AsyncMock, return_value=mock_series):
             result = await fred_source.fetch_indicator("fed_funds_rate")
-        assert result == 3.5
+        assert result == pytest.approx(3.5)
 
     @pytest.mark.asyncio
     async def test_fetch_multiple_returns_dict(self, fred_source: FredSource):
@@ -48,8 +48,8 @@ class TestFredSourceSuccess:
 
         with patch(_MODULE, new_callable=AsyncMock, side_effect=[pd.Series([5.25]), pd.Series([300.0])]):
             result = await fred_source.fetch_multiple(["fed_funds_rate", "cpi_us"])
-        assert result["fed_funds_rate"] == 5.25
-        assert result["cpi_us"] == 300.0
+        assert result["fed_funds_rate"] == pytest.approx(5.25)
+        assert result["cpi_us"] == pytest.approx(300.0)
 
 
 class TestFredSourceErrors:
@@ -107,12 +107,12 @@ class TestFredSourceCaching:
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25])) as mock_to_thread:
             # First call hits API
             result1 = await fred_source.fetch_series("FEDFUNDS")
-            assert result1 == 5.25
+            assert result1 == pytest.approx(5.25)
             assert mock_to_thread.call_count == 1
 
             # Second call should use cache
             result2 = await fred_source.fetch_series("FEDFUNDS")
-            assert result2 == 5.25
+            assert result2 == pytest.approx(5.25)
             assert mock_to_thread.call_count == 1  # no additional call
 
     @pytest.mark.asyncio
@@ -179,7 +179,7 @@ class TestFredSourceUnitsTransform:
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([1.9])) as mock_to_thread:
             result = await fred_source.fetch_series(series_id)
 
-        assert result == 1.9
+        assert result == pytest.approx(1.9)
         _, kwargs = mock_to_thread.call_args
         assert kwargs.get("units") == "pc1"
 
@@ -199,7 +199,7 @@ class TestFredSourceUnitsTransform:
 
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([1.9])):
             result = await fred_source.fetch_indicator("cpi_eu")
-        assert result == 1.9
+        assert result == pytest.approx(1.9)
 
     @pytest.mark.asyncio
     async def test_cache_works_for_units_transformed_series(self, fred_source: FredSource):
@@ -209,8 +209,8 @@ class TestFredSourceUnitsTransform:
             result1 = await fred_source.fetch_series("CP0000EZ19M086NEST")
             result2 = await fred_source.fetch_series("CP0000EZ19M086NEST")
 
-        assert result1 == 2.1
-        assert result2 == 2.1
+        assert result1 == pytest.approx(2.1)
+        assert result2 == pytest.approx(2.1)
         assert mock_to_thread.call_count == 1
 
     @pytest.mark.asyncio
@@ -222,7 +222,7 @@ class TestFredSourceUnitsTransform:
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.5])) as mock_to_thread:
             result = await fred_source.fetch_series(series_id)
 
-        assert result == 2.5
+        assert result == pytest.approx(2.5)
         _, kwargs = mock_to_thread.call_args
         assert kwargs.get("units") == "pc1"
 
@@ -396,7 +396,7 @@ class TestFredSourceRetry:
         with patch(_MODULE, new_callable=AsyncMock, side_effect=side_effects) as mock_to_thread:
             result = await fred_source.fetch_series("FEDFUNDS")
 
-        assert result == 5.25
+        assert result == pytest.approx(5.25)
         assert mock_to_thread.call_count == 2
 
     @pytest.mark.asyncio
@@ -454,8 +454,8 @@ class TestFredSourceRetry:
             result1 = await fred_source.fetch_series("FEDFUNDS")
             result2 = await fred_source.fetch_series("FEDFUNDS")
 
-        assert result1 == 5.25
-        assert result2 == 5.25
+        assert result1 == pytest.approx(5.25)
+        assert result2 == pytest.approx(5.25)
         assert mock_to_thread.call_count == 2  # retry consumed 2 calls; cache served call 2
 
     def test_before_sleep_log_sanitizes_api_key(self, caplog):

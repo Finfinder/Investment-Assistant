@@ -131,7 +131,12 @@ async def analyze_commodity(
         indicators["net_commercial"] = cot_data.get("net_commercial")
         indicators["net_non_commercial_change"] = cot_data.get("net_non_commercial_change")
 
-    direction = "bycza" if total_score > 10 else "niedzwiedzia" if total_score < -10 else "neutralna"
+    if total_score > 10:
+        direction = "bycza"
+    elif total_score < -10:
+        direction = "niedzwiedzia"
+    else:
+        direction = "neutralna"
     summary = f"Analiza fundamentalna {symbol}: {direction}. {cot_desc}. {usd_desc}. {rates_desc}."
 
     return FundamentalData(
