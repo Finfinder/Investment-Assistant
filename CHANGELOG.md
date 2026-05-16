@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `FredSource.fetch_series()` now uses a short-lived negative cache (5 minutes) for `None` outcomes (empty series and handled fetch errors), reducing repeated calls to unavailable FRED series while preserving recovery after TTL expiry
 - GitHub Actions bumped to Node.js 24 runtime: `actions/checkout` v4→v5, `actions/setup-python` v5→v6, `actions/setup-node` v4→v5, `actions/upload-artifact` v5→v6, `actions/download-artifact` v6→v7 across `ci.yml`, `release.yml`, `reusable-next-version-request.yml`, `reusable-open-next-version-branch.yml`, and `reusable-third-party-action-pinning.yml`
 - `.github/workflows/reusable-version-consistency.yml`, `reusable-next-version-request.yml`, `reusable-open-next-version-branch.yml` — synced to canonical mirror via centralized sync engine; replaced locally vendored scripts (`repository/.github/scripts/`) with cross-repo AI_Instruction checkout invoking `ai_instruction/scripts/`; sensitive env vars now set via `$env:*` instead of inline `${{ inputs.* }}` expressions
 - `.github/workflows/reusable-third-party-action-pinning.yml` — synced to repo-local policy bundle; policy resolved from `.github/actions-security/zizmor.yml` instead of cross-repo checkout

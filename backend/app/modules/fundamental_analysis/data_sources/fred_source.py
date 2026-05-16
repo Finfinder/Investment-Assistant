@@ -65,6 +65,10 @@ SERIES_LOOKBACK_DAYS: dict[str, int] = {
 
 CACHE_TTL_SECONDS = 86400  # 24h
 CACHE_MAX_SIZE = 64
+NEGATIVE_CACHE_TTL_SECONDS = 300  # 5m
+NEGATIVE_CACHE_MAX_SIZE = 64
+
+_NEGATIVE_CACHE_SENTINEL = object()
 
 MAX_RETRIES = 3
 RETRY_MIN_WAIT_SECONDS = 1
@@ -86,6 +90,10 @@ class FredSource:
     def __init__(self, api_key: str | None = None) -> None:
         self._api_key = api_key or get_settings().FRED_API_KEY
         self._cache: TTLCache[str, Any] = TTLCache(maxsize=CACHE_MAX_SIZE, ttl=CACHE_TTL_SECONDS)
+        self._negative_cache: TTLCache[str, object] = TTLCache(
+            maxsize=NEGATIVE_CACHE_MAX_SIZE,
+            ttl=NEGATIVE_CACHE_TTL_SECONDS,
+        )
         self._fred: Any | None = None
 
     def _get_fred(self) -> Any:
@@ -119,31 +127,42 @@ class FredSource:
         cached = self._cache.get(cache_key)
         if cached is not None:
             return float(cached)
+        if cache_key in self._negative_cache:
+            return None
+
+        end = datetime.now(UTC)
+        effective_lookback = SERIES_LOOKBACK_DAYS.get(series_id, lookback_days)
+        start = end - timedelta(days=effective_lookback)
+        kwargs: dict[str, Any] = {"observation_start": start, "observation_end": end}
+        units = SERIES_YOY_UNITS.get(series_id)
+        if units:
+            kwargs["units"] = units
 
         try:
             fred = self._get_fred()
-            end = datetime.now(UTC)
-            effective_lookback = SERIES_LOOKBACK_DAYS.get(series_id, lookback_days)
-            start = end - timedelta(days=effective_lookback)
-            kwargs: dict[str, Any] = {"observation_start": start, "observation_end": end}
-            units = SERIES_YOY_UNITS.get(series_id)
-            if units:
-                kwargs["units"] = units
             data = await self._fetch_from_api(fred, series_id, **kwargs)
-
-            if data is None or data.empty:
-                logger.warning("FRED: no data for series %s", series_id)
-                return None
-
-            value = float(data.dropna().iloc[-1])
-            self._cache[cache_key] = value
-            logger.info("FRED: %s = %.4f", series_id, value)
-            return value
-
         except Exception as exc:
             safe_msg = _API_KEY_RE.sub("api_key=***", str(exc))
             logger.error("FRED: failed to fetch series %s: %s", series_id, safe_msg)
+            self._negative_cache[cache_key] = _NEGATIVE_CACHE_SENTINEL
             return None
+
+        if data is None or data.empty:
+            logger.warning("FRED: no data for series %s", series_id)
+            self._negative_cache[cache_key] = _NEGATIVE_CACHE_SENTINEL
+            return None
+
+        cleaned = data.dropna()
+        if cleaned.empty:
+            logger.warning("FRED: no non-null data for series %s", series_id)
+            self._negative_cache[cache_key] = _NEGATIVE_CACHE_SENTINEL
+            return None
+
+        value = float(cleaned.iloc[-1])
+        self._cache[cache_key] = value
+        self._negative_cache.pop(cache_key, None)
+        logger.info("FRED: %s = %.4f", series_id, value)
+        return value
 
     async def fetch_indicator(self, indicator_name: str, lookback_days: int = 365) -> float | None:
         """Fetch a macro indicator by its friendly name (e.g. 'fed_funds_rate')."""
