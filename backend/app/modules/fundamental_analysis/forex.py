@@ -61,6 +61,14 @@ PAIR_CURRENCIES: dict[str, tuple[str, str]] = {
     "GBPNZD": ("GBP", "NZD"),
 }
 
+# Scoring weights and limits — calibrate here to tune the model
+_RATE_DIFF_WEIGHT: float = 20.0  # score points per 1% interest rate differential
+_RATE_DIFF_LIMIT: float = 60.0  # max absolute score from rate component
+_INFLATION_DIFF_WEIGHT: float = 10.0  # score points per 1% inflation differential
+_INFLATION_DIFF_LIMIT: float = 40.0  # max absolute score from inflation component
+_SCORE_CLAMP: float = 100.0  # global score clamp (range: -100 .. +100)
+_DIRECTION_THRESHOLD: float = 10.0  # minimum absolute score to label as bullish/bearish
+
 
 def _parse_pair(symbol: str) -> tuple[str, str]:
     """Extract base and quote currencies from a forex pair symbol."""
@@ -107,9 +115,9 @@ def _build_forex_summary(
 ) -> str:
     if components == 0:
         return f"Brak danych makro dla pary {base}/{quote}."
-    if score > 10:
+    if score > _DIRECTION_THRESHOLD:
         direction = "bycza"
-    elif score < -10:
+    elif score < -_DIRECTION_THRESHOLD:
         direction = "niedzwiedzia"
     else:
         direction = "neutralna"
@@ -162,18 +170,21 @@ async def analyze_forex(symbol: str, fred: MacroIndicatorSource | None = None) -
 
     if rate_diff is not None:
         # Clamp rate_diff contribution: each 1% diff = ~20 points, max 60
-        rate_score = max(-60.0, min(60.0, rate_diff * 20.0))
+        rate_score = max(-_RATE_DIFF_LIMIT, min(_RATE_DIFF_LIMIT, rate_diff * _RATE_DIFF_WEIGHT))
         score += rate_score
         components += 1
 
     if inflation_diff is not None:
         # Higher base inflation = bearish for pair; each 1% = -10 points, max +-40
-        inflation_score = max(-40.0, min(40.0, -inflation_diff * 10.0))
+        inflation_score = max(
+            -_INFLATION_DIFF_LIMIT,
+            min(_INFLATION_DIFF_LIMIT, -inflation_diff * _INFLATION_DIFF_WEIGHT),
+        )
         score += inflation_score
         components += 1
 
     # Clamp final score
-    score = max(-100.0, min(100.0, score))
+    score = max(-_SCORE_CLAMP, min(_SCORE_CLAMP, score))
 
     # Generate summary
     summary = _build_forex_summary(base, quote, score, components, rate_diff, inflation_diff)

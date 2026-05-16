@@ -33,7 +33,7 @@ class TestIndexBullish:
         assert result.instrument_type == InstrumentType.INDEX
         assert result.score > 0
         assert result.indicators["region"] == "US"
-        assert result.indicators["inflation_yoy"] == 2.0
+        assert result.indicators["inflation_yoy"] == pytest.approx(2.0)
         assert "bycza" in result.summary
 
 
@@ -52,7 +52,7 @@ class TestIndexBearish:
         result = await analyze_index("US500", fred=mock_fred)
 
         assert result.score < 0
-        assert result.indicators["inflation_yoy"] == 5.0
+        assert result.indicators["inflation_yoy"] == pytest.approx(5.0)
         assert "niedzwiedzia" in result.summary
 
 
@@ -63,7 +63,7 @@ class TestIndexUnknownSymbol:
     async def test_unknown_index(self, mock_fred: MagicMock):
         result = await analyze_index("UNKNOWN_INDEX", fred=mock_fred)
 
-        assert result.score == 0.0
+        assert result.score == pytest.approx(0.0)
         assert "Nieznany" in result.summary
         mock_fred.fetch_indicator.assert_not_called()
 
@@ -112,4 +112,4 @@ class TestIndexJapanese:
 
         assert result.indicators["region"] == "JP"
         assert result.indicators["inflation_yoy"] is None
-        assert result.score != 0.0
+        assert result.score != pytest.approx(0.0)
