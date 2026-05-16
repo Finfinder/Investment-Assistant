@@ -8,6 +8,24 @@ from .data_sources.macro_source import MacroDataSource, MacroIndicatorSource
 
 logger = logging.getLogger(__name__)
 
+# Scoring weights, baselines, and limits — calibrate here to tune the model
+_RATE_NEUTRAL_BASELINE: float = 3.0  # % — neutral interest rate (below = accommodative)
+_RATE_WEIGHT: float = 12.0  # score points per 1pp rate deviation from baseline
+_RATE_SCORE_LIMIT: float = 40.0  # max absolute score from rate component
+
+_UNEMP_NEUTRAL_BASELINE: float = 5.0  # % — neutral unemployment rate
+_UNEMP_WEIGHT: float = 6.0  # score points per 1pp unemployment deviation
+_UNEMP_SCORE_LIMIT: float = 20.0  # max absolute score from unemployment component
+
+_INFLATION_TARGET: float = 2.0  # % — central bank inflation target
+_INFLATION_ABOVE_WEIGHT: float = 8.0  # score points per 1pp above target (bearish)
+_INFLATION_BELOW_WEIGHT: float = 4.0  # score points per 1pp below target (bullish)
+_INFLATION_SCORE_LIMIT: float = 30.0  # max absolute score from inflation component
+
+_SCORE_CLAMP: float = 100.0  # global score clamp (range: -100 .. +100)
+_DIRECTION_THRESHOLD: float = 10.0  # minimum absolute score to label as bullish/bearish
+
+
 # Map index symbols to regions
 INDEX_REGION_MAP: dict[str, str] = {
     "US500": "US",
@@ -64,9 +82,9 @@ def _score_interest_rate(rate: float | None) -> tuple[float, str]:
         return 0.0, "Brak danych o stopach procentowych"
 
     # Baseline: 3% = neutral; below = bullish, above = bearish
-    baseline = 3.0
-    score = -(rate - baseline) * 12.0
-    score = max(-40.0, min(40.0, score))
+    baseline = _RATE_NEUTRAL_BASELINE
+    score = -(rate - baseline) * _RATE_WEIGHT
+    score = max(-_RATE_SCORE_LIMIT, min(_RATE_SCORE_LIMIT, score))
 
     if rate < baseline:
         stance = "luzna"
@@ -84,9 +102,9 @@ def _score_unemployment(unemployment: float | None) -> tuple[float, str]:
         return 0.0, ""
 
     # Baseline: 5% = neutral
-    baseline = 5.0
-    score = -(unemployment - baseline) * 6.0
-    score = max(-20.0, min(20.0, score))
+    baseline = _UNEMP_NEUTRAL_BASELINE
+    score = -(unemployment - baseline) * _UNEMP_WEIGHT
+    score = max(-_UNEMP_SCORE_LIMIT, min(_UNEMP_SCORE_LIMIT, score))
 
     condition = "silny" if unemployment < baseline else "slaby"
     desc = f"Bezrobocie: {unemployment:.1f}% (rynek pracy {condition})"
@@ -101,11 +119,11 @@ def _score_inflation(cpi_yoy: float | None) -> tuple[float, str]:
     if cpi_yoy is None:
         return 0.0, ""
 
-    target = 2.0
+    target = _INFLATION_TARGET
     deviation = cpi_yoy - target
     # Asymmetric: above target hurts more (-8 per pp) than below helps (+4 per pp)
-    score = -deviation * 8.0 if deviation > 0 else -deviation * 4.0
-    score = max(-30.0, min(30.0, score))
+    score = -deviation * _INFLATION_ABOVE_WEIGHT if deviation > 0 else -deviation * _INFLATION_BELOW_WEIGHT
+    score = max(-_INFLATION_SCORE_LIMIT, min(_INFLATION_SCORE_LIMIT, score))
 
     return score, f"Inflacja CPI: {cpi_yoy:.1f}% r/r"
 
@@ -143,7 +161,7 @@ async def analyze_index(symbol: str, fred: MacroIndicatorSource | None = None) -
     cpi_score, cpi_desc = _score_inflation(cpi)
 
     total_score = rate_score + unemp_score + cpi_score
-    total_score = max(-100.0, min(100.0, total_score))
+    total_score = max(-_SCORE_CLAMP, min(_SCORE_CLAMP, total_score))
 
     indicators: dict[str, float | str | None] = {
         "region": region,
@@ -155,9 +173,9 @@ async def analyze_index(symbol: str, fred: MacroIndicatorSource | None = None) -
         "unemployment_score": unemp_score,
     }
 
-    if total_score > 10:
+    if total_score > _DIRECTION_THRESHOLD:
         direction = "bycza"
-    elif total_score < -10:
+    elif total_score < -_DIRECTION_THRESHOLD:
         direction = "niedzwiedzia"
     else:
         direction = "neutralna"

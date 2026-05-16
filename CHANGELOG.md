@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved SonarQube S3358 in `backend/app/modules/fundamental_analysis/indices.py` and `commodities.py` — replaced nested conditional expressions with `if/elif/else` blocks
 - Resolved SonarQube S3776 in `backend/app/modules/fundamental_analysis/forex.py` — extracted summary-building logic into `_build_forex_summary()` to reduce `analyze_forex` Cognitive Complexity below the allowed threshold
 - Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_fred_source.py` to resolve SonarQube S1244
+- Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_forex_analyzer.py` and `backend/tests/unit/test_indices_analyzer.py` to resolve SonarQube S1244
+- Extracted magic numbers in `backend/app/modules/fundamental_analysis/forex.py` and `indices.py` into named module-level constants (`_RATE_DIFF_WEIGHT`, `_INFLATION_DIFF_WEIGHT`, `_SCORE_CLAMP`, `_DIRECTION_THRESHOLD`, etc.) to improve calibration maintainability
 
 ## [0.1.0] - 2026-05-08
 

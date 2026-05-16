@@ -49,8 +49,8 @@ class TestForexAnalyzerEurStronger:
 
         assert result.instrument_type == InstrumentType.FOREX
         assert result.score > 0  # bullish for EUR
-        assert result.indicators["interest_rate_differential"] == 2.5
-        assert result.indicators["inflation_differential"] == -2.0
+        assert result.indicators["interest_rate_differential"] == pytest.approx(2.5)
+        assert result.indicators["inflation_differential"] == pytest.approx(-2.0)
         assert "bycza" in result.summary
 
 
@@ -69,8 +69,8 @@ class TestForexAnalyzerUsdStronger:
         result = await analyze_forex("EURUSD", fred=mock_fred)
 
         assert result.score < 0  # bearish for pair
-        assert result.indicators["interest_rate_differential"] == -4.5
-        assert result.indicators["inflation_differential"] == 2.0
+        assert result.indicators["interest_rate_differential"] == pytest.approx(-4.5)
+        assert result.indicators["inflation_differential"] == pytest.approx(2.0)
         assert "niedzwiedzia" in result.summary
 
 
@@ -89,7 +89,7 @@ class TestForexAnalyzerBalanced:
         result = await analyze_forex("EURUSD", fred=mock_fred)
 
         assert -10 <= result.score <= 10
-        assert result.indicators["inflation_differential"] == 0.0
+        assert result.indicators["inflation_differential"] == pytest.approx(0.0)
         assert "neutralna" in result.summary
 
 
@@ -125,7 +125,7 @@ class TestForexAnalyzerJpyPairs:
         assert result.indicators["USD_inflation_yoy"] == pytest.approx(3.0)
         assert result.indicators["JPY_inflation_yoy"] is None
         assert result.indicators["inflation_differential"] is None
-        assert result.score != 0.0
+        assert result.score != pytest.approx(0.0)
 
 
 class TestForexAnalyzerMissingData:
@@ -137,7 +137,7 @@ class TestForexAnalyzerMissingData:
 
         result = await analyze_forex("EURUSD", fred=mock_fred)
 
-        assert result.score == 0.0
+        assert result.score == pytest.approx(0.0)
         assert "Brak danych" in result.summary
         assert result.indicators["interest_rate_differential"] is None
         assert result.indicators["inflation_differential"] is None
@@ -158,7 +158,7 @@ class TestForexAnalyzerAudnzd:
         result = await analyze_forex("AUDNZD", fred=mock_fred)
 
         assert result.instrument_type == InstrumentType.FOREX
-        assert result.score != 0.0
+        assert result.score != pytest.approx(0.0)
         assert result.indicators["base_currency"] == "AUD"
         assert result.indicators["quote_currency"] == "NZD"
         assert result.indicators["interest_rate_differential"] == pytest.approx(-1.15)
@@ -177,7 +177,7 @@ class TestForexAnalyzerAudnzd:
         result = await analyze_forex("AUDNZD", fred=mock_fred)
 
         assert result.instrument_type == InstrumentType.FOREX
-        assert result.score == 0.0
+        assert result.score == pytest.approx(0.0)
         assert "Brak danych" in result.summary
 
     @pytest.mark.asyncio
@@ -195,7 +195,7 @@ class TestForexAnalyzerAudnzd:
         assert result.indicators["AUD_inflation_yoy"] is None
         assert result.indicators["NZD_inflation_yoy"] == pytest.approx(2.5)
         assert result.indicators["inflation_differential"] is None
-        assert result.score != 0.0  # rate component still contributes
+        assert result.score != pytest.approx(0.0)  # rate component still contributes
         assert "roznica inflacji" not in result.summary
 
     @pytest.mark.asyncio
@@ -212,6 +212,6 @@ class TestForexAnalyzerAudnzd:
 
         assert result.indicators["interest_rate_differential"] is None
         assert result.indicators["inflation_differential"] == pytest.approx(1.1)
-        assert result.score != 0.0  # inflation component still contributes
+        assert result.score != pytest.approx(0.0)  # inflation component still contributes
         assert "roznica stop" not in result.summary
         assert "roznica inflacji" in result.summary
