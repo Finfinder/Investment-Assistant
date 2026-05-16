@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored valid TOML/JSON in `backend/pyproject.toml` and `frontend/package.json` after `open-next-version-branch` script corrupted them via ambiguous `$1` regex backreference (root cause fixed in `AI_Instruction/scripts/version-target-strategies.ps1`)
 - Extracted duplicated `"Analysis not found"` string literal in `backend/app/api/v1/analysis.py` into a module-level constant `_ANALYSIS_NOT_FOUND`
 - Replaced nested ternary operator for `baseColor` in `buildPatternMarkers()` with an `if/else if/else` block to resolve SonarQube S3358
+- Resolved SonarQube S3358 in `backend/app/modules/fundamental_analysis/indices.py` and `commodities.py` — replaced nested conditional expressions with `if/elif/else` blocks
+- Resolved SonarQube S3776 in `backend/app/modules/fundamental_analysis/forex.py` — extracted summary-building logic into `_build_forex_summary()` to reduce `analyze_forex` Cognitive Complexity below the allowed threshold
+- Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_fred_source.py` to resolve SonarQube S1244
 
 ## [0.1.0] - 2026-05-08
 

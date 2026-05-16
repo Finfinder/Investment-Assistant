@@ -97,6 +97,30 @@ def _compute_inflation_differential(base_cpi: float | None, quote_cpi: float | N
     return base_cpi - quote_cpi
 
 
+def _build_forex_summary(
+    base: str,
+    quote: str,
+    score: float,
+    components: int,
+    rate_diff: float | None,
+    inflation_diff: float | None,
+) -> str:
+    if components == 0:
+        return f"Brak danych makro dla pary {base}/{quote}."
+    if score > 10:
+        direction = "bycza"
+    elif score < -10:
+        direction = "niedzwiedzia"
+    else:
+        direction = "neutralna"
+    parts = []
+    if rate_diff is not None:
+        parts.append(f"roznica stop {base} vs {quote}: {rate_diff:+.2f}%")
+    if inflation_diff is not None:
+        parts.append(f"roznica inflacji: {inflation_diff:+.2f}pp")
+    return f"Analiza fundamentalna {base}/{quote}: {direction} ({', '.join(parts)})."
+
+
 async def analyze_forex(symbol: str, fred: FredSource | None = None) -> FundamentalData:
     """Run fundamental analysis for a forex pair.
 
@@ -152,16 +176,7 @@ async def analyze_forex(symbol: str, fred: FredSource | None = None) -> Fundamen
     score = max(-100.0, min(100.0, score))
 
     # Generate summary
-    if components == 0:
-        summary = f"Brak danych makro dla pary {base}/{quote}."
-    else:
-        direction = "bycza" if score > 10 else "niedzwiedzia" if score < -10 else "neutralna"
-        parts = []
-        if rate_diff is not None:
-            parts.append(f"roznica stop {base} vs {quote}: {rate_diff:+.2f}%")
-        if inflation_diff is not None:
-            parts.append(f"roznica inflacji: {inflation_diff:+.2f}pp")
-        summary = f"Analiza fundamentalna {base}/{quote}: {direction} ({', '.join(parts)})."
+    summary = _build_forex_summary(base, quote, score, components, rate_diff, inflation_diff)
 
     return FundamentalData(
         instrument_type=InstrumentType.FOREX,
