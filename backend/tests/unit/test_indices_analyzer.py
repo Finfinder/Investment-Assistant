@@ -113,3 +113,21 @@ class TestIndexJapanese:
         assert result.indicators["region"] == "JP"
         assert result.indicators["inflation_yoy"] is None
         assert result.score != pytest.approx(0.0)
+
+
+class TestIndexAustralian:
+    """AU indices should include cpi_au in inflation output."""
+
+    @pytest.mark.asyncio
+    async def test_au200_uses_au_rate_and_cpi(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "rba_rate": 4.35,
+            "cpi_au": 3.16,
+        }.get(name)
+
+        result = await analyze_index("AU200", fred=mock_fred)
+
+        assert result.indicators["region"] == "AU"
+        assert result.indicators["interest_rate"] == pytest.approx(4.35)
+        assert result.indicators["inflation_yoy"] == pytest.approx(3.16)
+        assert result.instrument_type == InstrumentType.INDEX

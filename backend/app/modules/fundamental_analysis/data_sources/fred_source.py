@@ -40,6 +40,11 @@ FRED_SERIES: dict[str, str] = {
     "cpi_nz": "NZLCPIALLQINMEI",  # Quarterly Index 2015=100, OECD — Stats NZ publishes CPI quarterly; needs units=pc1
 }
 
+# Fallback FRED series used only after the primary indicator series returns no data.
+FRED_SERIES_FALLBACKS: dict[str, tuple[str, ...]] = {
+    "cpi_au": ("FPCPITOTLZGAUS",),  # Annual World Bank/IMF CPI YoY% when quarterly OECD data is unavailable
+}
+
 # Series that return raw index values and need FRED units transformation to YoY%.
 # CP0000EZ19M086NEST is Eurostat HICP (Index 2015=100) — no OECD YoY% series exists for Euro Area on FRED.
 SERIES_YOY_UNITS: dict[str, str] = {
@@ -54,6 +59,7 @@ SERIES_YOY_UNITS: dict[str, str] = {
 # all need 540-day windows to keep their last observations within range.
 SERIES_LOOKBACK_DAYS: dict[str, int] = {
     "FPCPITOTLZGJPN": 730,  # Annual JP CPI — need 2-year window
+    "FPCPITOTLZGAUS": 730,  # Annual AU CPI fallback — need 2-year window
     "NZLCPIALLQINMEI": 540,  # Quarterly NZ CPI Index — 1.5-year window for pc1 transformation safety
     "CPALTT01GBM659N": 540,  # UK CPI (OECD MEI stale since May 2025) — 540 days ensures Mar 2025 obs is in range
     "CPALTT01AUQ659N": 540,  # Quarterly AU CPI (OECD MEI stale since May 2025) — mirrors NZ CPI window
@@ -81,6 +87,13 @@ def _before_sleep_log(retry_state: RetryCallState) -> None:
     exc = retry_state.outcome.exception() if retry_state.outcome else None
     safe_msg = _API_KEY_RE.sub("api_key=***", str(exc)) if exc else "unknown error"
     logger.warning("FRED: retry attempt %d after error: %s", retry_state.attempt_number, safe_msg)
+
+
+def _get_indicator_series_chain(indicator_name: str) -> tuple[str, ...]:
+    primary_series = FRED_SERIES.get(indicator_name)
+    if primary_series is None:
+        return ()
+    return (primary_series, *FRED_SERIES_FALLBACKS.get(indicator_name, ()))
 
 
 class FredSource:
@@ -165,11 +178,27 @@ class FredSource:
 
     async def fetch_indicator(self, indicator_name: str, lookback_days: int = 365) -> float | None:
         """Fetch a macro indicator by its friendly name (e.g. 'fed_funds_rate')."""
-        series_id = FRED_SERIES.get(indicator_name)
-        if not series_id:
+        series_chain = _get_indicator_series_chain(indicator_name)
+        if not series_chain:
             logger.warning("FRED: unknown indicator name '%s'", indicator_name)
             return None
-        return await self.fetch_series(series_id, lookback_days)
+
+        for index, series_id in enumerate(series_chain):
+            value = await self.fetch_series(series_id, lookback_days)
+            if value is not None:
+                if index > 0:
+                    logger.info("FRED: fallback series %s supplied indicator %s", series_id, indicator_name)
+                return value
+
+            has_fallback = index < len(series_chain) - 1
+            if has_fallback:
+                logger.warning(
+                    "FRED: series %s returned no data for indicator %s, trying fallback",
+                    series_id,
+                    indicator_name,
+                )
+
+        return None
 
     async def fetch_multiple(self, indicator_names: list[str]) -> dict[str, float | None]:
         """Fetch multiple indicators at once, returning a dict of results."""
