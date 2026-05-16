@@ -1,9 +1,11 @@
 """Tests for FRED data source."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
+from cachetools import TTLCache
 from tenacity import wait_none
 
 from app.modules.fundamental_analysis.data_sources.fred_source import (
@@ -73,6 +75,15 @@ class TestFredSourceErrors:
         assert result is None
 
     @pytest.mark.asyncio
+    async def test_fetch_series_returns_none_on_all_nan_data(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([float("nan")])):
+            result = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result is None
+
+    @pytest.mark.asyncio
     async def test_error_log_sanitizes_api_key(self, fred_source: FredSource, caplog):
         """logger.error must not expose the FRED API key when an exception URL is logged."""
         import logging
@@ -103,6 +114,57 @@ class TestFredSourceCaching:
             result2 = await fred_source.fetch_series("FEDFUNDS")
             assert result2 == 5.25
             assert mock_to_thread.call_count == 1  # no additional call
+
+    @pytest.mark.asyncio
+    async def test_negative_cache_is_returned_without_api_call_after_empty_data(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series(dtype=float)) as mock_to_thread:
+            result1 = await fred_source.fetch_series("FEDFUNDS")
+            result2 = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result1 is None
+        assert result2 is None
+        assert mock_to_thread.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_negative_cache_hit_skips_fred_client_initialization(self, fred_source: FredSource):
+        fred_source._negative_cache["fred:FEDFUNDS"] = object()
+
+        with patch.object(fred_source, "_get_fred", side_effect=AssertionError("_get_fred should not be called")):
+            result = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_negative_cache_expires_and_allows_recovery(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        fred_source._negative_cache = TTLCache(maxsize=64, ttl=0.01)
+
+        with patch(
+            _MODULE,
+            new_callable=AsyncMock,
+            side_effect=[pd.Series(dtype=float), pd.Series([5.25])],
+        ) as mock_to_thread:
+            result1 = await fred_source.fetch_series("FEDFUNDS")
+            await asyncio.sleep(0.02)
+            result2 = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result1 is None
+        assert result2 == pytest.approx(5.25)
+        assert mock_to_thread.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_zero_value_is_cached_as_valid_positive_value(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([0.0])) as mock_to_thread:
+            result1 = await fred_source.fetch_series("FEDFUNDS")
+            result2 = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result1 == pytest.approx(0.0)
+        assert result2 == pytest.approx(0.0)
+        assert mock_to_thread.call_count == 1
 
 
 class TestFredSourceUnitsTransform:
@@ -349,6 +411,19 @@ class TestFredSourceRetry:
         assert mock_to_thread.call_count == 3
 
     @pytest.mark.asyncio
+    async def test_negative_cache_is_returned_after_retry_exhaustion(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        side_effects = [ConnectionError("err1"), ConnectionError("err2"), ConnectionError("err3")]
+
+        with patch(_MODULE, new_callable=AsyncMock, side_effect=side_effects) as mock_to_thread:
+            result1 = await fred_source.fetch_series("FEDFUNDS")
+            result2 = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result1 is None
+        assert result2 is None
+        assert mock_to_thread.call_count == 3
+
+    @pytest.mark.asyncio
     async def test_permanent_error_not_retried(self, fred_source: FredSource):
         fred_source._fred = MagicMock()
 
@@ -356,6 +431,18 @@ class TestFredSourceRetry:
             result = await fred_source.fetch_series("FEDFUNDS")
 
         assert result is None
+        assert mock_to_thread.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_negative_cache_is_returned_after_permanent_error(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+
+        with patch(_MODULE, new_callable=AsyncMock, side_effect=ValueError("bad series")) as mock_to_thread:
+            result1 = await fred_source.fetch_series("FEDFUNDS")
+            result2 = await fred_source.fetch_series("FEDFUNDS")
+
+        assert result1 is None
+        assert result2 is None
         assert mock_to_thread.call_count == 1
 
     @pytest.mark.asyncio
