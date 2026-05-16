@@ -93,6 +93,41 @@ class TestForexAnalyzerBalanced:
         assert "neutralna" in result.summary
 
 
+class TestForexAnalyzerJpyPairs:
+    """JPY pairs should use JP CPI via cpi_jp mapping."""
+
+    @pytest.mark.asyncio
+    async def test_usdjpy_uses_jpy_cpi_for_inflation_differential(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "fed_funds_rate": 5.0,
+            "boj_rate": 0.1,
+            "cpi_us": 3.0,
+            "cpi_jp": 2.2,
+        }.get(name)
+
+        result = await analyze_forex("USDJPY", fred=mock_fred)
+
+        assert result.indicators["USD_inflation_yoy"] == pytest.approx(3.0)
+        assert result.indicators["JPY_inflation_yoy"] == pytest.approx(2.2)
+        assert result.indicators["inflation_differential"] == pytest.approx(0.8)
+
+    @pytest.mark.asyncio
+    async def test_usdjpy_missing_jpy_cpi_degrades_inflation_component(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "fed_funds_rate": 5.0,
+            "boj_rate": 0.1,
+            "cpi_us": 3.0,
+            "cpi_jp": None,
+        }.get(name)
+
+        result = await analyze_forex("USDJPY", fred=mock_fred)
+
+        assert result.indicators["USD_inflation_yoy"] == pytest.approx(3.0)
+        assert result.indicators["JPY_inflation_yoy"] is None
+        assert result.indicators["inflation_differential"] is None
+        assert result.score != 0.0
+
+
 class TestForexAnalyzerMissingData:
     """Missing macro data -> score 0, appropriate summary."""
 

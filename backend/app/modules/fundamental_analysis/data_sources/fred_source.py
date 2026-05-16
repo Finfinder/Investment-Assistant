@@ -26,7 +26,6 @@ FRED_SERIES: dict[str, str] = {
     "ecb_rate": "ECBDFR",
     "cpi_eu": "CP0000EZ19M086NEST",
     "cpi_uk": "CPALTT01GBM659N",
-    "cpi_jp": "FPCPITOTLZGJPN",  # Annual, IMF/World Bank — OECD monthly series discontinued Jun 2021
     "cpi_ch": "CPALTT01CHM659N",
     "cpi_au": "CPALTT01AUQ659N",  # Quarterly, OECD — ABS publishes CPI quarterly, no monthly series on FRED
     "cpi_ca": "CPALTT01CAM659N",

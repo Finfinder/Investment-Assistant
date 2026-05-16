@@ -357,10 +357,10 @@ class TestFredSourceLookbackOverride:
 
 
 class TestFredSourceSeriesMappings:
-    """Verify critical CPI series mappings after OECD discontinuation fix."""
+    """Verify critical FRED series mappings after JP CPI moved to OECD."""
 
-    def test_cpi_jp_maps_to_imf_annual_series(self):
-        assert FRED_SERIES["cpi_jp"] == "FPCPITOTLZGJPN"
+    def test_cpi_jp_not_mapped_in_fred_source(self):
+        assert "cpi_jp" not in FRED_SERIES
 
     def test_cpi_au_maps_to_oecd_quarterly_series(self):
         assert FRED_SERIES["cpi_au"] == "CPALTT01AUQ659N"

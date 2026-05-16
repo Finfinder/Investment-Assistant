@@ -4,7 +4,7 @@ import logging
 
 from app.core.models import FundamentalData, InstrumentType
 
-from .data_sources.fred_source import FredSource
+from .data_sources.macro_source import MacroDataSource, MacroIndicatorSource
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ INDEX_REGION_MAP: dict[str, str] = {
     "CA60": "CA",
 }
 
-# FRED indicators per region
+# Macro indicators per region
 REGION_INDICATORS: dict[str, dict[str, str]] = {
     "US": {
         "interest_rate": "fed_funds_rate",
@@ -110,13 +110,13 @@ def _score_inflation(cpi_yoy: float | None) -> tuple[float, str]:
     return score, f"Inflacja CPI: {cpi_yoy:.1f}% r/r"
 
 
-async def analyze_index(symbol: str, fred: FredSource | None = None) -> FundamentalData:
+async def analyze_index(symbol: str, fred: MacroIndicatorSource | None = None) -> FundamentalData:
     """Run fundamental analysis for a stock index.
 
     Evaluates regional macro: interest rates, unemployment, GDP.
     Returns FundamentalData with score from -100 to +100.
     """
-    source = fred or FredSource()
+    source = fred or MacroDataSource()
     clean_symbol = symbol.upper().replace("/", "")
 
     region = INDEX_REGION_MAP.get(clean_symbol)

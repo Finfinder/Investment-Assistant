@@ -82,3 +82,34 @@ class TestIndexEuropean:
 
         assert result.indicators["region"] == "EU"
         assert result.instrument_type == InstrumentType.INDEX
+
+
+class TestIndexJapanese:
+    """JP indices should include cpi_jp in inflation output."""
+
+    @pytest.mark.asyncio
+    async def test_jp225_uses_jp_rate_and_cpi(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "boj_rate": 0.1,
+            "cpi_jp": 2.4,
+        }.get(name)
+
+        result = await analyze_index("JP225", fred=mock_fred)
+
+        assert result.indicators["region"] == "JP"
+        assert result.indicators["interest_rate"] == pytest.approx(0.1)
+        assert result.indicators["inflation_yoy"] == pytest.approx(2.4)
+        assert result.instrument_type == InstrumentType.INDEX
+
+    @pytest.mark.asyncio
+    async def test_nikkei_missing_cpi_jp_keeps_analysis_running(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "boj_rate": 0.1,
+            "cpi_jp": None,
+        }.get(name)
+
+        result = await analyze_index("NIKKEI", fred=mock_fred)
+
+        assert result.indicators["region"] == "JP"
+        assert result.indicators["inflation_yoy"] is None
+        assert result.score != 0.0
