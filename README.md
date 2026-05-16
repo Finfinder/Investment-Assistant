@@ -175,7 +175,7 @@ POST /api/v1/fundamental-analysis
 {"symbol": "EURUSD"}
 ```
 
-Automatically routes to the correct analyzer based on instrument type. Forex pairs compare interest rate and inflation differentials between base and quote currencies. Commodities analyze COT positioning, USD strength, and rate environment. Indices evaluate regional macro data (rates, unemployment). Data sourced from FRED API and Financial Modeling Prep.
+Automatically routes to the correct analyzer based on instrument type. Forex pairs compare interest rate and inflation differentials between base and quote currencies. Commodities analyze COT positioning, USD strength, and rate environment. Indices evaluate regional macro data (rates, unemployment). Data sourced from FRED API, OECD SDMX (monthly Japan CPI YoY), and Financial Modeling Prep.
 
 ### Full Analysis Pipeline
 

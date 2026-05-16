@@ -4,11 +4,11 @@ import logging
 
 from app.core.models import FundamentalData, InstrumentType
 
-from .data_sources.fred_source import FredSource
+from .data_sources.macro_source import MacroDataSource, MacroIndicatorSource
 
 logger = logging.getLogger(__name__)
 
-# Map currency codes to FRED indicator names
+# Map currency codes to macro indicator names
 CURRENCY_RATE_MAP: dict[str, str] = {
     "USD": "fed_funds_rate",
     "EUR": "ecb_rate",
@@ -121,14 +121,14 @@ def _build_forex_summary(
     return f"Analiza fundamentalna {base}/{quote}: {direction} ({', '.join(parts)})."
 
 
-async def analyze_forex(symbol: str, fred: FredSource | None = None) -> FundamentalData:
+async def analyze_forex(symbol: str, fred: MacroIndicatorSource | None = None) -> FundamentalData:
     """Run fundamental analysis for a forex pair.
 
     Compares interest rates, inflation between base and quote currencies.
     Returns FundamentalData with score from -100 (bearish) to +100 (bullish).
     """
     base, quote = _parse_pair(symbol)
-    source = fred or FredSource()
+    source = fred or MacroDataSource()
 
     # Fetch indicators for both currencies
     base_rate_name = CURRENCY_RATE_MAP.get(base)

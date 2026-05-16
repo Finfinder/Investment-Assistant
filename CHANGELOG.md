@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/workflows/third-party-action-pinning.yml` and `.github/workflows/reusable-third-party-action-pinning.yml` — repo-local mirror of the monorepo SHA-pinning guard enforcing full 40-character SHA for third-party actions (stage 1)
 
 - Export `toChartTime()` from `CandlestickChart.tsx` and add Vitest unit tests covering UTC conversion, intraday timestamp differentiation, timezone normalization, and `buildPatternMarkers` regression scenarios
+- OECD SDMX integration for monthly Japan CPI YoY (`cpi_jp`) in backend fundamental analysis via dedicated `OecdSdmxSource` and `MacroDataSource` routing layer
 
 ### Changed
 
