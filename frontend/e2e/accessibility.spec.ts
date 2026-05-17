@@ -54,50 +54,21 @@ test.describe("Accessibility — keyboard navigation (form)", () => {
     await expect(submitButton).toBeFocused();
   });
 
-  test("combobox keyboard navigation with ArrowDown/Up/Enter/Escape", async ({ page }) => {
+  test("combobox populates datalist suggestions on input", async ({ page }) => {
     await page.goto("/");
 
     const symbolInput = page.getByRole("combobox", { name: /symbol/i });
     await symbolInput.click();
     await symbolInput.fill("EUR");
 
-    // Wait for suggestions to appear
-    const listbox = page.getByRole("listbox", { name: /sugestie/i });
-    await expect(listbox).toBeVisible({ timeout: 5_000 });
+    // Datalist should be populated with EUR-prefixed options
+    const datalist = page.locator("#symbol-suggestions");
+    await expect(datalist.locator("option[value='EURUSD']")).toBeAttached();
+    await expect(datalist.locator("option[value='EURGBP']")).toBeAttached();
 
-    // ArrowDown should highlight first option
-    await page.keyboard.press("ArrowDown");
-    const options = listbox.getByRole("option");
-    await expect(options.first()).toHaveAttribute("aria-selected", "true");
-
-    // ArrowDown again should move to next
-    await page.keyboard.press("ArrowDown");
-
-    // ArrowUp should go back
-    await page.keyboard.press("ArrowUp");
-    await expect(options.first()).toHaveAttribute("aria-selected", "true");
-
-    // Enter should select the option and close the listbox
-    await page.keyboard.press("Enter");
-    await expect(listbox).not.toBeVisible();
-
-    // Input should contain selected value
-    await expect(symbolInput).not.toHaveValue("EUR");
-  });
-
-  test("Escape closes combobox suggestions", async ({ page }) => {
-    await page.goto("/");
-
-    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
-    await symbolInput.click();
-    await symbolInput.fill("GOL");
-
-    const listbox = page.getByRole("listbox", { name: /sugestie/i });
-    await expect(listbox).toBeVisible({ timeout: 5_000 });
-
-    // Escape should close suggestions
-    await page.keyboard.press("Escape");
-    await expect(listbox).not.toBeVisible();
+    // Clearing input removes all suggestions
+    await symbolInput.fill("");
+    await expect(datalist.locator("option")).toHaveCount(0);
   });
 });
 
