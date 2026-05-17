@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Timeframe, IndicatorPreset } from "@/types";
 
-const POPULAR_INSTRUMENTS = [
+export const POPULAR_INSTRUMENTS = [
   // Forex majors
   "EURUSD",
   "GBPUSD",
@@ -46,7 +46,6 @@ const POPULAR_INSTRUMENTS = [
   "XAUUSD",
   "XAGUSD",
   "OIL",
-  "USOIL",
   "OILWTI",
   "BRENT",
   "NATGAS",

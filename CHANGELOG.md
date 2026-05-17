@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed unsupported `USOIL` from frontend `POPULAR_INSTRUMENTS` suggestion list; backend does not classify or map this symbol via any provider. Added regression test `popularInstruments.test.ts` to guard against unsupported symbols appearing in the suggestion list.
 - `FredSource.fetch_series()` now uses a short-lived negative cache (5 minutes) for `None` outcomes (empty series and handled fetch errors), reducing repeated calls to unavailable FRED series while preserving recovery after TTL expiry
 - `FredSource` now supports observation-level fetch (`fetch_series_observation()` / `fetch_indicator_observation()`) with period metadata, while preserving public `fetch_series()` and `fetch_indicator()` contracts
 - `MacroDataSource` now routes `cpi_us`, `cpi_ca`, and `cpi_ch` through the dedicated CPI fallback orchestration while keeping `cpi_jp` on OECD SDMX and all remaining indicators on FRED
