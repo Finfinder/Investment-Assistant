@@ -93,3 +93,16 @@ class TestCommodityNoCotData:
         assert result.instrument_type == InstrumentType.COMMODITY
         assert isinstance(result.score, float)
         assert "Brak danych COT" in result.summary
+
+
+class TestCommodityCpiUsage:
+    """Commodity analysis should always include US CPI in real rate calculation."""
+
+    async def test_real_rate_component_uses_cpi_us(self, mock_fred: MagicMock, mock_fmp: MagicMock):
+        mock_fmp.fetch_cot_report = AsyncMock(return_value=None)
+
+        await analyze_commodity("GOLD", fred=mock_fred, fmp=mock_fmp)
+
+        requested_indicators = {call.args[0] for call in mock_fred.fetch_indicator.await_args_list}
+        assert "fed_funds_rate" in requested_indicators
+        assert "cpi_us" in requested_indicators

@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `.github/workflows/third-party-action-pinning.yml` and `.github/workflows/reusable-third-party-action-pinning.yml` — repo-local mirror of the monorepo SHA-pinning guard enforcing full 40-character SHA for third-party actions (stage 1)
+- Staleness-aware CPI fallback layer for `cpi_us`, `cpi_ca`, `cpi_ch`: new `CpiFallbackSource` with per-country sources (`BlsCpiSource`, `StatCanCpiSource`, `BfsCpiSource`), shared `MacroObservation` model, and `cpi_yoy` helper utilities (period parsing, YoY computation, freshness checks)
+- New unit test coverage for CPI fallback stack: `test_cpi_yoy.py`, `test_cpi_fallback_source.py`, `test_bls_cpi_source.py`, `test_statcan_cpi_source.py`, `test_bfs_cpi_source.py`, plus routing/regression updates in FRED/Macro/forex/indices/commodities tests
 
 - Export `toChartTime()` from `CandlestickChart.tsx` and add Vitest unit tests covering UTC conversion, intraday timestamp differentiation, timezone normalization, and `buildPatternMarkers` regression scenarios
 - OECD SDMX integration for monthly Japan CPI YoY (`cpi_jp`) in backend fundamental analysis via dedicated `OecdSdmxSource` and `MacroDataSource` routing layer
@@ -17,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `FredSource.fetch_series()` now uses a short-lived negative cache (5 minutes) for `None` outcomes (empty series and handled fetch errors), reducing repeated calls to unavailable FRED series while preserving recovery after TTL expiry
+- `FredSource` now supports observation-level fetch (`fetch_series_observation()` / `fetch_indicator_observation()`) with period metadata, while preserving public `fetch_series()` and `fetch_indicator()` contracts
+- `MacroDataSource` now routes `cpi_us`, `cpi_ca`, and `cpi_ch` through the dedicated CPI fallback orchestration while keeping `cpi_jp` on OECD SDMX and all remaining indicators on FRED
 - GitHub Actions bumped to Node.js 24 runtime: `actions/checkout` v4→v5, `actions/setup-python` v5→v6, `actions/setup-node` v4→v5, `actions/upload-artifact` v5→v6, `actions/download-artifact` v6→v7 across `ci.yml`, `release.yml`, `reusable-next-version-request.yml`, `reusable-open-next-version-branch.yml`, and `reusable-third-party-action-pinning.yml`
 - `.github/workflows/reusable-version-consistency.yml`, `reusable-next-version-request.yml`, `reusable-open-next-version-branch.yml` — synced to canonical mirror via centralized sync engine; replaced locally vendored scripts (`repository/.github/scripts/`) with cross-repo AI_Instruction checkout invoking `ai_instruction/scripts/`; sensitive env vars now set via `$env:*` instead of inline `${{ inputs.* }}` expressions
 - `.github/workflows/reusable-third-party-action-pinning.yml` — synced to repo-local policy bundle; policy resolved from `.github/actions-security/zizmor.yml` instead of cross-repo checkout
@@ -38,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_fred_source.py` to resolve SonarQube S1244
 - Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_forex_analyzer.py` and `backend/tests/unit/test_indices_analyzer.py` to resolve SonarQube S1244
 - Extracted magic numbers in `backend/app/modules/fundamental_analysis/forex.py` and `indices.py` into named module-level constants (`_RATE_DIFF_WEIGHT`, `_INFLATION_DIFF_WEIGHT`, `_SCORE_CLAMP`, `_DIRECTION_THRESHOLD`, etc.) to improve calibration maintainability
+- Resolved SonarQube S3776 in `backend/app/modules/fundamental_analysis/data_sources/bfs_cpi_source.py` — extracted `parse_point` inner function in `_extract_latest_from_points` to reduce Cognitive Complexity below the allowed threshold
+- Corrected `test_post_forex_analysis` patch target in `backend/tests/unit/test_fundamental_api.py` from `forex.FredSource` to `forex.MacroDataSource` (phase 6 refactored `forex.py` to use `MacroDataSource`; stale patch target caused `AttributeError` and a failing test)
 
 ## [0.1.0] - 2026-05-08
 

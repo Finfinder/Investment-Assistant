@@ -131,3 +131,21 @@ class TestIndexAustralian:
         assert result.indicators["interest_rate"] == pytest.approx(4.35)
         assert result.indicators["inflation_yoy"] == pytest.approx(3.16)
         assert result.instrument_type == InstrumentType.INDEX
+
+
+class TestIndexCanadian:
+    """CA index should include cpi_ca in inflation output."""
+
+    @pytest.mark.asyncio
+    async def test_ca60_uses_ca_rate_and_cpi(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "boc_rate": 4.0,
+            "cpi_ca": 2.1,
+        }.get(name)
+
+        result = await analyze_index("CA60", fred=mock_fred)
+
+        assert result.indicators["region"] == "CA"
+        assert result.indicators["interest_rate"] == pytest.approx(4.0)
+        assert result.indicators["inflation_yoy"] == pytest.approx(2.1)
+        assert result.instrument_type == InstrumentType.INDEX

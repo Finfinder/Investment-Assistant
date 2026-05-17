@@ -16,7 +16,7 @@ class TestFundamentalEndpointForex:
         )
 
         with patch(
-            "app.modules.fundamental_analysis.forex.FredSource",
+            "app.modules.fundamental_analysis.forex.MacroDataSource",
             return_value=mock_fred,
         ):
             resp = await client.post(

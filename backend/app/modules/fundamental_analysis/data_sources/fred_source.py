@@ -11,6 +11,8 @@ from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_
 
 from app.core.config import get_settings
 
+from .macro_observation import MacroObservation
+
 logger = logging.getLogger(__name__)
 
 # FRED series identifiers for key macro indicators
@@ -102,6 +104,9 @@ class FredSource:
     def __init__(self, api_key: str | None = None) -> None:
         self._api_key = api_key or get_settings().FRED_API_KEY
         self._cache: TTLCache[str, Any] = TTLCache(maxsize=CACHE_MAX_SIZE, ttl=CACHE_TTL_SECONDS)
+        self._observation_cache: TTLCache[str, MacroObservation] = TTLCache(
+            maxsize=CACHE_MAX_SIZE, ttl=CACHE_TTL_SECONDS
+        )
         self._negative_cache: TTLCache[str, object] = TTLCache(
             maxsize=NEGATIVE_CACHE_MAX_SIZE,
             ttl=NEGATIVE_CACHE_TTL_SECONDS,
@@ -130,15 +135,18 @@ class FredSource:
         """Call FRED API with retry on transient network errors."""
         return await asyncio.to_thread(fred.get_series, series_id, **kwargs)
 
-    async def fetch_series(self, series_id: str, lookback_days: int = 365) -> float | None:
-        """Fetch the latest value for a FRED series.
+    async def fetch_series_observation(self, series_id: str, lookback_days: int = 365) -> MacroObservation | None:
+        """Fetch the latest observation for a FRED series with period metadata."""
+        observation_cache_key = f"fred_obs:{series_id}"
+        cached_observation = self._observation_cache.get(observation_cache_key)
+        if isinstance(cached_observation, MacroObservation):
+            return cached_observation
 
-        Returns the most recent observation value, or None if unavailable.
-        """
         cache_key = f"fred:{series_id}"
-        cached = self._cache.get(cache_key)
-        if cached is not None:
-            return float(cached)
+        cached_value = self._cache.get(cache_key)
+        if cached_value is not None and cache_key in self._negative_cache:
+            # Defensive path: if cache state is inconsistent, negative cache wins.
+            return None
         if cache_key in self._negative_cache:
             return None
 
@@ -170,25 +178,54 @@ class FredSource:
             self._negative_cache[cache_key] = _NEGATIVE_CACHE_SENTINEL
             return None
 
-        value = float(cleaned.iloc[-1])
+        last_row = cleaned.iloc[-1]
+        period_candidate = cleaned.index[-1]
+        try:
+            period = period_candidate.to_pydatetime().date()
+        except Exception:
+            # Some test doubles and edge payloads may not carry a datetime index.
+            # In that case we keep the value and use current date as observation period.
+            period = datetime.now(UTC).date()
+
+        value = float(last_row)
+        observation = MacroObservation(value=value, period=period, source="fred", unit="pct_yoy")
+
         self._cache[cache_key] = value
+        self._observation_cache[observation_cache_key] = observation
         self._negative_cache.pop(cache_key, None)
         logger.info("FRED: %s = %.4f", series_id, value)
-        return value
+        return observation
 
-    async def fetch_indicator(self, indicator_name: str, lookback_days: int = 365) -> float | None:
-        """Fetch a macro indicator by its friendly name (e.g. 'fed_funds_rate')."""
+    async def fetch_series(self, series_id: str, lookback_days: int = 365) -> float | None:
+        """Fetch the latest value for a FRED series.
+
+        Returns the most recent observation value, or None if unavailable.
+        """
+        cache_key = f"fred:{series_id}"
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return float(cached)
+
+        observation = await self.fetch_series_observation(series_id, lookback_days)
+        if observation is None:
+            return None
+        return observation.value
+
+    async def fetch_indicator_observation(
+        self, indicator_name: str, lookback_days: int = 365
+    ) -> MacroObservation | None:
+        """Fetch a macro indicator observation with source period metadata."""
         series_chain = _get_indicator_series_chain(indicator_name)
         if not series_chain:
             logger.warning("FRED: unknown indicator name '%s'", indicator_name)
             return None
 
         for index, series_id in enumerate(series_chain):
-            value = await self.fetch_series(series_id, lookback_days)
-            if value is not None:
+            observation = await self.fetch_series_observation(series_id, lookback_days)
+            if observation is not None:
                 if index > 0:
                     logger.info("FRED: fallback series %s supplied indicator %s", series_id, indicator_name)
-                return value
+                return observation
 
             has_fallback = index < len(series_chain) - 1
             if has_fallback:
@@ -199,6 +236,13 @@ class FredSource:
                 )
 
         return None
+
+    async def fetch_indicator(self, indicator_name: str, lookback_days: int = 365) -> float | None:
+        """Fetch a macro indicator by its friendly name (e.g. 'fed_funds_rate')."""
+        observation = await self.fetch_indicator_observation(indicator_name, lookback_days)
+        if observation is None:
+            return None
+        return observation.value
 
     async def fetch_multiple(self, indicator_names: list[str]) -> dict[str, float | None]:
         """Fetch multiple indicators at once, returning a dict of results."""
