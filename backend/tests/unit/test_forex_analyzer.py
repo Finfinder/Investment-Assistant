@@ -143,6 +143,38 @@ class TestForexAnalyzerMissingData:
         assert result.indicators["inflation_differential"] is None
 
 
+class TestForexAnalyzerCpiRouting:
+    @pytest.mark.asyncio
+    async def test_usdcad_uses_us_and_ca_cpi_indicators(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "fed_funds_rate": 4.5,
+            "boc_rate": 3.5,
+            "cpi_us": 2.4,
+            "cpi_ca": 1.9,
+        }.get(name)
+
+        result = await analyze_forex("USDCAD", fred=mock_fred)
+
+        assert result.indicators["USD_inflation_yoy"] == pytest.approx(2.4)
+        assert result.indicators["CAD_inflation_yoy"] == pytest.approx(1.9)
+        assert result.indicators["inflation_differential"] == pytest.approx(0.5)
+
+    @pytest.mark.asyncio
+    async def test_usdchf_uses_us_and_ch_cpi_indicators(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "fed_funds_rate": 4.5,
+            "snb_rate": 1.0,
+            "cpi_us": 2.4,
+            "cpi_ch": 0.7,
+        }.get(name)
+
+        result = await analyze_forex("USDCHF", fred=mock_fred)
+
+        assert result.indicators["USD_inflation_yoy"] == pytest.approx(2.4)
+        assert result.indicators["CHF_inflation_yoy"] == pytest.approx(0.7)
+        assert result.indicators["inflation_differential"] == pytest.approx(1.7)
+
+
 class TestForexAnalyzerAudnzd:
     """AUDNZD pair with NZD macro data."""
 

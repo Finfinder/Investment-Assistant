@@ -1,6 +1,7 @@
 """Tests for FRED data source."""
 
 import asyncio
+from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
@@ -15,6 +16,7 @@ from app.modules.fundamental_analysis.data_sources.fred_source import (
     SERIES_YOY_UNITS,
     FredSource,
 )
+from app.modules.fundamental_analysis.data_sources.macro_observation import MacroObservation
 
 _MODULE = "app.modules.fundamental_analysis.data_sources.fred_source.asyncio.to_thread"
 
@@ -51,6 +53,38 @@ class TestFredSourceSuccess:
             result = await fred_source.fetch_multiple(["fed_funds_rate", "cpi_us"])
         assert result["fed_funds_rate"] == pytest.approx(5.25)
         assert result["cpi_us"] == pytest.approx(300.0)
+
+
+class TestFredSourceObservation:
+    @pytest.mark.asyncio
+    async def test_fetch_series_observation_returns_value_and_period(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series = pd.Series(
+            [5.25, 5.5],
+            index=pd.to_datetime(["2025-03-01", "2025-04-01"]),
+        )
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=series):
+            observation = await fred_source.fetch_series_observation("FEDFUNDS")
+
+        assert observation is not None
+        assert observation.value == pytest.approx(5.5)
+        assert str(observation.period) == "2025-04-01"
+        assert observation.source == "fred"
+
+    @pytest.mark.asyncio
+    async def test_fetch_indicator_observation_uses_fallback_chain(self, fred_source: FredSource):
+        with patch.object(
+            fred_source,
+            "fetch_series_observation",
+            new_callable=AsyncMock,
+            side_effect=[None, None],
+        ) as mock_fetch:
+            result = await fred_source.fetch_indicator_observation("cpi_au")
+
+        assert result is None
+        assert mock_fetch.await_args_list[0].args == ("CPALTT01AUQ659N", 365)
+        assert mock_fetch.await_args_list[1].args == ("FPCPITOTLZGAUS", 365)
 
 
 class TestFredSourceErrors:
@@ -402,7 +436,12 @@ class TestFredSourceIndicatorFallbacks:
 
     @pytest.mark.asyncio
     async def test_cpi_au_primary_success_skips_fallback(self, fred_source: FredSource):
-        with patch.object(fred_source, "fetch_series", new_callable=AsyncMock, return_value=2.4) as mock_fetch_series:
+        with patch.object(
+            fred_source,
+            "fetch_series_observation",
+            new_callable=AsyncMock,
+            return_value=MacroObservation(value=2.4, period=date(2026, 4, 1), source="fred"),
+        ) as mock_fetch_series:
             result = await fred_source.fetch_indicator("cpi_au")
 
         assert result == pytest.approx(2.4)
@@ -412,9 +451,9 @@ class TestFredSourceIndicatorFallbacks:
     async def test_cpi_au_empty_primary_uses_world_bank_fallback(self, fred_source: FredSource):
         with patch.object(
             fred_source,
-            "fetch_series",
+            "fetch_series_observation",
             new_callable=AsyncMock,
-            side_effect=[None, 3.16],
+            side_effect=[None, MacroObservation(value=3.16, period=date(2026, 4, 1), source="fred")],
         ) as mock_fetch_series:
             result = await fred_source.fetch_indicator("cpi_au")
 
@@ -426,9 +465,9 @@ class TestFredSourceIndicatorFallbacks:
     async def test_cpi_au_handled_primary_error_uses_world_bank_fallback(self, fred_source: FredSource):
         with patch.object(
             fred_source,
-            "fetch_series",
+            "fetch_series_observation",
             new_callable=AsyncMock,
-            side_effect=[None, 3.16],
+            side_effect=[None, MacroObservation(value=3.16, period=date(2026, 4, 1), source="fred")],
         ) as mock_fetch_series:
             result = await fred_source.fetch_indicator("cpi_au")
 
@@ -439,7 +478,7 @@ class TestFredSourceIndicatorFallbacks:
     async def test_cpi_au_all_series_missing_returns_none(self, fred_source: FredSource):
         with patch.object(
             fred_source,
-            "fetch_series",
+            "fetch_series_observation",
             new_callable=AsyncMock,
             side_effect=[None, None],
         ) as mock_fetch_series:
@@ -450,7 +489,12 @@ class TestFredSourceIndicatorFallbacks:
 
     @pytest.mark.asyncio
     async def test_regular_indicator_missing_data_does_not_use_fallback(self, fred_source: FredSource):
-        with patch.object(fred_source, "fetch_series", new_callable=AsyncMock, return_value=None) as mock_fetch_series:
+        with patch.object(
+            fred_source,
+            "fetch_series_observation",
+            new_callable=AsyncMock,
+            return_value=None,
+        ) as mock_fetch_series:
             result = await fred_source.fetch_indicator("fed_funds_rate")
 
         assert result is None

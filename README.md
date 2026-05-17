@@ -119,7 +119,7 @@ backend/app/
     ├── data_acquisition/      # Multi-provider market data (yfinance, Twelve Data, FMP)
     ├── technical_analysis/    # 9 oscillators, 12 MAs, 5 pivot types
     ├── pattern_recognition/   # Candlestick, S/R, Fibonacci, IKI, geometric
-    ├── fundamental_analysis/  # Forex/commodity/index macro analysis (FRED, FMP)
+    ├── fundamental_analysis/  # Forex/commodity/index macro analysis (FRED, OECD SDMX, BLS, StatCan, BFS, FMP)
     ├── signal_aggregation/    # Weighted signal scoring and consolidation
     └── strategy_generator/    # Entry/exit scenarios with SL/TP levels
 ```
@@ -175,7 +175,7 @@ POST /api/v1/fundamental-analysis
 {"symbol": "EURUSD"}
 ```
 
-Automatically routes to the correct analyzer based on instrument type. Forex pairs compare interest rate and inflation differentials between base and quote currencies. Commodities analyze COT positioning, USD strength, and rate environment. Indices evaluate regional macro data (rates, unemployment). Data sourced from FRED API, OECD SDMX (monthly Japan CPI YoY), and Financial Modeling Prep.
+Automatically routes to the correct analyzer based on instrument type. Forex pairs compare interest rate and inflation differentials between base and quote currencies. Commodities analyze COT positioning, USD strength, and rate environment. Indices evaluate regional macro data (rates, unemployment). Data sourced from FRED API, OECD SDMX (monthly Japan CPI YoY), country CPI fallback APIs (BLS for US, Statistics Canada for CA, BFS/FSO for CH), and Financial Modeling Prep.
 
 ### Full Analysis Pipeline
 
