@@ -31,6 +31,8 @@ const CATEGORY_ORDER: Array<PatternCategory | "all"> = [
 
 const TOP_N = 5;
 
+const MIN_RELIABILITY_FILTER = 2;
+
 const RELIABILITY_STARS: Record<number, string> = {
   1: "★",
   2: "★★",
@@ -41,6 +43,7 @@ export default function PatternList({ patterns, currentTimeframe, onPatternClick
   const [activeCategory, setActiveCategory] = useState<PatternCategory | "all">("all");
   const [expanded, setExpanded] = useState(false);
   const [selectedPattern, setSelectedPattern] = useState<PatternScannerResult | null>(null);
+  const [showReliableOnly, setShowReliableOnly] = useState(false);
 
   if (patterns.length === 0) {
     return (
@@ -51,13 +54,19 @@ export default function PatternList({ patterns, currentTimeframe, onPatternClick
   }
 
   // Wzorce posortowane są już po relevance_score malejąco (z backendu)
+  // Najpierw aplikuj filtr reliability jeśli active
+  const reliabilityFiltered = showReliableOnly
+    ? patterns.filter((p) => (p.representative_pattern.reliability ?? 1) >= MIN_RELIABILITY_FILTER)
+    : patterns;
+
+  // Potem aplikuj filtr kategorii
   const filtered =
-    activeCategory === "all" ? patterns : patterns.filter((p) => p.category === activeCategory);
+    activeCategory === "all" ? reliabilityFiltered : reliabilityFiltered.filter((p) => p.category === activeCategory);
 
   const visible = expanded ? filtered : filtered.slice(0, TOP_N);
   const hasMore = filtered.length > TOP_N;
 
-  const categoriesPresent = new Set(patterns.map((p) => p.category));
+  const categoriesPresent = new Set(reliabilityFiltered.map((p) => p.category));
   const visibleTabs = CATEGORY_ORDER.filter(
     (c) => c === "all" || categoriesPresent.has(c)
   );
@@ -74,26 +83,46 @@ export default function PatternList({ patterns, currentTimeframe, onPatternClick
         <h3 className="border-b border-border px-4 py-3 text-lg font-semibold">Formacje cenowe</h3>
 
         {/* Zakładki kategorii */}
-        <div className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2">
-          {visibleTabs.map((cat) => {
-            const count = cat === "all" ? patterns.length : patterns.filter((p) => p.category === cat).length;
-            return (
-              <button
-                key={cat}
-                onClick={() => {
-                  setActiveCategory(cat);
-                  setExpanded(false);
-                }}
-                className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  activeCategory === cat
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted hover:bg-border/40"
-                }`}
-              >
-                {CATEGORY_LABELS[cat]} ({count})
-              </button>
-            );
-          })}
+        <div className="flex flex-col gap-2 border-b border-border px-3 py-3">
+          <div className="flex items-center gap-2">
+            <input
+              id="show-reliable-only"
+              type="checkbox"
+              checked={showReliableOnly}
+              onChange={(e) => {
+                setShowReliableOnly(e.target.checked);
+                setActiveCategory("all");
+                setExpanded(false);
+              }}
+              className="rounded border-border bg-background text-primary accent-primary"
+              aria-label="Pokaż tylko ★★+"
+            />
+            <label htmlFor="show-reliable-only" className="cursor-pointer text-xs font-medium text-foreground">
+              Pokaż tylko ★★+
+            </label>
+          </div>
+
+          <div className="flex gap-1 overflow-x-auto">
+            {visibleTabs.map((cat) => {
+              const count = cat === "all" ? reliabilityFiltered.length : reliabilityFiltered.filter((p) => p.category === cat).length;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    setExpanded(false);
+                  }}
+                  className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                    activeCategory === cat
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted hover:bg-border/40"
+                  }`}
+                >
+                  {CATEGORY_LABELS[cat]} ({count})
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Lista formacji */}
@@ -105,7 +134,11 @@ export default function PatternList({ patterns, currentTimeframe, onPatternClick
 
         <div className="divide-y divide-border/50">
           {visible.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted">Brak formacji w tej kategorii</p>
+            <p className="px-4 py-3 text-sm text-muted">
+              {showReliableOnly
+                ? "Brak formacji o wiarygodności ★★ i wyższej w tej kategorii"
+                : "Brak formacji w tej kategorii"}
+            </p>
           ) : (
             visible.map((pattern, i) => (
               <PatternRow
