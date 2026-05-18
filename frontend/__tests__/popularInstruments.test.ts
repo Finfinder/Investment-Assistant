@@ -16,6 +16,13 @@ describe("POPULAR_INSTRUMENTS", () => {
     expect(POPULAR_INSTRUMENTS).toContain("OILWTI");
   });
 
+  it("sugeruje wspierany indeks FR40 dla prefiksu FR", () => {
+    const frSuggestions = POPULAR_INSTRUMENTS.filter((s) => s.startsWith("FR"));
+
+    expect(POPULAR_INSTRUMENTS).toContain("FR40");
+    expect(frSuggestions).toContain("FR40");
+  });
+
   it("nie zawiera duplikatów", () => {
     const uniqueSet = new Set(POPULAR_INSTRUMENTS);
     expect(uniqueSet.size).toBe(POPULAR_INSTRUMENTS.length);

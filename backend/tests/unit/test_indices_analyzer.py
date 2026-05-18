@@ -83,6 +83,21 @@ class TestIndexEuropean:
         assert result.indicators["region"] == "EU"
         assert result.instrument_type == InstrumentType.INDEX
 
+    @pytest.mark.asyncio
+    async def test_fr40_uses_eu_region(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "ecb_rate": 3.75,
+            "cpi_eu": 2.1,
+        }.get(name)
+
+        result = await analyze_index("FR40", fred=mock_fred)
+
+        assert result.instrument_type == InstrumentType.INDEX
+        assert result.indicators["region"] == "EU"
+        assert result.indicators["interest_rate"] == pytest.approx(3.75)
+        assert result.indicators["inflation_yoy"] == pytest.approx(2.1)
+        assert "Nieznany" not in result.summary
+
 
 class TestIndexJapanese:
     """JP indices should include cpi_jp in inflation output."""
