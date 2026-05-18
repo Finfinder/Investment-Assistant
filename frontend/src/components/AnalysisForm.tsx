@@ -57,6 +57,7 @@ export const POPULAR_INSTRUMENTS = [
   "US30",
   "US100",
   "DE40",
+  "FR40",
   "UK100",
   "JP225",
   "W20",

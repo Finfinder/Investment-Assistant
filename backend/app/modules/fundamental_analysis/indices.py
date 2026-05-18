@@ -37,6 +37,7 @@ INDEX_REGION_MAP: dict[str, str] = {
     "DE40": "EU",
     "DAX": "EU",
     "EU50": "EU",
+    "FR40": "EU",
     "UK100": "UK",
     "FTSE": "UK",
     "JP225": "JP",
