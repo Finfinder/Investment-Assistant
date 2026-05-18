@@ -43,7 +43,7 @@ export default function PatternList({ patterns, currentTimeframe, onPatternClick
   const [activeCategory, setActiveCategory] = useState<PatternCategory | "all">("all");
   const [expanded, setExpanded] = useState(false);
   const [selectedPattern, setSelectedPattern] = useState<PatternScannerResult | null>(null);
-  const [showReliableOnly, setShowReliableOnly] = useState(false);
+  const [showReliableOnly, setShowReliableOnly] = useState(true);
 
   if (patterns.length === 0) {
     return (

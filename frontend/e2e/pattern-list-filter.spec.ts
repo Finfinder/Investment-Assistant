@@ -35,22 +35,14 @@ test.describe("PatternList - Filtrowanie po wiarygodności", () => {
     });
   });
 
-  test("checkbox 'Pokaż tylko ★★+' jest domyślnie niezaznaczony", async ({ mockedPage: page }) => {
+  test("checkbox 'Pokaż tylko ★★+' jest domyślnie zaznaczony", async ({ mockedPage: page }) => {
     const checkbox = page.getByRole("checkbox", { name: /Pokaż tylko ★★\+/ });
-    await expect(checkbox).not.toBeChecked();
+    await expect(checkbox).toBeChecked();
   });
 
-  test("zaznaczenie checkboxa filtruje formacje - pozostają tylko ★★ i wyższe", async ({ mockedPage: page }) => {
-    // Na początek powinny być wszystkie 3 formacje
-    let doji = page.getByRole("button", { name: /Doji/ });
-    await expect(doji).toBeVisible();
-
-    // Zaznacz checkbox
-    const checkbox = page.getByRole("checkbox", { name: /Pokaż tylko ★★\+/ });
-    await checkbox.click();
-    await page.waitForLoadState("networkidle");
-
-    // Doji powinno zniknąć (reliability: 1)
+  test("checkbox domyślnie filtruje formacje - widoczne tylko ★★ i wyższe", async ({ mockedPage: page }) => {
+    // Domyślnie checkbox zaznaczony - Doji (reliability: 1) powinno być ukryte
+    const doji = page.getByRole("button", { name: /Doji/ });
     await expect(doji).not.toBeVisible();
 
     // Hammer i Ascending Triangle powinny być widoczne (reliability: 2)
@@ -58,30 +50,37 @@ test.describe("PatternList - Filtrowanie po wiarygodności", () => {
     const triangle = page.getByRole("button", { name: /Ascending Triangle/ });
     await expect(hammer).toBeVisible();
     await expect(triangle).toBeVisible();
+
+    // Odzaznacz checkbox - wszystkie 3 formacje powinny być widoczne
+    const checkbox = page.getByRole("checkbox", { name: /Pokaż tylko ★★\+/ });
+    await checkbox.click();
+    await page.waitForLoadState("networkidle");
+
+    await expect(doji).toBeVisible();
   });
 
-  test("odzaznaczenie checkboxa przywraca pełną listę formacji", async ({ mockedPage: page }) => {
+  test("odzaznaczenie i ponowne zaznaczenie checkboxa przełącza filtr", async ({ mockedPage: page }) => {
     const checkbox = page.getByRole("checkbox", { name: /Pokaż tylko ★★\+/ });
-
-    // Zaznacz
-    await checkbox.click();
-    await page.waitForLoadState("networkidle");
-
-    let doji = page.getByRole("button", { name: /Doji/ });
-    await expect(doji).not.toBeVisible();
-
-    // Odzaznacz
-    await checkbox.click();
-    await page.waitForLoadState("networkidle");
-
-    // Wszystkie formacje powinny być widoczne
+    const doji = page.getByRole("button", { name: /Doji/ });
     const hammer = page.getByRole("button", { name: /Hammer/ });
     const triangle = page.getByRole("button", { name: /Ascending Triangle/ });
-    doji = page.getByRole("button", { name: /Doji/ });
+
+    // Domyślnie zaznaczony - Doji ukryte
+    await expect(doji).not.toBeVisible();
+
+    // Odzaznacz - wszystkie formacje powinny być widoczne
+    await checkbox.click();
+    await page.waitForLoadState("networkidle");
 
     await expect(hammer).toBeVisible();
     await expect(triangle).toBeVisible();
     await expect(doji).toBeVisible();
+
+    // Zaznacz ponownie - Doji powinno zniknąć
+    await checkbox.click();
+    await page.waitForLoadState("networkidle");
+
+    await expect(doji).not.toBeVisible();
   });
 
   test("zmiana filtra resetuje state 'Rozwiń/Zwiń' i aktywną kategorię", async ({ mockedPage: page }) => {
@@ -90,7 +89,7 @@ test.describe("PatternList - Filtrowanie po wiarygodności", () => {
 
     const checkbox = page.getByRole("checkbox", { name: /Pokaż tylko ★★\+/ });
 
-    // Zaznacz checkbox - powinno zresetować expanded
+    // Odzaznacz checkbox - powinno zresetować expanded i kategorię
     await checkbox.click();
     await page.waitForLoadState("networkidle");
 
@@ -98,28 +97,29 @@ test.describe("PatternList - Filtrowanie po wiarygodności", () => {
     const triangle = page.getByRole("button", { name: /Ascending Triangle/ });
     await expect(triangle).toBeVisible();
 
-    // Przycisk "Pokaż wszystkie" powinien pokazywać liczbę według filtrowanej listy (2 zamiast 3)
+    // Przycisk "Pokaż wszystkie" powinien pokazywać liczbę według odfiltrowanej listy (3 zamiast 2)
     const expandButton = page.getByRole("button", { name: /Pokaż wszystkie/ });
     if (await expandButton.isVisible()) {
-      // Tekst powinien zawierać "Pokaż wszystkie (2)"
+      // Tekst powinien zawierać "Pokaż wszystkie (3)"
       const text = await expandButton.textContent();
-      expect(text).toContain("(2)");
+      expect(text).toContain("(3)");
     }
   });
 
   test("liczniki kategorii uwzględniają filtr wiarygodności", async ({ mockedPage: page }) => {
     const checkbox = page.getByRole("checkbox", { name: /Pokaż tylko ★★\+/ });
+    const candlestickTab = page.getByRole("button", { name: /Świecowe/ });
 
-    // Zaznacz
+    // Domyślnie checkbox zaznaczony - Świecowe (1) bo Doji (reliability:1) jest odfiltrowany
+    const defaultText = await candlestickTab.textContent();
+    expect(defaultText).toMatch(/Świecowe \(1\)/);
+
+    // Odzaznacz - Świecowe (2) bo Doji wraca
     await checkbox.click();
     await page.waitForLoadState("networkidle");
 
-    // Tab "Świecowe" powinien pokazywać "1" zamiast "2" (Doji zostanie odfiltrowany)
-    const candlestickTab = page.getByRole("button", { name: /Świecowe/ });
-    const text = await candlestickTab.textContent();
-
-    // Powinno być "Świecowe (1)" bo Doji (reliability:1) zostanie odfiltrowany
-    expect(text).toMatch(/Świecowe \(1\)/);
+    const unfilteredText = await candlestickTab.textContent();
+    expect(unfilteredText).toMatch(/Świecowe \(2\)/);
   });
 
   test("checkbox posiada dostęp dla czytników ekranu", async ({ mockedPage: page }) => {
@@ -275,10 +275,7 @@ test.describe("PatternList - Pusty stan dla filtra reliability", () => {
       page.getByRole("heading", { name: /podsumowanie|wskaźnik|strategi/i }).first()
     ).toBeVisible({ timeout: 60_000 });
 
-    const checkbox = page.getByRole("checkbox", { name: /Pokaż tylko ★★\+/ });
-    await checkbox.click();
-    await page.waitForLoadState("networkidle");
-
+    // Checkbox domyślnie zaznaczony - pusty stan powinien być widoczny od razu
     await expect(
       page.getByText("Brak formacji o wiarygodności ★★ i wyższej w tej kategorii")
     ).toBeVisible();
