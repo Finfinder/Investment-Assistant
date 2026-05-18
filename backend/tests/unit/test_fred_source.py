@@ -343,6 +343,22 @@ class TestFredSourceLookbackOverride:
         assert 539 <= lookback <= 541
 
     @pytest.mark.asyncio
+    async def test_quarterly_us_gdp_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "GDP"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([31856.257])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == pytest.approx(31856.257)
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 539 <= lookback <= 541
+
+    @pytest.mark.asyncio
     async def test_annual_au_cpi_fallback_uses_730_day_lookback(self, fred_source: FredSource):
         fred_source._fred = MagicMock()
         series_id = "FPCPITOTLZGAUS"

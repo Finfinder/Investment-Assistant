@@ -62,6 +62,7 @@ SERIES_YOY_UNITS: dict[str, str] = {
 SERIES_LOOKBACK_DAYS: dict[str, int] = {
     "FPCPITOTLZGJPN": 730,  # Annual JP CPI — need 2-year window
     "FPCPITOTLZGAUS": 730,  # Annual AU CPI fallback — need 2-year window
+    "GDP": 540,  # Quarterly US GDP (BEA/FRED) — 1.5-year window for publication delay resilience
     "NZLCPIALLQINMEI": 540,  # Quarterly NZ CPI Index — 1.5-year window for pc1 transformation safety
     "CPALTT01GBM659N": 540,  # UK CPI (OECD MEI stale since May 2025) — 540 days ensures Mar 2025 obs is in range
     "CPALTT01AUQ659N": 540,  # Quarterly AU CPI (OECD MEI stale since May 2025) — mirrors NZ CPI window
