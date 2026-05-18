@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extracted magic numbers in `backend/app/modules/fundamental_analysis/forex.py` and `indices.py` into named module-level constants (`_RATE_DIFF_WEIGHT`, `_INFLATION_DIFF_WEIGHT`, `_SCORE_CLAMP`, `_DIRECTION_THRESHOLD`, etc.) to improve calibration maintainability
 - Resolved SonarQube S3776 in `backend/app/modules/fundamental_analysis/data_sources/bfs_cpi_source.py` — extracted `parse_point` inner function in `_extract_latest_from_points` to reduce Cognitive Complexity below the allowed threshold
 - Corrected `test_post_forex_analysis` patch target in `backend/tests/unit/test_fundamental_api.py` from `forex.FredSource` to `forex.MacroDataSource` (phase 6 refactored `forex.py` to use `MacroDataSource`; stale patch target caused `AttributeError` and a failing test)
+- Added `FR40` to `INDEX_SYMBOLS` in `backend/app/core/instrument_classifier.py` — `classify_instrument("FR40")` now returns `InstrumentType.INDEX`, resolving the inconsistency with YFinance `SYMBOL_MAP` which already mapped `FR40 → ^FCHI`; added `test_fr40_is_index` regression test — code review performed
 
 ## [0.1.0] - 2026-05-08
 

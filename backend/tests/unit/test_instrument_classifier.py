@@ -58,3 +58,6 @@ class TestClassifyInstrument:
 
     def test_w20_is_index(self):
         assert classify_instrument("W20") == InstrumentType.INDEX
+
+    def test_fr40_is_index(self):
+        assert classify_instrument("FR40") == InstrumentType.INDEX
