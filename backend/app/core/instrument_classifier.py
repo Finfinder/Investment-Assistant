@@ -71,6 +71,7 @@ INDEX_SYMBOLS: set[str] = {
     "NIKKEI",
     "AU200",
     "CA60",
+    "FR40",
     "W20",
 }
 
