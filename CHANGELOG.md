@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Refactored candlestick pattern recognition internals to remove SonarQube duplicated-literal and cognitive-complexity issues while preserving the public detection contract; cleaned the Playwright `mockedPage` fixture parameter name to avoid a React Hooks false positive.
 - `FR40` now uses the `EU` index fundamental-analysis region (`ecb_rate` / `cpi_eu`) and appears in frontend `POPULAR_INSTRUMENTS` autocomplete suggestions, with backend and frontend regression tests.
 - Removed unsupported `USOIL` from frontend `POPULAR_INSTRUMENTS` suggestion list; backend does not classify or map this symbol via any provider. Added regression test `popularInstruments.test.ts` to guard against unsupported symbols appearing in the suggestion list.
 - `FredSource.fetch_series()` now uses a short-lived negative cache (5 minutes) for `None` outcomes (empty series and handled fetch errors), reducing repeated calls to unavailable FRED series while preserving recovery after TTL expiry

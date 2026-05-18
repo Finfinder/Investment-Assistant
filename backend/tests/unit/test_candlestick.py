@@ -1,8 +1,10 @@
 """Tests for candlestick pattern detection."""
 
+import pytest
 import talib
 
 from app.core.models import PatternCategory, PatternDetection
+from app.modules.pattern_recognition import candlestick
 from app.modules.pattern_recognition.candlestick import (
     CANDLESTICK_PATTERNS,
     _confidence_from_signal,
@@ -103,9 +105,30 @@ class TestDetectCandlestickPatterns:
 
     def test_confidence_mapping(self):
         """Weryfikuje mapowanie siły sygnału TA-Lib na confidence."""
-        assert _confidence_from_signal(200) == 1.0
-        assert _confidence_from_signal(100) == 0.7
-        assert _confidence_from_signal(50) == 0.5
+        assert _confidence_from_signal(200) == pytest.approx(1.0)
+        assert _confidence_from_signal(100) == pytest.approx(0.7)
+        assert _confidence_from_signal(50) == pytest.approx(0.5)
+
+    def test_trend_continuation_indication_direction_specific(self, monkeypatch):
+        """Weryfikuje kierunkowanie wskazań kontynuacji przez publiczną funkcję detekcji."""
+        data = [make_ohlcv(100, 102, 98, 100, i) for i in range(10)]
+        pattern_meta = {
+            "CDLRISEFALL3METHODS": {
+                "name": "Rising/Falling Three Methods",
+                "description": "Rising/Falling Three Methods — trend continuation",
+                "indication": "Kontynuacja trendu",
+                "detailed_description": "Opis formacji kontynuacji trendu.",
+            }
+        }
+        monkeypatch.setattr(candlestick, "CANDLESTICK_PATTERNS", pattern_meta)
+        monkeypatch.setattr(candlestick.talib, "CDLRISEFALL3METHODS", lambda open_, high, low, close: [0] * 9 + [100])
+
+        bullish_results = detect_candlestick_patterns(data)
+        assert bullish_results[0].indication == "Kontynuacja bycza"
+
+        monkeypatch.setattr(candlestick.talib, "CDLRISEFALL3METHODS", lambda open_, high, low, close: [0] * 9 + [-100])
+        bearish_results = detect_candlestick_patterns(data)
+        assert bearish_results[0].indication == "Kontynuacja niedźwiedzia"
 
     def test_patterns_have_indication_and_detailed_description(self):
         """Weryfikuje, że wykryte formacje mają pola indication i detailed_description."""
@@ -162,6 +185,7 @@ class TestDetectCandlestickPatterns:
         completed = [r for r in results if r.location == "completed"]
         # If any completed patterns are found, they should have detected_at_index < len(data)-1
         for r in completed:
+            assert r.detected_at_index is not None
             assert r.detected_at_index < len(data) - 1
 
     def test_indication_direction_specific(self):

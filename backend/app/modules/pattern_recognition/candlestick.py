@@ -8,13 +8,23 @@ from app.core.models import OHLCVData, PatternCategory, PatternDetection
 # Liczba świec wstecz do skanowania (ostatnia to "wyłaniająca się", starsze to "wypełnione")
 _SCAN_CANDLES = 10
 
+_INDICATION_REVERSAL = "Odwrót"
+_INDICATION_BULLISH_REVERSAL = "Odwrót bycza"
+_INDICATION_BEARISH_REVERSAL = "Odwrót niedźwiedzi"
+_INDICATION_STRONG_MOMENTUM = "Silny impet"
+_INDICATION_BULLISH_MOMENTUM = "Silny impet bycza"
+_INDICATION_BEARISH_MOMENTUM = "Silny impet niedźwiedzia"
+_INDICATION_TREND_CONTINUATION = "Kontynuacja trendu"
+_INDICATION_BULLISH_CONTINUATION = "Kontynuacja bycza"
+_INDICATION_BEARISH_CONTINUATION = "Kontynuacja niedźwiedzia"
+
 # Mapowanie: nazwa funkcji TA-Lib → metadane formacji
 # Klucze: name (EN), description (EN), indication (PL), detailed_description (PL)
 CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLENGULFING": {
         "name": "Engulfing",
         "description": "Bullish/Bearish Engulfing pattern",
-        "indication": "Odwrót",
+        "indication": _INDICATION_REVERSAL,
         "detailed_description": (
             "Formacja objęcia (Engulfing) składa się z dwóch świec, gdzie druga świeca całkowicie "
             "obejmuje ciało pierwszej. Wersja bycza — duża zielona świeca po małej czerwonej — sygnalizuje "
@@ -25,7 +35,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLHAMMER": {
         "name": "Hammer",
         "description": "Hammer — potential bullish reversal",
-        "indication": "Odwrót bycza",
+        "indication": _INDICATION_BULLISH_REVERSAL,
         "detailed_description": (
             "Młot (Hammer) to formacja jednościecowa z małym ciałem na górze i długim dolnym cieniem "
             "(co najmniej 2× ciało). Pojawia się po trendzie spadkowym i sugeruje, że byki zaczęły "  # noqa: RUF001
@@ -45,7 +55,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLSHOOTINGSTAR": {
         "name": "Shooting Star",
         "description": "Shooting Star — potential bearish reversal",
-        "indication": "Odwrót niedźwiedzi",
+        "indication": _INDICATION_BEARISH_REVERSAL,
         "detailed_description": (
             "Spadająca gwiazda (Shooting Star) ma małe ciało na dole i długi górny cień (co najmniej 2× ciało). "  # noqa: RUF001
             "Pojawia się po trendzie wzrostowym — byki wypchnęły cenę wysoko, ale niedźwiedzie zepchnęły ją "
@@ -55,7 +65,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLMORNINGSTAR": {
         "name": "Morning Star",
         "description": "Morning Star — bullish reversal",
-        "indication": "Odwrót bycza",
+        "indication": _INDICATION_BULLISH_REVERSAL,
         "detailed_description": (
             "Gwiazda poranna (Morning Star) to trójświecowa formacja bycza: duża czarna świeca, mała "
             "świeca (luka w dół), duża biała świeca zamykająca się powyżej środka pierwszej. "
@@ -65,7 +75,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLEVENINGSTAR": {
         "name": "Evening Star",
         "description": "Evening Star — bearish reversal",
-        "indication": "Odwrót niedźwiedzi",
+        "indication": _INDICATION_BEARISH_REVERSAL,
         "detailed_description": (
             "Gwiazda wieczorna (Evening Star) to trójświecowa formacja niedźwiedzia: duża biała świeca, "
             "mała świeca (luka w górę), duża czarna świeca zamykająca się poniżej środka pierwszej. "
@@ -75,7 +85,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLHARAMI": {
         "name": "Harami",
         "description": "Harami — potential reversal",
-        "indication": "Odwrót",
+        "indication": _INDICATION_REVERSAL,
         "detailed_description": (
             "Harami (z japońskiego: ciężarna) to dwuświecowa formacja, gdzie mała świeca mieści się "
             "całkowicie wewnątrz ciała poprzedniej dużej świecy. Sygnalizuje utratę impetu przez "
@@ -85,7 +95,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLPIERCING": {
         "name": "Piercing",
         "description": "Piercing Line — bullish reversal",
-        "indication": "Odwrót bycza",
+        "indication": _INDICATION_BULLISH_REVERSAL,
         "detailed_description": (
             "Linia przebicia (Piercing Line) to dwuświecowa bycza formacja odwrotu. Składa się z dużej "
             "czarnej świecy i następującej po niej białej świecy, która otwiera się poniżej minimum "
@@ -95,7 +105,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLDARKCLOUDCOVER": {
         "name": "Dark Cloud Cover",
         "description": "Dark Cloud Cover — bearish reversal",
-        "indication": "Odwrót niedźwiedzi",
+        "indication": _INDICATION_BEARISH_REVERSAL,
         "detailed_description": (
             "Czarna chmura (Dark Cloud Cover) to dwuświecowa niedźwiedzia formacja odwrotu. Duża biała "
             "świeca zostaje przykryta czarną świecą, która otwiera się powyżej maximum poprzedniej, "
@@ -105,7 +115,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDL3WHITESOLDIERS": {
         "name": "Three White Soldiers",
         "description": "Three White Soldiers — strong bullish continuation",
-        "indication": "Kontynuacja bycza",
+        "indication": _INDICATION_BULLISH_CONTINUATION,
         "detailed_description": (
             "Trzej biali żołnierze (Three White Soldiers) to trzy kolejne długie białe świece, każda "
             "otwierająca się w ciele poprzedniej i zamykająca przy własnym maksimum. To jeden z "
@@ -115,7 +125,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDL3BLACKCROWS": {
         "name": "Three Black Crows",
         "description": "Three Black Crows — strong bearish continuation",
-        "indication": "Kontynuacja niedźwiedzia",
+        "indication": _INDICATION_BEARISH_CONTINUATION,
         "detailed_description": (
             "Trzy czarne kruki (Three Black Crows) to trzy kolejne długie czarne świece, każda "
             "otwierająca się w ciele poprzedniej i zamykająca przy własnym minimum. Silny sygnał "
@@ -125,7 +135,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLINVERTEDHAMMER": {
         "name": "Inverted Hammer",
         "description": "Inverted Hammer — potential bullish reversal",
-        "indication": "Odwrót bycza",
+        "indication": _INDICATION_BULLISH_REVERSAL,
         "detailed_description": (
             "Odwrócony młot (Inverted Hammer) to jednościecowa formacja z małym ciałem na dole "
             "i długim górnym cieniem. Pojawia się po trendzie spadkowym — mimo że niedźwiedzie "
@@ -135,7 +145,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLHANGINGMAN": {
         "name": "Hanging Man",
         "description": "Hanging Man — potential bearish reversal",
-        "indication": "Odwrót niedźwiedzi",
+        "indication": _INDICATION_BEARISH_REVERSAL,
         "detailed_description": (
             "Wisielec (Hanging Man) wygląda jak Hammer, ale pojawia się po trendzie wzrostowym. "
             "Małe ciało na górze z długim dolnym cieniem sugeruje, że mimo próby wzrostu "
@@ -145,7 +155,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLMARUBOZU": {
         "name": "Marubozu",
         "description": "Marubozu — strong momentum candle",
-        "indication": "Silny impet",
+        "indication": _INDICATION_STRONG_MOMENTUM,
         "detailed_description": (
             "Marubozu to świeca bez cieni (lub z bardzo krótkimi) — otwarcie równa się minimum/maksimum, "
             "zamknięcie równa się maksimum/minimum. Biała Marubozu to znak dominacji byków przez całą "
@@ -166,7 +176,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLHARAMICROSS": {
         "name": "Harami Cross",
         "description": "Harami Cross — Doji inside previous candle",
-        "indication": "Odwrót",
+        "indication": _INDICATION_REVERSAL,
         "detailed_description": (
             "Harami Cross to wzmocniona wersja Harami, gdzie mała wewnętrzna świeca jest Doji "
             "(otwarcie ≈ zamknięcie). Pokazuje całkowite niezdecydowanie rynku po wyraźnym ruchu "
@@ -176,7 +186,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLEVENINGDOJISTAR": {
         "name": "Evening Doji Star",
         "description": "Evening Doji Star — bearish reversal with Doji gap",
-        "indication": "Odwrót niedźwiedzi",
+        "indication": _INDICATION_BEARISH_REVERSAL,
         "detailed_description": (
             "Wieczorna gwiazda Doji (Evening Doji Star) to wersja Gwiazdy Wieczornej, gdzie środkowa "
             "świeca jest Doji. Doji po luce w górę od dużej białej świecy sygnalizuje całkowite "
@@ -186,7 +196,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLMORNINGDOJISTAR": {
         "name": "Morning Doji Star",
         "description": "Morning Doji Star — bullish reversal with Doji gap",
-        "indication": "Odwrót bycza",
+        "indication": _INDICATION_BULLISH_REVERSAL,
         "detailed_description": (
             "Poranna gwiazda Doji (Morning Doji Star) to wersja Gwiazdy Porannej, gdzie środkowa "
             "świeca jest Doji. Doji po luce w dół od dużej czarnej świecy sygnalizuje całkowite "
@@ -196,7 +206,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLDOJISTAR": {
         "name": "Doji Star",
         "description": "Doji Star — reversal signal with gap",
-        "indication": "Odwrót",
+        "indication": _INDICATION_REVERSAL,
         "detailed_description": (
             "Gwiazda Doji (Doji Star) to Doji pojawiający się z luką od poprzedniej świecy. "
             "Po trendzie wzrostowym z luką w górę sygnalizuje niedźwiedzi odwrót; po trendzie "
@@ -206,7 +216,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDL3OUTSIDE": {
         "name": "Three Outside Up/Down",
         "description": "Three Outside Up/Down — confirmed Engulfing reversal",
-        "indication": "Odwrót",
+        "indication": _INDICATION_REVERSAL,
         "detailed_description": (
             "Trzy zewnętrzne (Three Outside Up/Down) to rozszerzenie formacji Engulfing o potwierdzającą "
             "trzecią świecę. Three Outside Up (bycza): Engulfing + biała świeca zamykająca się wyżej. "
@@ -217,7 +227,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDL3INSIDE": {
         "name": "Three Inside Up/Down",
         "description": "Three Inside Up/Down — confirmed Harami reversal",
-        "indication": "Odwrót",
+        "indication": _INDICATION_REVERSAL,
         "detailed_description": (
             "Trzy wewnętrzne (Three Inside Up/Down) to rozszerzenie formacji Harami o potwierdzającą "
             "trzecią świecę. Three Inside Up (bycza): Harami bycza + biała świeca zamykająca się wyżej "
@@ -228,7 +238,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLRISEFALL3METHODS": {
         "name": "Rising/Falling Three Methods",
         "description": "Rising/Falling Three Methods — trend continuation",
-        "indication": "Kontynuacja trendu",
+        "indication": _INDICATION_TREND_CONTINUATION,
         "detailed_description": (
             "Trzy metody rosnące/spadające (Rising/Falling Three Methods) to pięcioświecowa formacja "
             "kontynuacji. Rising Three Methods: duża biała świeca, trzy małe czerwone (korekta w górnym "
@@ -239,7 +249,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLXSIDEGAP3METHODS": {
         "name": "Upside/Downside Gap Three Methods",
         "description": "Gap Three Methods — gap continuation pattern",
-        "indication": "Kontynuacja trendu",
+        "indication": _INDICATION_TREND_CONTINUATION,
         "detailed_description": (
             "Trzy metody z luką (Gap Three Methods) to formacja kontynuacji z luką. Po dużej białej "
             "świecy i luce w górę pojawia się czarna świeca, która zamknięciem wypełnia lukę — ale "
@@ -272,7 +282,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLDRAGONFLYDOJI": {
         "name": "Dragonfly Doji",
         "description": "Dragonfly Doji — bullish reversal Doji variant",
-        "indication": "Odwrót bycza",
+        "indication": _INDICATION_BULLISH_REVERSAL,
         "detailed_description": (
             "Doji ważki (Dragonfly Doji) to Doji z bardzo długim dolnym cieniem i bez górnego — "
             "otwarcie, zamknięcie i maximum są praktycznie równe. Po trendzie spadkowym sygnalizuje, "
@@ -283,7 +293,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDL2CROWS": {
         "name": "Two Crows",
         "description": "Two Crows — bearish reversal after gap",
-        "indication": "Odwrót niedźwiedzi",
+        "indication": _INDICATION_BEARISH_REVERSAL,
         "detailed_description": (
             "Dwa kruki (Two Crows) to trójświecowa formacja niedźwiedzia. Po dużej białej świecy "
             "pojawia się czarna z luką w górę, po czym druga czarna świeca otwiera się powyżej "
@@ -294,7 +304,7 @@ CANDLESTICK_PATTERNS: dict[str, dict[str, str]] = {
     "CDLSTICKSANDWICH": {
         "name": "Stick Sandwich",
         "description": "Stick Sandwich — bullish reversal with matching close",
-        "indication": "Odwrót bycza",
+        "indication": _INDICATION_BULLISH_REVERSAL,
         "detailed_description": (
             "Kanapka (Stick Sandwich) to trójświecowa formacja bycza: czarna świeca, biała świeca "
             "zamykająca się wyżej, czarna świeca zamykająca się na tym samym poziomie co pierwsza. "
@@ -323,6 +333,49 @@ def _confidence_from_signal(abs_value: int) -> float:
     return 0.5
 
 
+def _directional_indication(indication: str, bullish: bool) -> str:
+    """Doprecyzowuje wskazanie obukierunkowej formacji na podstawie kierunku sygnału."""
+    if indication == _INDICATION_REVERSAL:
+        return _INDICATION_BULLISH_REVERSAL if bullish else _INDICATION_BEARISH_REVERSAL
+    if indication == _INDICATION_STRONG_MOMENTUM:
+        return _INDICATION_BULLISH_MOMENTUM if bullish else _INDICATION_BEARISH_MOMENTUM
+    if indication == _INDICATION_TREND_CONTINUATION:
+        return _INDICATION_BULLISH_CONTINUATION if bullish else _INDICATION_BEARISH_CONTINUATION
+    return indication
+
+
+def _description_for_signal(func_name: str, description: str, bullish: bool) -> str:
+    """Zwraca opis formacji z uwzględnieniem wyjątków zależnych od kierunku sygnału."""
+    if func_name == "CDLENGULFING" and not bullish:
+        return "Objęcie bessy (nóż) — strong bearish reversal signal"
+    return description
+
+
+def _detection_from_signal(
+    func_name: str,
+    meta: dict[str, str],
+    idx: int,
+    last_idx: int,
+    raw_value: int,
+) -> PatternDetection:
+    """Buduje wynik detekcji świecowej z metadanych i wartości sygnału TA-Lib."""
+    bullish = raw_value > 0
+    abs_value = abs(raw_value)
+
+    return PatternDetection(
+        pattern_type=meta["name"],
+        confidence=_confidence_from_signal(abs_value),
+        description=_description_for_signal(func_name, meta["description"], bullish),
+        location="emerging" if idx == last_idx else "completed",
+        bullish=bullish,
+        category=PatternCategory.CANDLESTICK,
+        detected_at_index=idx,
+        indication=_directional_indication(meta["indication"], bullish),
+        reliability=_reliability_from_signal(abs_value),
+        detailed_description=meta["detailed_description"],
+    )
+
+
 def detect_candlestick_patterns(ohlcv: list[OHLCVData]) -> list[PatternDetection]:
     """Wykrywa formacje świecowe za pomocą funkcji TA-Lib CDL*.
 
@@ -340,6 +393,7 @@ def detect_candlestick_patterns(ohlcv: list[OHLCVData]) -> list[PatternDetection
     close = np.array([c.close for c in ohlcv], dtype=np.float64)
 
     n = len(ohlcv)
+    last_idx = n - 1
     scan_start = max(0, n - _SCAN_CANDLES)
     results: list[PatternDetection] = []
     seen: set[tuple[str, int]] = set()  # deduplication: (pattern_type, index)
@@ -359,38 +413,6 @@ def detect_candlestick_patterns(ohlcv: list[OHLCVData]) -> list[PatternDetection
                 continue
             seen.add(key)
 
-            bullish = raw_value > 0
-            abs_value = abs(raw_value)
-            confidence = _confidence_from_signal(abs_value)
-            reliability = _reliability_from_signal(abs_value)
-            location = "emerging" if idx == n - 1 else "completed"
-
-            indication = meta["indication"]
-            # Dla formacji obukierunkowych doprecyzuj wskazanie na podstawie kierunku sygnału
-            if indication == "Odwrót":
-                indication = "Odwrót bycza" if bullish else "Odwrót niedźwiedzi"
-            elif indication == "Silny impet":
-                indication = "Silny impet bycza" if bullish else "Silny impet niedźwiedzia"
-            elif indication == "Kontynuacja trendu":
-                indication = "Kontynuacja bycza" if bullish else "Kontynuacja niedźwiedzia"
-
-            description = meta["description"]
-            if func_name == "CDLENGULFING" and not bullish:
-                description = "Objęcie bessy (nóż) — strong bearish reversal signal"
-
-            results.append(
-                PatternDetection(
-                    pattern_type=pattern_name,
-                    confidence=confidence,
-                    description=description,
-                    location=location,
-                    bullish=bullish,
-                    category=PatternCategory.CANDLESTICK,
-                    detected_at_index=idx,
-                    indication=indication,
-                    reliability=reliability,
-                    detailed_description=meta["detailed_description"],
-                )
-            )
+            results.append(_detection_from_signal(func_name, meta, idx, last_idx, raw_value))
 
     return results

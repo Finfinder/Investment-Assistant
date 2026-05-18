@@ -267,8 +267,8 @@ export async function mockAnalysisApi(page: Page) {
 
 /** Extended test that automatically mocks the analysis API. */
 export const test = base.extend<{ mockedPage: Page }>({
-  mockedPage: async ({ page }, use) => {
+  mockedPage: async ({ page }, providePage) => {
     await mockAnalysisApi(page);
-    await use(page);
+    await providePage(page);
   },
 });
