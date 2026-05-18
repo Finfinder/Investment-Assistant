@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `PatternList` reliability filter: checkbox "Pokaż tylko ★★+" filtering out patterns with reliability below 2; category tabs and expand/collapse state reset on filter toggle; context-aware empty state message distinguishing filter-caused vs category-caused empty results
+- E2E test suite `e2e/pattern-list-filter.spec.ts` (7 tests) covering checkbox default state, filtering, full-list restore, category counters, accessibility (ARIA label), state reset on toggle, and empty-state message with a self-contained `route.fulfill` mock
+- `Doji` pattern (reliability: 1, candlestick) added to `e2e/fixtures.ts` mock data to support reliability filter test scenarios
+
 - `.github/workflows/third-party-action-pinning.yml` and `.github/workflows/reusable-third-party-action-pinning.yml` — repo-local mirror of the monorepo SHA-pinning guard enforcing full 40-character SHA for third-party actions (stage 1)
 - Staleness-aware CPI fallback layer for `cpi_us`, `cpi_ca`, `cpi_ch`: new `CpiFallbackSource` with per-country sources (`BlsCpiSource`, `StatCanCpiSource`, `BfsCpiSource`), shared `MacroObservation` model, and `cpi_yoy` helper utilities (period parsing, YoY computation, freshness checks)
 - New unit test coverage for CPI fallback stack: `test_cpi_yoy.py`, `test_cpi_fallback_source.py`, `test_bls_cpi_source.py`, `test_statcan_cpi_source.py`, `test_bfs_cpi_source.py`, plus routing/regression updates in FRED/Macro/forex/indices/commodities tests
