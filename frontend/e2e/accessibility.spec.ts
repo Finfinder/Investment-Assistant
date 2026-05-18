@@ -54,21 +54,62 @@ test.describe("Accessibility — keyboard navigation (form)", () => {
     await expect(submitButton).toBeFocused();
   });
 
-  test("combobox populates datalist suggestions on input", async ({ page }) => {
+  test("combobox pokazuje ostylowana liste sugestii i ukrywa ja po wyczyszczeniu", async ({ page }) => {
     await page.goto("/");
 
     const symbolInput = page.getByRole("combobox", { name: /symbol/i });
     await symbolInput.click();
     await symbolInput.fill("EUR");
 
-    // Datalist should be populated with EUR-prefixed options
-    const datalist = page.locator("#symbol-suggestions");
-    await expect(datalist.locator("option[value='EURUSD']")).toBeAttached();
-    await expect(datalist.locator("option[value='EURGBP']")).toBeAttached();
+    const suggestions = page.locator("#symbol-suggestions");
+    await expect(suggestions).toBeVisible();
+    await expect(suggestions.getByRole("button", { name: "EURUSD" })).toBeVisible();
+    await expect(suggestions.getByRole("button", { name: "EURGBP" })).toBeVisible();
 
-    // Clearing input removes all suggestions
+    // Panel sugestii ma styl spójny z ciemnym motywem
+    await expect(suggestions).toHaveCSS("background-color", "rgb(26, 29, 39)");
+    await expect(suggestions).toHaveCSS("border-top-color", "rgb(45, 48, 68)");
+
+    // Wyczyszczenie inputu ukrywa listę
     await symbolInput.fill("");
-    await expect(datalist.locator("option")).toHaveCount(0);
+    await expect(suggestions).toBeHidden();
+  });
+
+  test("combobox pozwala wybrac sugestie klawiatura i zamknac liste klawiszem Escape", async ({ page }) => {
+    await page.goto("/");
+
+    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
+    await symbolInput.click();
+    await symbolInput.fill("EUR");
+
+    const suggestions = page.locator("#symbol-suggestions");
+    await expect(suggestions).toBeVisible();
+
+    await page.keyboard.press("Enter");
+    await expect(symbolInput).toHaveValue("EURUSD");
+    await expect(suggestions).toBeHidden();
+
+    await symbolInput.fill("GBP");
+    await expect(suggestions).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(suggestions).toBeHidden();
+    await expect(symbolInput).toHaveValue("GBP");
+  });
+
+  test("klikniecie sugestii ustawia symbol w input", async ({ page }) => {
+    await page.goto("/");
+
+    const symbolInput = page.getByRole("combobox", { name: /symbol/i });
+    await symbolInput.click();
+    await symbolInput.fill("EURJ");
+
+    const suggestions = page.locator("#symbol-suggestions");
+    await expect(suggestions).toBeVisible();
+
+    await suggestions.getByRole("button", { name: "EURJPY" }).click();
+    await expect(symbolInput).toHaveValue("EURJPY");
+    await expect(suggestions).toBeHidden();
   });
 });
 
