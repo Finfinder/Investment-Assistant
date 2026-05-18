@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Replaced the browser-native symbol `datalist` popup in `AnalysisForm.tsx` with a dark-theme suggestions panel consistent with form controls (`card`/`border`/`accent` tokens), preserving uppercase filtering from `POPULAR_INSTRUMENTS`; added E2E accessibility regressions for styled suggestions visibility, keyboard selection (`Enter`), and close behavior (`Escape`)
 - Added annual World Bank/IMF fallback series for AUD CPI (`CPALTT01AUQ659N` -> `FPCPITOTLZGAUS`) so `cpi_au` can still populate fundamental analysis when quarterly OECD/FRED data is unavailable
 - `.github/workflows/reusable-version-consistency.yml` — restored the repo-local `validate-version-consistency.ps1` path for release/CI validation so the workflow no longer depends on a stale cross-repo checkout of `AI_Instruction` that can fail with `Join-Path` missing `ChildPath`; added a workflow contract test covering the local validator path
 
