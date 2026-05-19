@@ -10,10 +10,14 @@ from cachetools import TTLCache
 from tenacity import wait_none
 
 from app.modules.fundamental_analysis.data_sources.fred_source import (
+    ANNUAL_LOOKBACK_DAYS,
+    DEFAULT_LOOKBACK_DAYS,
     FRED_SERIES,
     FRED_SERIES_FALLBACKS,
+    QUARTERLY_LOOKBACK_DAYS,
     SERIES_LOOKBACK_DAYS,
     SERIES_YOY_UNITS,
+    YOY_UNITS_MIN_LOOKBACK_DAYS,
     FredSource,
 )
 from app.modules.fundamental_analysis.data_sources.macro_observation import MacroObservation
@@ -23,7 +27,11 @@ _MODULE = "app.modules.fundamental_analysis.data_sources.fred_source.asyncio.to_
 
 @pytest.fixture
 def fred_source():
-    return FredSource(api_key="test-key")
+    source = FredSource(api_key="test-key")
+    # Domyślnie odcinamy metadane od patchowanego asyncio.to_thread,
+    # aby testy danych/retry nie konsumowały side-effectów przeznaczonych dla get_series().
+    source._fetch_series_info_from_api = AsyncMock(return_value=None)
+    return source
 
 
 class TestFredSourceSuccess:
@@ -263,7 +271,7 @@ class TestFredSourceUnitsTransform:
 
 
 class TestFredSourceLookbackOverride:
-    """Series in SERIES_LOOKBACK_DAYS get wider lookback window; others use the default."""
+    """Lookback is resolved from metadata, manual overrides, and safety fallbacks."""
 
     @pytest.mark.asyncio
     async def test_annual_series_uses_730_day_lookback(self, fred_source: FredSource):
@@ -279,11 +287,12 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 729 <= lookback <= 731
+        assert ANNUAL_LOOKBACK_DAYS - 1 <= lookback <= ANNUAL_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
-    async def test_default_lookback_for_regular_series(self, fred_source: FredSource):
+    async def test_default_lookback_for_daily_frequency(self, fred_source: FredSource):
         fred_source._fred = MagicMock()
+        fred_source._series_info_cache["fred_meta:FEDFUNDS"] = {"frequency_short": "D"}
 
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25])) as mock_to_thread:
             await fred_source.fetch_series("FEDFUNDS")
@@ -292,13 +301,13 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 364 <= lookback <= 366
+        assert DEFAULT_LOOKBACK_DAYS - 1 <= lookback <= DEFAULT_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_quarterly_nz_cpi_uses_540_day_lookback(self, fred_source: FredSource):
         fred_source._fred = MagicMock()
         series_id = "NZLCPIALLQINMEI"
-        assert series_id in SERIES_LOOKBACK_DAYS
+        fred_source._series_info_cache[f"fred_meta:{series_id}"] = {"frequency_short": "Q"}
 
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.5])) as mock_to_thread:
             result = await fred_source.fetch_series(series_id)
@@ -308,7 +317,7 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 539 <= lookback <= 541
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_uk_cpi_uses_540_day_lookback(self, fred_source: FredSource):
@@ -324,7 +333,7 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 539 <= lookback <= 541
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_quarterly_au_cpi_uses_540_day_lookback(self, fred_source: FredSource):
@@ -340,13 +349,14 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 539 <= lookback <= 541
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_quarterly_us_gdp_uses_540_day_lookback(self, fred_source: FredSource):
         fred_source._fred = MagicMock()
         series_id = "GDP"
-        assert series_id in SERIES_LOOKBACK_DAYS
+        assert series_id not in SERIES_LOOKBACK_DAYS
+        fred_source._series_info_cache[f"fred_meta:{series_id}"] = {"frequency_short": "Q"}
 
         with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([31856.257])) as mock_to_thread:
             result = await fred_source.fetch_series(series_id)
@@ -356,7 +366,7 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 539 <= lookback <= 541
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_annual_au_cpi_fallback_uses_730_day_lookback(self, fred_source: FredSource):
@@ -372,7 +382,7 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 729 <= lookback <= 731
+        assert ANNUAL_LOOKBACK_DAYS - 1 <= lookback <= ANNUAL_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_ca_cpi_uses_540_day_lookback(self, fred_source: FredSource):
@@ -388,7 +398,7 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 539 <= lookback <= 541
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_us_cpi_uses_540_day_lookback(self, fred_source: FredSource):
@@ -404,7 +414,7 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 539 <= lookback <= 541
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
     async def test_ch_cpi_uses_540_day_lookback(self, fred_source: FredSource):
@@ -420,7 +430,112 @@ class TestFredSourceLookbackOverride:
         observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
         observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
         lookback = (observation_end - observation_start).days
-        assert 539 <= lookback <= 541
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
+
+    @pytest.mark.asyncio
+    async def test_annual_frequency_metadata_uses_730_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "FEDFUNDS"
+        fred_source._series_info_cache[f"fred_meta:{series_id}"] = {"frequency_short": "A"}
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25])) as mock_to_thread:
+            await fred_source.fetch_series(series_id)
+
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert ANNUAL_LOOKBACK_DAYS - 1 <= lookback <= ANNUAL_LOOKBACK_DAYS + 1
+
+    @pytest.mark.asyncio
+    async def test_unknown_frequency_falls_back_to_call_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "FEDFUNDS"
+        fred_source._series_info_cache[f"fred_meta:{series_id}"] = {"frequency_short": "X"}
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25])) as mock_to_thread:
+            await fred_source.fetch_series(series_id, lookback_days=410)
+
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert 409 <= lookback <= 411
+
+    @pytest.mark.asyncio
+    async def test_yoy_units_enforce_minimum_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "NZLCPIALLQINMEI"
+        fred_source._series_info_cache[f"fred_meta:{series_id}"] = {"frequency_short": "M"}
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([2.5])) as mock_to_thread:
+            await fred_source.fetch_series(series_id, lookback_days=365)
+
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert YOY_UNITS_MIN_LOOKBACK_DAYS - 1 <= lookback <= YOY_UNITS_MIN_LOOKBACK_DAYS + 1
+
+    @pytest.mark.asyncio
+    async def test_semiannual_frequency_metadata_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "FEDFUNDS"
+        fred_source._series_info_cache[f"fred_meta:{series_id}"] = {"frequency_short": "SA"}
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25])) as mock_to_thread:
+            await fred_source.fetch_series(series_id)
+
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
+
+
+class TestFredSourceMetadataCache:
+    @pytest.mark.asyncio
+    async def test_metadata_cache_reuses_series_info_between_calls(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        fred_source._fetch_series_info_from_api = AsyncMock(return_value={"frequency_short": "Q"})
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25, 5.5])):
+            await fred_source.fetch_series_observation("GDP")
+
+        fred_source._cache.pop("fred:GDP", None)
+        fred_source._observation_cache.pop("fred_obs:GDP", None)
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.6])):
+            await fred_source.fetch_series_observation("GDP")
+
+        assert fred_source._fetch_series_info_from_api.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_metadata_failure_falls_back_and_populates_negative_cache(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        fred_source._fetch_series_info_from_api = AsyncMock(side_effect=RuntimeError("metadata down"))
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25])) as mock_data:
+            await fred_source.fetch_series_observation("FEDFUNDS")
+
+        assert mock_data.await_count == 1
+        assert "fred_meta:FEDFUNDS" in fred_source._series_info_negative_cache
+
+    @pytest.mark.asyncio
+    async def test_metadata_negative_cache_skips_second_series_info_call(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        fred_source._fetch_series_info_from_api = AsyncMock(side_effect=RuntimeError("metadata down"))
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.25])):
+            await fred_source.fetch_series_observation("FEDFUNDS")
+
+        fred_source._cache.pop("fred:FEDFUNDS", None)
+        fred_source._observation_cache.pop("fred_obs:FEDFUNDS", None)
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([5.3])):
+            await fred_source.fetch_series_observation("FEDFUNDS")
+
+        assert fred_source._fetch_series_info_from_api.await_count == 1
 
 
 class TestFredSourceSeriesMappings:
