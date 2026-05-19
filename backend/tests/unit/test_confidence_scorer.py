@@ -135,3 +135,120 @@ def test_opposing_high_reliability_lowers_confidence():
     )
     # With strong opposing pattern, score should be relatively low
     assert confidence < 70, f"Expected lower confidence due to opposing ★★★, got {confidence}"
+
+
+def test_relevance_score_higher_than_confidence():
+    """Formacja zgodna z wyższym relevance_score daje wyższy score niż formacja z niższym relevance_score."""
+    low_relevance = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, relevance_score=0.3),
+    ]
+    high_relevance = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, relevance_score=0.8),
+    ]
+
+    confidence_low = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=low_relevance,
+    )
+    confidence_high = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=high_relevance,
+    )
+
+    assert confidence_high > confidence_low, (
+        f"Higher relevance_score should give higher confidence: {confidence_high} vs {confidence_low}"
+    )
+
+
+def test_relevance_score_fallback_to_confidence():
+    """Gdy relevance_score == 0.0, fallback do confidence zachowuje kierunek sygnału."""
+    patterns = [
+        PatternDetection(pattern_type="Hammer", confidence=0.9, bullish=True, relevance_score=0.0),
+    ]
+
+    confidence = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=patterns,
+    )
+
+    assert confidence > 0, f"Fallback to confidence should produce positive confidence, got {confidence}"
+
+
+def test_opposing_high_relevance_obniza_confidence():
+    """Niedźwiedzia formacja z wysokim relevance_score obniża pewność silniej niż z niskim."""
+    low_rel_opposing = [
+        PatternDetection(pattern_type="Hammer", confidence=0.8, bullish=True, relevance_score=0.8),
+        PatternDetection(pattern_type="ShootingStar", confidence=0.8, bullish=False, relevance_score=0.2),
+    ]
+    high_rel_opposing = [
+        PatternDetection(pattern_type="Hammer", confidence=0.8, bullish=True, relevance_score=0.8),
+        PatternDetection(pattern_type="ShootingStar", confidence=0.8, bullish=False, relevance_score=0.8),
+    ]
+
+    confidence_low = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=low_rel_opposing,
+    )
+    confidence_high = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=high_rel_opposing,
+    )
+
+    assert confidence_low > confidence_high, (
+        f"High-relevance opposing pattern should lower confidence more: {confidence_low} vs {confidence_high}"
+    )
+
+
+def test_opposing_high_relevance_obniza_confidence_for_short():
+    """Bycza formacja przeciwna dla SHORT z wysokim relevance_score silniej obniża pewność niż z niskim."""
+    low_rel_opposing = [
+        PatternDetection(pattern_type="ShootingStar", confidence=0.8, bullish=False, relevance_score=0.8),
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, relevance_score=0.2),
+    ]
+    high_rel_opposing = [
+        PatternDetection(pattern_type="ShootingStar", confidence=0.8, bullish=False, relevance_score=0.8),
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, relevance_score=0.8),
+    ]
+
+    confidence_low = calculate_confidence(
+        direction=Direction.SHORT,
+        patterns=low_rel_opposing,
+    )
+    confidence_high = calculate_confidence(
+        direction=Direction.SHORT,
+        patterns=high_rel_opposing,
+    )
+
+    assert confidence_low > confidence_high, (
+        "High-relevance bullish opposing pattern should lower SHORT confidence more: "
+        f"{confidence_low} vs {confidence_high}"
+    )
+
+
+def test_reliability_amplifies_at_equal_relevance_score():
+    """Przy równym relevance_score wyższe reliability przesuwa wynik ku formacji o wyższej wiarygodności."""
+    bull_high_rel = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, reliability=3, relevance_score=0.7),
+        PatternDetection(
+            pattern_type="ShootingStar", confidence=0.8, bullish=False, reliability=1, relevance_score=0.7
+        ),
+    ]
+    bull_low_rel = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, reliability=1, relevance_score=0.7),
+        PatternDetection(
+            pattern_type="ShootingStar", confidence=0.8, bullish=False, reliability=3, relevance_score=0.7
+        ),
+    ]
+
+    confidence_bull_high = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=bull_high_rel,
+    )
+    confidence_bear_high = calculate_confidence(
+        direction=Direction.LONG,
+        patterns=bull_low_rel,
+    )
+
+    assert confidence_bull_high > confidence_bear_high, (
+        f"Higher reliability bullish should win with equal relevance: {confidence_bull_high} vs {confidence_bear_high}"
+    )
