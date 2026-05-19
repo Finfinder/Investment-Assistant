@@ -92,9 +92,9 @@ def test_empty_inputs():
     """No data → all signals return 0."""
     agg = SignalAggregator()
     signals = agg.get_all_signals()
-    assert signals["technical_analysis"] == 0.0
-    assert signals["patterns"] == 0.0
-    assert signals["fundamental"] == 0.0
+    assert signals["technical_analysis"] == pytest.approx(0.0)
+    assert signals["patterns"] == pytest.approx(0.0)
+    assert signals["fundamental"] == pytest.approx(0.0)
 
 
 def test_reliability_multiplier_increases_weight():

@@ -1,5 +1,7 @@
 """Tests for signal_aggregation/scoring.py"""
 
+import pytest
+
 from app.core.models import (
     Direction,
     FundamentalData,
@@ -85,7 +87,7 @@ def test_empty_aggregator():
     """Empty aggregator → score 0, direction None."""
     agg = SignalAggregator()
     score = calculate_weighted_score(agg)
-    assert score == 0.0
+    assert score == pytest.approx(0.0)
     assert determine_direction(score) is None
 
 
