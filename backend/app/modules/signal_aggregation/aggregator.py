@@ -10,6 +10,18 @@ from app.core.models import (
     SignalType,
 )
 
+
+def _pattern_strength(pattern: PatternDetection) -> float:
+    """Return the contextual strength of a pattern (0.0..1.0).
+
+    Uses relevance_score as the primary measure when it has been computed
+    (value > 0.0). Falls back to confidence when relevance_score equals
+    the default 0.0, preserving expected behaviour for manually created
+    PatternDetection objects and for patterns that bypassed score_patterns().
+    """
+    return pattern.relevance_score if pattern.relevance_score > 0.0 else pattern.confidence
+
+
 # Normalized signal scale: -1.0 (strong sell) to +1.0 (strong buy)
 SIGNAL_SCORE: dict[SignalType, float] = {
     SignalType.STRONG_SELL: -1.0,
@@ -61,23 +73,29 @@ class SignalAggregator:
         """Normalize pattern detection signals to -1.0..+1.0.
 
         Bullish patterns contribute positive scores, bearish contribute negative.
-        Weighted by confidence x reliability multiplier (★=1.0, ★★=1.3, ★★★=1.6).
+        The signed contribution of each pattern is `direction * strength * multiplier`,
+        where strength is determined by relevance_score (when > 0.0) or confidence
+        as a fallback. The result is normalized by the sum of maximum possible weights
+        (assuming full strength = 1.0 per pattern), so that a low-relevance pattern
+        produces a proportionally weaker signal rather than a saturated ±1.0.
+
+        Each pattern's contribution is additionally scaled by the reliability
+        multiplier (★=1.0, ★★=1.3, ★★★=1.6), which acts as an independent
+        quality amplifier separate from relevance_score.
         """
         if not self._patterns:
             return 0.0
 
         weighted_sum = 0.0
-        total_weight = 0.0
+        total_max_weight = 0.0
         for p in self._patterns:
             direction = 1.0 if p.bullish else -1.0
             multiplier = RELIABILITY_MULTIPLIER.get(p.reliability, 1.0)
-            effective_weight = p.confidence * multiplier
+            effective_weight = _pattern_strength(p) * multiplier
             weighted_sum += direction * effective_weight
-            total_weight += effective_weight
+            total_max_weight += multiplier  # normalise by max possible weight (strength = 1.0)
 
-        if total_weight == 0.0:
-            return 0.0
-        return max(-1.0, min(1.0, weighted_sum / total_weight))
+        return max(-1.0, min(1.0, weighted_sum / total_max_weight))
 
     def normalize_fundamental_signal(self) -> float:
         """Normalize fundamental analysis score to -1.0..+1.0.

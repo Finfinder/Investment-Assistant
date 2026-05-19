@@ -87,3 +87,31 @@ def test_empty_aggregator():
     score = calculate_weighted_score(agg)
     assert score == 0.0
     assert determine_direction(score) is None
+
+
+def test_high_relevance_pattern_shifts_weighted_score():
+    """Wyższy relevance_score byczej formacji przesuwa wynik w kierunku LONG przy konflikcie kierunków."""
+    indicators = [IndicatorValue(name="RSI", value=50, signal=SignalType.NEUTRAL)]
+    fundamental = FundamentalData(instrument_type=InstrumentType.FOREX, score=0.0)
+
+    # Bycza (0.9) dominuje nad niedźwiedzią (0.2) → wynik pattern > 0 → score > 0
+    patterns_bull_dominant = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, relevance_score=0.9),
+        PatternDetection(pattern_type="ShootingStar", confidence=0.8, bullish=False, relevance_score=0.2),
+    ]
+    # Niedźwiedzia (0.9) dominuje nad byczą (0.2) → wynik pattern < 0 → score < 0
+    patterns_bear_dominant = [
+        PatternDetection(pattern_type="Engulfing", confidence=0.8, bullish=True, relevance_score=0.2),
+        PatternDetection(pattern_type="ShootingStar", confidence=0.8, bullish=False, relevance_score=0.9),
+    ]
+
+    score_bull = calculate_weighted_score(
+        SignalAggregator(indicators=indicators, patterns=patterns_bull_dominant, fundamental=fundamental)
+    )
+    score_bear = calculate_weighted_score(
+        SignalAggregator(indicators=indicators, patterns=patterns_bear_dominant, fundamental=fundamental)
+    )
+
+    assert score_bull > 0, f"Bull-dominant relevance_score should produce positive score, got {score_bull}"
+    assert score_bear < 0, f"Bear-dominant relevance_score should produce negative score, got {score_bear}"
+    assert score_bull > score_bear, "Bull-dominant should score higher than bear-dominant"
