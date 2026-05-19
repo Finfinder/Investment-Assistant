@@ -81,6 +81,23 @@ class TestMacroSourceRouting:
         mock_oecd.fetch_jp_cpi_yoy.assert_not_awaited()
 
     @pytest.mark.asyncio
+    async def test_fetch_indicator_routes_cpi_pl_to_fred(
+        self,
+        mock_fred: MagicMock,
+        mock_oecd: MagicMock,
+        mock_cpi_fallback: MagicMock,
+    ):
+        mock_fred.fetch_indicator.return_value = 3.2
+        source = MacroDataSource(fred=mock_fred, oecd=mock_oecd, cpi_fallback=mock_cpi_fallback)
+
+        result = await source.fetch_indicator("cpi_pl")
+
+        assert result == pytest.approx(3.2)
+        mock_fred.fetch_indicator.assert_awaited_once_with("cpi_pl", 365)
+        mock_oecd.fetch_jp_cpi_yoy.assert_not_awaited()
+        mock_cpi_fallback.fetch_indicator.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_fetch_indicator_preserves_none_for_unknown_indicator(
         self, mock_fred: MagicMock, mock_oecd: MagicMock, mock_cpi_fallback: MagicMock
     ):

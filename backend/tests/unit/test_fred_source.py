@@ -336,6 +336,22 @@ class TestFredSourceLookbackOverride:
         assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
     @pytest.mark.asyncio
+    async def test_polish_cpi_uses_540_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "CPALTT01PLM659N"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([3.2])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == pytest.approx(3.2)
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
+
+    @pytest.mark.asyncio
     async def test_quarterly_au_cpi_uses_540_day_lookback(self, fred_source: FredSource):
         fred_source._fred = MagicMock()
         series_id = "CPALTT01AUQ659N"
@@ -492,6 +508,22 @@ class TestFredSourceLookbackOverride:
         lookback = (observation_end - observation_start).days
         assert QUARTERLY_LOOKBACK_DAYS - 1 <= lookback <= QUARTERLY_LOOKBACK_DAYS + 1
 
+    @pytest.mark.asyncio
+    async def test_polish_annual_fallback_uses_730_day_lookback(self, fred_source: FredSource):
+        fred_source._fred = MagicMock()
+        series_id = "FPCPITOTLZGPOL"
+        assert series_id in SERIES_LOOKBACK_DAYS
+
+        with patch(_MODULE, new_callable=AsyncMock, return_value=pd.Series([4.2])) as mock_to_thread:
+            result = await fred_source.fetch_series(series_id)
+
+        assert result == pytest.approx(4.2)
+        call_args = mock_to_thread.call_args
+        observation_start = call_args.kwargs.get("observation_start") or call_args[1]["observation_start"]
+        observation_end = call_args.kwargs.get("observation_end") or call_args[1]["observation_end"]
+        lookback = (observation_end - observation_start).days
+        assert ANNUAL_LOOKBACK_DAYS - 1 <= lookback <= ANNUAL_LOOKBACK_DAYS + 1
+
 
 class TestFredSourceMetadataCache:
     @pytest.mark.asyncio
@@ -561,6 +593,27 @@ class TestFredSourceSeriesMappings:
         # IRSTCI01CHM156N (overnight) discontinued Apr 2024 — replaced by 3-month interbank rate
         assert FRED_SERIES["snb_rate"] == "IR3TIB01CHM156N"
 
+    def test_pl_rate_maps_to_three_month_interbank_series(self):
+        assert FRED_SERIES["pl_rate"] == "IR3TIB01PLM156N"
+
+    def test_cpi_pl_maps_to_oecd_monthly_series(self):
+        assert FRED_SERIES["cpi_pl"] == "CPALTT01PLM659N"
+
+    def test_unemployment_pl_maps_to_monthly_series(self):
+        assert FRED_SERIES["unemployment_pl"] == "LRHUTTTTPLM156S"
+
+    def test_gdp_pl_maps_to_quarterly_series(self):
+        assert FRED_SERIES["gdp_pl"] == "CLVMNACSCAB1GQPL"
+
+    def test_cpi_pl_has_annual_fallback_series(self):
+        assert FRED_SERIES_FALLBACKS["cpi_pl"] == ("FPCPITOTLZGPOL",)
+
+    def test_cpi_pl_monthly_series_uses_540_day_override(self):
+        assert SERIES_LOOKBACK_DAYS["CPALTT01PLM659N"] == 540
+
+    def test_cpi_pl_annual_fallback_uses_730_day_override(self):
+        assert SERIES_LOOKBACK_DAYS["FPCPITOTLZGPOL"] == 730
+
 
 class TestFredSourceIndicatorFallbacks:
     """Verify per-indicator fallback order for FRED series."""
@@ -617,6 +670,20 @@ class TestFredSourceIndicatorFallbacks:
 
         assert result is None
         assert mock_fetch_series.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_cpi_pl_primary_missing_uses_annual_fallback(self, fred_source: FredSource):
+        with patch.object(
+            fred_source,
+            "fetch_series_observation",
+            new_callable=AsyncMock,
+            side_effect=[None, MacroObservation(value=4.2, period=date(2025, 12, 31), source="fred")],
+        ) as mock_fetch_series:
+            result = await fred_source.fetch_indicator("cpi_pl")
+
+        assert result == pytest.approx(4.2)
+        assert mock_fetch_series.await_args_list[0].args == ("CPALTT01PLM659N", 365)
+        assert mock_fetch_series.await_args_list[1].args == ("FPCPITOTLZGPOL", 365)
 
     @pytest.mark.asyncio
     async def test_regular_indicator_missing_data_does_not_use_fallback(self, fred_source: FredSource):

@@ -60,6 +60,10 @@ FRED_SERIES: dict[str, str] = {
     "boe_rate": "IUDSOIA",
     "rba_rate": "IRSTCI01AUM156N",
     "boc_rate": "IRSTCI01CAM156N",
+    "pl_rate": "IR3TIB01PLM156N",
+    "cpi_pl": "CPALTT01PLM659N",
+    "unemployment_pl": "LRHUTTTTPLM156S",
+    "gdp_pl": "CLVMNACSCAB1GQPL",
     # IRSTCI01CHM156N (overnight rate) discontinued Apr 2024 — replaced by 3-month interbank rate (OECD MEI)
     "snb_rate": "IR3TIB01CHM156N",
     # IRSTCI01NZM156N (overnight rate) discontinued Jan 2025 — replaced by 3-month interbank rate (OECD MEI)
@@ -70,6 +74,7 @@ FRED_SERIES: dict[str, str] = {
 # Fallback FRED series used only after the primary indicator series returns no data.
 FRED_SERIES_FALLBACKS: dict[str, tuple[str, ...]] = {
     "cpi_au": ("FPCPITOTLZGAUS",),  # Annual World Bank/IMF CPI YoY% when quarterly OECD data is unavailable
+    "cpi_pl": ("FPCPITOTLZGPOL",),  # Annual World Bank/IMF CPI YoY% fallback when monthly OECD data is unavailable
 }
 
 # Series that return raw index values and need FRED units transformation to YoY%.
@@ -86,11 +91,13 @@ SERIES_YOY_UNITS: dict[str, str] = {
 SERIES_LOOKBACK_DAYS: dict[str, int] = {
     "FPCPITOTLZGJPN": 730,  # Annual JP CPI — need 2-year window
     "FPCPITOTLZGAUS": 730,  # Annual AU CPI fallback — need 2-year window
+    "FPCPITOTLZGPOL": 730,  # Annual PL CPI fallback — need 2-year window
     "CPALTT01GBM659N": 540,  # UK CPI (OECD MEI stale since May 2025) — 540 days ensures Mar 2025 obs is in range
     "CPALTT01AUQ659N": 540,  # Quarterly AU CPI (OECD MEI stale since May 2025) — mirrors NZ CPI window
     "CPALTT01CAM659N": 540,  # CA CPI (OECD MEI stale since May 2025) — last obs Mar 2025, 48 days outside 365d window
     "CPALTT01USM659N": 540,  # US CPI (OECD MEI stale since May 2025) — last obs Apr 2025, 17 days outside 365d window
     "CPALTT01CHM659N": 540,  # CH CPI (OECD MEI stale since May 2025) — last obs Apr 2025, 17 days outside 365d window
+    "CPALTT01PLM659N": 540,  # PL CPI (OECD MEI stale or delayed) — keep the latest monthly observation in range
 }
 
 CACHE_TTL_SECONDS = 86400  # 24h

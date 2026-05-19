@@ -31,6 +31,34 @@ class TestFundamentalEndpointForex:
         assert -100 <= data["score"] <= 100
 
 
+class TestFundamentalEndpointIndex:
+    async def test_post_w20_analysis(self, client):
+        mock_fred = MagicMock()
+        mock_fred.fetch_indicator = AsyncMock(
+            side_effect=lambda name: {
+                "pl_rate": 1.0,
+                "cpi_pl": 2.0,
+                "unemployment_pl": 3.5,
+                "gdp_pl": 900000.0,
+            }.get(name)
+        )
+
+        with patch(
+            "app.modules.fundamental_analysis.indices.MacroDataSource",
+            return_value=mock_fred,
+        ):
+            resp = await client.post(
+                "/api/v1/fundamental-analysis",
+                json={"symbol": "W20"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["instrument_type"] == "index"
+        assert data["indicators"]["region"] == "PL"
+        assert "Nieznany" not in data["summary"]
+
+
 class TestFundamentalEndpointInvalidSymbol:
     async def test_post_unrecognized_symbol(self, client):
         resp = await client.post(

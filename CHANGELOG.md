@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `W20` now maps to the `PL` region in index fundamental analysis; first iteration uses FRED/OECD Polish macro series (`IR3TIB01PLM156N`, `CPALTT01PLM659N`, `LRHUTTTTPLM156S`, `CLVMNACSCAB1GQPL`) with a planned future GUS BDL fallback for fresher country CPI data
+
 - `PatternList` reliability filter: checkbox "Pokaż tylko ★★+" filtering out patterns with reliability below 2; category tabs and expand/collapse state reset on filter toggle; context-aware empty state message distinguishing filter-caused vs category-caused empty results
 - E2E test suite `e2e/pattern-list-filter.spec.ts` (7 tests) covering checkbox default state, filtering, full-list restore, category counters, accessibility (ARIA label), state reset on toggle, and empty-state message with a self-contained `route.fulfill` mock
 - `Doji` pattern (reliability: 1, candlestick) added to `e2e/fixtures.ts` mock data to support reliability filter test scenarios

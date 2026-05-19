@@ -44,6 +44,7 @@ INDEX_REGION_MAP: dict[str, str] = {
     "NIKKEI": "JP",
     "AU200": "AU",
     "CA60": "CA",
+    "W20": "PL",
 }
 
 # Macro indicators per region
@@ -73,6 +74,12 @@ REGION_INDICATORS: dict[str, dict[str, str]] = {
     "CA": {
         "interest_rate": "boc_rate",
         "cpi": "cpi_ca",
+    },
+    "PL": {
+        "interest_rate": "pl_rate",
+        "cpi": "cpi_pl",
+        "unemployment": "unemployment_pl",
+        "gdp": "gdp_pl",
     },
 }
 
