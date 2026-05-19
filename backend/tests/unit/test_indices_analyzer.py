@@ -164,3 +164,43 @@ class TestIndexCanadian:
         assert result.indicators["interest_rate"] == pytest.approx(4.0)
         assert result.indicators["inflation_yoy"] == pytest.approx(2.1)
         assert result.instrument_type == InstrumentType.INDEX
+
+
+class TestIndexPolish:
+    """PL index should use Polish macro indicators."""
+
+    @pytest.mark.asyncio
+    async def test_w20_uses_pl_region_and_macro_keys(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "pl_rate": 1.0,
+            "cpi_pl": 2.0,
+            "unemployment_pl": 3.5,
+            "gdp_pl": 900000.0,
+        }.get(name)
+
+        result = await analyze_index("W20", fred=mock_fred)
+
+        assert result.instrument_type == InstrumentType.INDEX
+        assert result.indicators["region"] == "PL"
+        assert result.indicators["interest_rate"] == pytest.approx(1.0)
+        assert result.indicators["inflation_yoy"] == pytest.approx(2.0)
+        assert result.indicators["unemployment"] == pytest.approx(3.5)
+        assert result.indicators["gdp"] == pytest.approx(900000.0)
+        assert result.score > 0
+        assert "Nieznany" not in result.summary
+
+    @pytest.mark.asyncio
+    async def test_w20_degrades_when_cpi_pl_is_missing(self, mock_fred: MagicMock):
+        mock_fred.fetch_indicator.side_effect = lambda name: {
+            "pl_rate": 1.0,
+            "cpi_pl": None,
+            "unemployment_pl": 3.5,
+            "gdp_pl": 900000.0,
+        }.get(name)
+
+        result = await analyze_index("W20", fred=mock_fred)
+
+        assert result.instrument_type == InstrumentType.INDEX
+        assert result.indicators["region"] == "PL"
+        assert result.indicators["inflation_yoy"] is None
+        assert "Nieznany" not in result.summary
