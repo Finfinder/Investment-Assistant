@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `SignalAggregator.normalize_pattern_signal()` now uses `relevance_score` as the primary signal strength for each pattern (with fallback to `confidence` when `relevance_score == 0.0`); patterns with higher contextual relevance (recency, proximity, confidence) carry proportionally more weight in the pattern component of the final signal; `RELIABILITY_MULTIPLIER` continues to act as an independent quality amplifier
 - `PatternList` reliability filter checkbox "Pokaż tylko ★★+" is now checked by default, so only patterns with reliability ≥ ★★ are shown on initial render; updated 6 E2E tests in `pattern-list-filter.spec.ts` to reflect the new default state
 - Refactored candlestick pattern recognition internals to remove SonarQube duplicated-literal and cognitive-complexity issues while preserving the public detection contract; cleaned the Playwright `mockedPage` fixture parameter name to avoid a React Hooks false positive.
 - `FR40` now uses the `EU` index fundamental-analysis region (`ecb_rate` / `cpi_eu`) and appears in frontend `POPULAR_INSTRUMENTS` autocomplete suggestions, with backend and frontend regression tests.
