@@ -13,6 +13,7 @@ from app.core.models import (
 # Mapping of SignalType alignment per direction
 _BULLISH_SIGNALS = {SignalType.BUY, SignalType.STRONG_BUY}
 _BEARISH_SIGNALS = {SignalType.SELL, SignalType.STRONG_SELL}
+_FLOAT_ZERO_EPSILON = 1e-9
 
 
 def calculate_confidence(
@@ -80,24 +81,51 @@ def _ta_agreement(
     return agreeing / len(indicators)
 
 
+def _pattern_strength(pattern: PatternDetection) -> float:
+    """Return the contextual strength of a pattern (0.0..1.0).
+
+    Uses relevance_score as the primary measure when it has been computed
+    (value > 0.0). Falls back to confidence when relevance_score equals
+    the default 0.0, preserving expected behaviour for manually created
+    PatternDetection objects and for patterns that bypassed score_patterns().
+    """
+    return pattern.relevance_score if pattern.relevance_score > 0.0 else pattern.confidence
+
+
 def _pattern_confirmation(direction: Direction, patterns: list[PatternDetection]) -> float:
     """Return pattern confirmation score (0..1).
 
+    Uses relevance_score (or confidence as fallback) as the primary strength.
+    Each pattern contributes positively if it confirms the direction (bullish
+    for LONG, bearish for SHORT) or negatively if it opposes it. The signed
+    sum is normalized by the sum of maximum possible weights (all strength=1.0),
+    accounting for reliability multipliers. The result is clamped to 0.0..1.0
+    so that strong opposing patterns reduce confidence appropriately.
+
+    Formacje z wyższym relevance_score mają większy wpływ na score.
     Formacje z wyższym reliability mają większy wpływ na score
     (mnożnik: ★=1.0, ★★=1.3, ★★★=1.6).
     """
     if not patterns:
         return 0.0
 
-    confirming = [p for p in patterns if p.bullish == (direction == Direction.LONG)]
-    if not confirming:
+    signed_sum = 0.0
+    total_max_weight = 0.0
+
+    for pattern in patterns:
+        direction_alignment = 1.0 if pattern.bullish == (direction == Direction.LONG) else -1.0
+        strength = _pattern_strength(pattern)
+        multiplier = RELIABILITY_MULTIPLIER.get(pattern.reliability, 1.0)
+        effective_weight = strength * multiplier
+        signed_sum += direction_alignment * effective_weight
+        total_max_weight += multiplier
+
+    if total_max_weight < _FLOAT_ZERO_EPSILON:
         return 0.0
 
-    weighted_confidence_sum = sum(p.confidence * RELIABILITY_MULTIPLIER.get(p.reliability, 1.0) for p in confirming)
-    total_weight = sum(RELIABILITY_MULTIPLIER.get(p.reliability, 1.0) for p in confirming)
-    weighted_avg_confidence = weighted_confidence_sum / total_weight if total_weight > 0 else 0.0
-    ratio = len(confirming) / len(patterns)
-    return weighted_avg_confidence * ratio
+    # Normalize by maximum possible weight and clamp to [0.0, 1.0]
+    normalized = signed_sum / total_max_weight
+    return max(0.0, min(1.0, normalized))
 
 
 def _fundamental_alignment(direction: Direction, fundamental: FundamentalData | None) -> float:
