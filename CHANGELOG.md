@@ -58,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved SonarQube S3776 in `backend/app/modules/fundamental_analysis/data_sources/bfs_cpi_source.py` — extracted `parse_point` inner function in `_extract_latest_from_points` to reduce Cognitive Complexity below the allowed threshold
 - Corrected `test_post_forex_analysis` patch target in `backend/tests/unit/test_fundamental_api.py` from `forex.FredSource` to `forex.MacroDataSource` (phase 6 refactored `forex.py` to use `MacroDataSource`; stale patch target caused `AttributeError` and a failing test)
 - Added `FR40` to `INDEX_SYMBOLS` in `backend/app/core/instrument_classifier.py` — `classify_instrument("FR40")` now returns `InstrumentType.INDEX`, resolving the inconsistency with YFinance `SYMBOL_MAP` which already mapped `FR40 → ^FCHI`; added `test_fr40_is_index` regression test — code review performed
+- Replaced `logger.error()` with `logger.exception()` in `patterns.py` `detect_patterns()` except block to preserve the full exception traceback in error logs (SonarQube S8572)
+- Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_aggregator.py` and `backend/tests/unit/test_scoring.py` to resolve SonarQube S1244
 
 ## [0.1.0] - 2026-05-08
 

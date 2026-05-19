@@ -44,7 +44,7 @@ async def detect_patterns(request: Request, body: PatternsRequest) -> PatternsRe
     try:
         ohlcv = await chain.fetch_ohlcv(body.symbol, body.timeframe, body.period)
     except DataProviderError as exc:
-        logger.error("All providers failed for %s: %s", body.symbol, exc)
+        logger.exception("All providers failed for %s: %s", body.symbol, exc)
         raise HTTPException(status_code=502, detail="Unable to fetch market data from any provider") from exc
 
     if not ohlcv:
