@@ -117,3 +117,39 @@ def test_high_relevance_pattern_shifts_weighted_score():
     assert score_bull > 0, f"Bull-dominant relevance_score should produce positive score, got {score_bull}"
     assert score_bear < 0, f"Bear-dominant relevance_score should produce negative score, got {score_bear}"
     assert score_bull > score_bear, "Bull-dominant should score higher than bear-dominant"
+
+
+def test_determine_direction_with_custom_thresholds():
+    """Custom thresholds override defaults."""
+    # Score that is LONG by default (0.2 > 0.15) but neutral with higher threshold (0.2 < 0.3)
+    score_bullish = 0.2
+    assert determine_direction(score_bullish) == Direction.LONG
+    assert determine_direction(score_bullish, bullish_threshold=0.3) is None
+
+    # Score that is SHORT by default (-0.2 < -0.15) but neutral with higher (less negative) threshold (-0.2 > -0.25)
+    score_bearish = -0.2
+    assert determine_direction(score_bearish) == Direction.SHORT
+    assert determine_direction(score_bearish, bearish_threshold=-0.25) is None
+
+
+def test_determine_direction_custom_thresholds_preserve_defaults():
+    """Providing only one custom threshold preserves the default for the other."""
+    score_bullish = 0.2
+    score_bearish = -0.2
+
+    # Custom bullish, default bearish
+    assert determine_direction(score_bullish, bullish_threshold=0.3) is None
+    assert determine_direction(score_bearish, bullish_threshold=0.3) == Direction.SHORT
+
+    # Default bullish, custom bearish (higher/less negative threshold neutralizes)
+    assert determine_direction(score_bullish, bearish_threshold=-0.3) == Direction.LONG
+    assert determine_direction(score_bearish, bearish_threshold=-0.25) is None
+
+
+def test_determine_direction_boundary_with_custom_thresholds():
+    """Boundary conditions with custom thresholds."""
+    # Exact boundaries with custom thresholds
+    assert determine_direction(0.25, bullish_threshold=0.25) == Direction.LONG
+    assert determine_direction(0.25, bullish_threshold=0.26) is None
+    assert determine_direction(-0.25, bearish_threshold=-0.25) == Direction.SHORT
+    assert determine_direction(-0.25, bearish_threshold=-0.26) is None
