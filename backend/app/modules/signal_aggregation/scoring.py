@@ -37,13 +37,27 @@ def calculate_weighted_score(
     return max(-1.0, min(1.0, weighted_sum / total_weight))
 
 
-def determine_direction(score: float) -> Direction | None:
+def determine_direction(
+    score: float,
+    bullish_threshold: float | None = None,
+    bearish_threshold: float | None = None,
+) -> Direction | None:
     """Determine overall trade direction from weighted score.
 
     Returns LONG for bullish, SHORT for bearish, None for neutral.
+
+    Args:
+        score: Weighted score between -1.0 (bearish) and +1.0 (bullish).
+        bullish_threshold: Custom LONG threshold. Defaults to BULLISH_THRESHOLD (0.15).
+            Score >= threshold results in Direction.LONG.
+        bearish_threshold: Custom SHORT threshold. Defaults to BEARISH_THRESHOLD (-0.15).
+            Score <= threshold results in Direction.SHORT.
     """
-    if score >= BULLISH_THRESHOLD:
+    b_thresh = bullish_threshold if bullish_threshold is not None else BULLISH_THRESHOLD
+    s_thresh = bearish_threshold if bearish_threshold is not None else BEARISH_THRESHOLD
+
+    if score >= b_thresh:
         return Direction.LONG
-    if score <= BEARISH_THRESHOLD:
+    if score <= s_thresh:
         return Direction.SHORT
     return None

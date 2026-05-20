@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Threshold calibration infrastructure for `BULLISH_THRESHOLD` / `BEARISH_THRESHOLD` in `signal_aggregation`: added optional `bullish_threshold` and `bearish_threshold` parameters to `determine_direction()` (defaults preserve existing behavior), new `threshold_calibration.py` module with `CalibrationSample`, `CandidateMetrics`, `label_signal_outcome()`, `evaluate_candidates()`, and `recommend_candidate()` pure functions, and `backend/scripts/calibrate_signal_thresholds.py` CLI runner generating a JSON calibration report; threshold constants in `scoring.py` remain at `BULLISH_THRESHOLD = 0.15` / `BEARISH_THRESHOLD = -0.15` — no live data was available during this iteration to justify a change
+
 - `W20` now maps to the `PL` region in index fundamental analysis; first iteration uses FRED/OECD Polish macro series (`IR3TIB01PLM156N`, `CPALTT01PLM659N`, `LRHUTTTTPLM156S`, `CLVMNACSCAB1GQPL`) with a planned future GUS BDL fallback for fresher country CPI data
 
 - `PatternList` reliability filter: checkbox "Pokaż tylko ★★+" filtering out patterns with reliability below 2; category tabs and expand/collapse state reset on filter toggle; context-aware empty state message distinguishing filter-caused vs category-caused empty results
@@ -24,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `CalibrationRunner.run_simple_stub()` now emits a `WARNING` log when the generated sample count is below `CONFIG["min_samples"]`, ensuring the operator is informed when a report is produced from statistically insufficient data; the report is still returned to preserve existing behavior
+- `backend/scripts/calibrate_signal_thresholds.py` report payload now includes configurable calibration metadata (`configuration.config_version`, `configuration.symbols`, `configuration.timeframes`, `configuration.period`) plus recommendation metadata (`action`, `symmetry`); the CLI now supports `--symbol-list`, repeated `--timeframe`, period overrides, and window-size overrides, and the calibration summary prints valid `0.0` percentage values instead of hiding them
+- calibration internals were refactored to smaller helper functions to reduce function complexity (`run_simple_stub`, `evaluate_candidates`) while preserving behavior
 - `SignalAggregator.normalize_pattern_signal()` now uses `relevance_score` as the primary signal strength for each pattern (with fallback to `confidence` when `relevance_score == 0.0`); patterns with higher contextual relevance (recency, proximity, confidence) carry proportionally more weight in the pattern component of the final signal; `RELIABILITY_MULTIPLIER` continues to act as an independent quality amplifier
 - `ConfidenceScorer.calculate_confidence()` now uses `relevance_score` as the primary pattern strength in the pattern confirmation component (25% weight), with fallback to `confidence` when `relevance_score == 0.0`; confirming patterns contribute positively and opposing patterns subtract proportionally to their strength and reliability, providing a more nuanced confidence score that reflects pattern contextual relevance alongside reliability ratings
 - `PatternList` reliability filter checkbox "Pokaż tylko ★★+" is now checked by default, so only patterns with reliability ≥ ★★ are shown on initial render; updated 6 E2E tests in `pattern-list-filter.spec.ts` to reflect the new default state
