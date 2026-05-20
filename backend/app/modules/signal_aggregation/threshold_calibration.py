@@ -204,6 +204,23 @@ def label_signal_outcome(
     return TransactionOutcome.UNKNOWN
 
 
+def _classify_direction(
+    score: float,
+    bullish_threshold: float,
+    bearish_threshold: float,
+) -> Direction | None:
+    """Classify score into direction given a candidate threshold pair.
+
+    Inlined to keep this module free of imports from other domain modules.
+    Mirrors the logic in scoring.determine_direction without the dependency.
+    """
+    if score >= bullish_threshold:
+        return Direction.LONG
+    if score <= bearish_threshold:
+        return Direction.SHORT
+    return None
+
+
 def evaluate_candidates(
     samples: list[CalibrationSample],
     candidates: list[tuple[float, float]],
@@ -217,15 +234,13 @@ def evaluate_candidates(
     Returns:
         Tuple of CandidateMetrics, one for each candidate in order.
     """
-    from app.modules.signal_aggregation.scoring import determine_direction
-
     results: list[CandidateMetrics] = []
 
     for bullish, bearish in candidates:
         metrics = CandidateMetrics(bullish, bearish)
 
         for sample in samples:
-            classified_direction = determine_direction(
+            classified_direction = _classify_direction(
                 sample.score,
                 bullish_threshold=bullish,
                 bearish_threshold=bearish,

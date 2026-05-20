@@ -7,11 +7,12 @@ This script:
 3. For each window, runs the analysis pipeline to compute score and direction
 4. Labels each signal with actual outcome (TP before SL, SL before TP, unknown)
 5. Evaluates candidate threshold pairs
-6. Generates a JSON/Markdown report with metrics and recommendation
+6. Generates a JSON report with metrics and recommendation
 
 Usage:
     python -m scripts.calibrate_signal_thresholds --symbol EUR/USD --output report.json
     python -m scripts.calibrate_signal_thresholds --symbol-list basket.txt --output report.json
+    python -m scripts.calibrate_signal_thresholds --real --symbol "^GSPC" --timeframe D1 --output real_report.json
 
 The script does NOT modify thresholds in scoring.py. It only generates a report.
 Threshold changes must be made manually by the development team after review.
@@ -25,6 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.models import Direction, OHLCVData, PatternCategory
 from app.modules.signal_aggregation.scoring import BEARISH_THRESHOLD, BULLISH_THRESHOLD
 from app.modules.signal_aggregation.threshold_calibration import (
     CalibrationSample,
@@ -49,6 +51,15 @@ DEFAULT_PERIOD = {
     "mode": "mvp_stub",
 }
 
+# yfinance period by timeframe (just below provider limits)
+REAL_DATA_PERIOD: dict[str, str] = {
+    "M15": "55d",
+    "H1": "700d",
+    "H4": "700d",
+    "D1": "5y",
+    "W1": "10y",
+}
+
 # Calibration configuration
 CONFIG: dict[str, Any] = {
     "config_version": "mvp-2026-05-20",
@@ -57,6 +68,7 @@ CONFIG: dict[str, Any] = {
     "period": DEFAULT_PERIOD,
     "training_window_size": 100,  # Number of candles to use for score calculation
     "forward_window_size": 20,  # Number of future candles to check for SL/TP
+    "step_size": None,  # Optional rolling step; when None it defaults to forward_window_size
     "candidate_pairs": [
         (0.10, -0.10),
         (0.15, -0.15),  # Current default
@@ -67,12 +79,279 @@ CONFIG: dict[str, Any] = {
 }
 
 
+def _iter_window_starts(total: int, training_size: int, forward_size: int, step_size: int) -> range:
+    """Return rolling window starts for training/forward sampling."""
+    return range(0, total - training_size - forward_size + 1, step_size)
+
+
+def _detect_and_score_patterns_for_window(ohlcv: list[OHLCVData], timeframe: str) -> list[Any]:
+    """Build pattern list and compute relevance_score using production pattern pipeline."""
+    from app.modules.pattern_recognition.candlestick import detect_candlestick_patterns
+    from app.modules.pattern_recognition.chart_patterns import detect_chart_patterns
+    from app.modules.pattern_recognition.fibonacci import calculate_fibonacci_levels
+    from app.modules.pattern_recognition.iki_detector import detect_iki_pattern
+    from app.modules.pattern_recognition.relevance_scorer import calculate_target_prices, score_patterns
+    from app.modules.pattern_recognition.support_resistance import detect_support_resistance
+
+    patterns: list[Any] = []
+    funcs = [
+        detect_candlestick_patterns,
+        detect_support_resistance,
+        calculate_fibonacci_levels,
+        detect_chart_patterns,
+        detect_iki_pattern,
+    ]
+
+    for func in funcs:
+        try:
+            patterns.extend(func(ohlcv))
+        except Exception as exc:
+            logger.warning("Pattern detection (%s) failed: %s", func.__name__, exc)
+
+    if not patterns:
+        return patterns
+
+    for pattern in patterns:
+        idx = pattern.detected_at_index if pattern.detected_at_index is not None else len(ohlcv) - 1
+        idx = max(0, min(idx, len(ohlcv) - 1))
+        pattern.detected_at_timestamp = ohlcv[idx].timestamp.isoformat()
+        pattern.timeframe = timeframe
+
+    try:
+        calculate_target_prices(patterns, ohlcv)
+    except Exception as exc:
+        logger.warning("calculate_target_prices failed: %s", exc)
+
+    try:
+        current_price = float(ohlcv[-1].close)
+        score_patterns(patterns, len(ohlcv), current_price)
+    except Exception as exc:
+        logger.warning("score_patterns failed: %s", exc)
+
+    patterns.sort(key=lambda p: p.relevance_score, reverse=True)
+    return patterns
+
+
+def _build_sample_from_window(
+    training: list[OHLCVData],
+    future: list[OHLCVData],
+    symbol: str,
+    timeframe: str,
+    sample_index: int,
+) -> CalibrationSample:
+    """Compute one calibration sample from training/future windows."""
+    from app.modules.signal_aggregation.aggregator import SignalAggregator
+    from app.modules.signal_aggregation.scoring import calculate_weighted_score, determine_direction
+    from app.modules.signal_aggregation.threshold_calibration import label_signal_outcome
+    from app.modules.strategy_generator.entry_calculator import calculate_entry_points
+    from app.modules.strategy_generator.sl_tp_calculator import calculate_sl_tp
+    from app.modules.technical_analysis.indicators import calculate_indicators
+    from app.modules.technical_analysis.moving_averages import calculate_moving_averages
+    from app.modules.technical_analysis.presets import IndicatorParams
+
+    params = IndicatorParams()
+    indicators = calculate_indicators(training, params)
+    moving_averages = calculate_moving_averages(training)
+    patterns = _detect_and_score_patterns_for_window(training, timeframe)
+
+    aggregator = SignalAggregator(
+        indicators=indicators,
+        moving_averages=moving_averages,
+        patterns=patterns,
+        fundamental=None,
+    )
+
+    score = calculate_weighted_score(aggregator)
+    direction: Direction | None = determine_direction(score)
+    entry = training[-1].close
+
+    stop_loss = None
+    tp1 = None
+    if direction is not None:
+        sr_patterns = [pattern for pattern in patterns if pattern.category == PatternCategory.SUPPORT_RESISTANCE]
+        entries = calculate_entry_points(training, direction, support_resistance=sr_patterns)
+        if entries:
+            entry_price = entries[0].get("price")
+            if isinstance(entry_price, int | float):
+                entry = float(entry_price)
+
+        sl_tp = calculate_sl_tp(training, direction, entry, sr_patterns)
+        stop_loss = sl_tp.get("stop_loss")
+        tp1 = sl_tp.get("tp1")
+
+    outcome = label_signal_outcome(direction, entry, stop_loss, tp1, future)
+    return CalibrationSample(
+        score=score,
+        direction=direction,
+        outcome=outcome,
+        symbol=symbol,
+        timeframe=timeframe,
+        sample_index=sample_index,
+    )
+
+
+def _build_samples_from_ohlcv(
+    ohlcv: list[OHLCVData],
+    symbol: str,
+    timeframe: str,
+    training_size: int,
+    forward_size: int,
+    step_size: int,
+) -> list[CalibrationSample]:
+    """Build CalibrationSample list from a full OHLCV history using a rolling window.
+
+    Args:
+        ohlcv: Full chronological OHLCV list (oldest first).
+        symbol: Instrument symbol for metadata.
+        timeframe: Timeframe label for metadata.
+        training_size: Number of candles per training window (used to compute score).
+        forward_size: Number of future candles used to label TP/SL outcome.
+        step_size: Candles to advance between windows. Use ``forward_size`` to
+                   keep forward windows non-overlapping (avoids duplicate outcomes).
+
+    Notes:
+        - Fundamental data is excluded (not available point-in-time historically).
+        - Pattern score is computed via production `score_patterns()` pipeline.
+        - SL/TP levels are ATR-based and computed via `calculate_sl_tp()`.
+    """
+    samples: list[CalibrationSample] = []
+    total = len(ohlcv)
+
+    for i in _iter_window_starts(total, training_size, forward_size, step_size):
+        training = ohlcv[i : i + training_size]
+        future = ohlcv[i + training_size : i + training_size + forward_size]
+        samples.append(
+            _build_sample_from_window(
+                training=training,
+                future=future,
+                symbol=symbol,
+                timeframe=timeframe,
+                sample_index=len(samples),
+            )
+        )
+
+    return samples
+
+
 class CalibrationRunner:
     """Runner for threshold calibration."""
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         self.config = self._merge_config(config)
         self.samples: list[CalibrationSample] = []
+
+    def _resolve_step_size(self, forward_size: int) -> int:
+        """Resolve rolling step size from config; default to forward window size."""
+        configured = self.config.get("step_size")
+        if isinstance(configured, int) and configured > 0:
+            return configured
+        return forward_size
+
+    async def _build_samples_for_symbol_timeframe(
+        self,
+        provider: Any,
+        symbol: str,
+        tf_str: str,
+        training_size: int,
+        forward_size: int,
+        step_size: int,
+    ) -> list[CalibrationSample]:
+        """Fetch OHLCV and build calibration samples for one symbol/timeframe pair."""
+        from app.modules.data_acquisition.timeframes import DataTimeframe
+
+        tf = DataTimeframe(tf_str)
+        period = REAL_DATA_PERIOD.get(tf_str, "700d")
+        logger.info("Fetching %s/%s period=%s", symbol, tf_str, period)
+        ohlcv = await provider.fetch_ohlcv(symbol, tf, period)
+        if not ohlcv:
+            logger.warning("No data returned for %s/%s", symbol, tf_str)
+            return []
+
+        logger.info("Fetched %d candles for %s/%s — building samples", len(ohlcv), symbol, tf_str)
+        samples = await asyncio.to_thread(
+            _build_samples_from_ohlcv,
+            ohlcv,
+            symbol,
+            tf_str,
+            training_size,
+            forward_size,
+            step_size,
+        )
+        logger.info("Built %d samples for %s/%s", len(samples), symbol, tf_str)
+        return samples
+
+    async def _collect_real_samples(self, provider: Any) -> list[CalibrationSample]:
+        """Collect samples for all configured symbol/timeframe combinations."""
+        training_size: int = self.config["training_window_size"]
+        forward_size: int = self.config["forward_window_size"]
+        step_size = self._resolve_step_size(forward_size)
+        all_samples: list[CalibrationSample] = []
+
+        for symbol in self.config["symbols"]:
+            for tf_str in self.config["timeframes"]:
+                try:
+                    samples = await self._build_samples_for_symbol_timeframe(
+                        provider,
+                        symbol,
+                        tf_str,
+                        training_size,
+                        forward_size,
+                        step_size,
+                    )
+                    all_samples.extend(samples)
+                except Exception:
+                    logger.exception("Failed to process %s/%s — skipping", symbol, tf_str)
+
+        return all_samples
+
+    @staticmethod
+    def _apply_real_mode_report_adjustments(report: dict[str, Any]) -> None:
+        """Adjust report metadata and limitations for real data mode."""
+        current_period = dict(report["configuration"].get("period", {}))
+        active_timeframes = report["configuration"].get("timeframes", [])
+        report["configuration"]["mode"] = "real_data"
+        report["configuration"]["period"] = {
+            **current_period,
+            "mode": "real_data",
+            "per_timeframe_window": {tf: REAL_DATA_PERIOD.get(tf, "700d") for tf in active_timeframes},
+        }
+        report["limitations"] = [lim for lim in report["limitations"] if "synthetic training data" not in lim]
+
+    async def run_with_real_data(self) -> dict[str, Any]:
+        """Fetch real historical OHLCV via yfinance and compute calibration samples.
+
+        Uses a rolling window approach:
+        - Training window: last ``training_window_size`` candles → TA signals → score
+        - Forward window: next ``forward_window_size`` candles → TP1/SL labeling
+        - Step: configurable ``step_size`` candles; defaults to ``forward_window_size``
+
+        Fundamental data is excluded — not available point-in-time for historical runs.
+        Score is computed from technical analysis, moving averages and pattern pipeline
+        with default production weights; candidate comparison remains relative and consistent.
+        """
+        from app.modules.data_acquisition.providers.yfinance_provider import YFinanceProvider
+
+        provider = YFinanceProvider()
+        self.samples = await self._collect_real_samples(provider)
+
+        if not self.samples:
+            logger.error("No samples generated from real data")
+            return {"error": "No samples generated — check symbols and network connectivity"}
+
+        min_samples: int = self.config.get("min_samples", 0)
+        if len(self.samples) < min_samples:
+            logger.warning(
+                "Sample count %d is below minimum required %d — report may be statistically unreliable",
+                len(self.samples),
+                min_samples,
+            )
+
+        metrics_list = await asyncio.to_thread(self._evaluate_samples)
+        recommendation = recommend_candidate(metrics_list)
+
+        report = self._build_report(metrics_list, recommendation)
+        self._apply_real_mode_report_adjustments(report)
+        return report
 
     async def run_simple_stub(self) -> dict[str, Any]:
         """MVP stub: generates synthetic calibration report without live data.
@@ -99,7 +378,9 @@ class CalibrationRunner:
         metrics_list = await asyncio.to_thread(self._evaluate_samples)
         recommendation = recommend_candidate(metrics_list)
 
-        return self._build_report(metrics_list, recommendation)
+        report = self._build_report(metrics_list, recommendation)
+        report["configuration"]["mode"] = "synthetic_stub"
+        return report
 
     def _evaluate_samples(self) -> tuple[CandidateMetrics, ...]:
         """Evaluate configured threshold candidates against generated samples."""
@@ -202,8 +483,6 @@ class CalibrationRunner:
 
     def _generate_synthetic_samples(self) -> list[CalibrationSample]:
         """Generate synthetic calibration samples for testing."""
-        from app.core.models import Direction
-
         samples = []
         # Synthetic data: various scores, directions, outcomes
         test_data = [
@@ -278,7 +557,7 @@ Examples:
         "--symbol",
         type=str,
         default=None,
-        help="Single symbol to calibrate (e.g. EUR/USD). If not provided, uses MVP synthetic data.",
+        help="Single symbol to calibrate (e.g. EUR/USD). Overrides the default basket in stub and --real modes.",
     )
     parser.add_argument(
         "--symbol-list",
@@ -317,10 +596,21 @@ Examples:
         help="Override forward window size used in calibration metadata.",
     )
     parser.add_argument(
+        "--step-size",
+        type=int,
+        default=None,
+        help="Override rolling window step size; defaults to forward-window-size when omitted.",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="calibration_report.json",
         help="Output file for calibration report (JSON format)",
+    )
+    parser.add_argument(
+        "--real",
+        action="store_true",
+        help="Fetch real historical OHLCV data via yfinance instead of using synthetic stub",
     )
     parser.add_argument(
         "--verbose",
@@ -341,8 +631,13 @@ Examples:
     runtime_config = await _build_runtime_config(args)
     runner = CalibrationRunner(config=runtime_config)
 
-    # Run calibration (MVP: synthetic data only)
-    report = await runner.run_simple_stub()
+    # Run calibration: real data when --real flag is set, otherwise synthetic stub
+    if args.real:
+        logger.info("Mode: real historical data (yfinance)")
+        report = await runner.run_with_real_data()
+    else:
+        logger.info("Mode: synthetic stub (use --real for live data)")
+        report = await runner.run_simple_stub()
 
     # Save report
     output_path = Path(args.output)
@@ -384,6 +679,8 @@ async def _build_runtime_config(args: argparse.Namespace) -> dict[str, Any]:
         runtime_config["training_window_size"] = args.training_window_size
     if args.forward_window_size is not None:
         runtime_config["forward_window_size"] = args.forward_window_size
+    if args.step_size is not None:
+        runtime_config["step_size"] = args.step_size
 
     return runtime_config
 
