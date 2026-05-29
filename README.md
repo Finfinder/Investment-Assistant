@@ -9,6 +9,12 @@
 
 CFD instrument technical and fundamental analysis application. Provides market data retrieval with multi-provider fallback, technical indicators, and analysis endpoints via a REST API.
 
+## Feedback, Issues, and Contributing
+
+- Report bugs and feature ideas through GitHub Issues: https://github.com/Finfinder/Investment-Assistant/issues
+- Larger goals are tracked with milestones and the pinned roadmap issue.
+- Collaboration notes live in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ---
 
 ## Tech Stack

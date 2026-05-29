@@ -1,0 +1,86 @@
+name: Sync dry-run
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  push:
+    tags: []
+  workflow_dispatch: {}
+
+jobs:
+  sync-dry-run:
+    name: Sync dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate UTF-8 and uniqueness
+        shell: pwsh
+        run: |
+          $warnings = @()
+          $files = @('.github/gh-sync.json', '.github/issue-seed.json')
+          foreach ($f in $files) {
+            if (Test-Path $f) {
+              try {
+                $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction Stop
+              } catch {
+                Write-Warning "$f nie jest poprawnym UTF-8 lub nie mo¿na odczytaæ: $_"
+                $warnings += "$f encoding"
+                continue
+              }
+              try {
+                $json = $raw | ConvertFrom-Json -ErrorAction Stop
+                $ids = @()
+                if ($json -is [System.Collections.IEnumerable]) {
+                  foreach ($item in $json) { if ($null -ne $item.sourceId) { $ids += $item.sourceId } }
+                } else { if ($null -ne $json.sourceId) { $ids += $json.sourceId } }
+                $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
+                if ($dups) { Write-Warning "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
+              } catch {
+                Write-Warning "Nie mo¿na sparsowaæ JSON z $f: $_"
+                $warnings += "$f parse"
+              }
+            } else {
+              Write-Output "Plik $f nie istnieje — kontynuujê (warning)."
+            }
+          }
+          if ($warnings.Count -gt 0) { Write-Output "WARNINGS: $($warnings -join '; ')" }
+
+      - name: Run dry-run scripts (if present)
+        shell: pwsh
+        run: |
+          Remove-Item -ErrorAction SilentlyContinue sync-dry-run.log
+          $scripts = @('./scripts/sync-github-meta.ps1', './scripts/seed-github-issues.ps1')
+          foreach ($s in $scripts) {
+            if (Test-Path $s) {
+              Write-Output "Uruchamiam $s z parametrem -DryRun (jeœli dostêpne), output do sync-dry-run.log"
+              try {
+                & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
+              } catch {
+                Write-Warning "Uruchomienie z -DryRun nie powiod³o siê, próbujê bez parametrów"
+                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { Write-Warning "B³¹d uruchomienia $s: $_"; "ERROR running $s`n$_" | Out-File -FilePath sync-dry-run.log -Append }
+              }
+            } else { Write-Output "Skrypt $s nie istnieje — pomijam." | Tee-Object -FilePath sync-dry-run.log -Append }
+          }
+
+      - name: Upload dry-run log
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-dry-run-log
+          path: sync-dry-run.log
+
+      - name: Analyze dry-run log for potential changes
+        shell: pwsh
+        run: |
+          if (Test-Path sync-dry-run.log) {
+            $log = Get-Content sync-dry-run.log -Raw
+            if ($log -match '(change|apply|will be created|will be modified|To be applied|Changes:|CHANGE)') {
+              Write-Output "POTENCJALNE ZMIANY W LOGU"
+              Write-Output "Znaleziono frazy sugeruj¹ce zmiany."
+            } else {
+              Write-Output "Brak oczywistych fraz sugeruj¹cych zmiany."
+            }
+          } else { Write-Output "Brak pliku sync-dry-run.log do analizy." }

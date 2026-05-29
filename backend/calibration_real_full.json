@@ -1,0 +1,131 @@
+{
+  "generated_at": "2026-05-20T18:00:08.975957+00:00",
+  "version": "1.0",
+  "configuration": {
+    "config_version": "mvp-2026-05-20",
+    "training_window_size": 100,
+    "forward_window_size": 20,
+    "total_samples": 1713,
+    "symbols": [
+      "EUR/USD",
+      "GC=F",
+      "^GSPC"
+    ],
+    "timeframes": [
+      "H1"
+    ],
+    "period": {
+      "start": "2023-01-01",
+      "end": "synthetic",
+      "mode": "real_data",
+      "per_timeframe_window": {
+        "H1": "700d"
+      }
+    },
+    "mode": "real_data"
+  },
+  "baseline": {
+    "bullish_threshold": 0.15,
+    "bearish_threshold": -0.15,
+    "false_signal_rate": 0.4677804295942721,
+    "precision": 0.5322195704057279,
+    "coverage": 0.24460011675423235,
+    "neutral_rate": 0.7553998832457677,
+    "total_signals": 1713,
+    "long_signals": 528,
+    "short_signals": 227,
+    "neutral_signals": 958,
+    "unknown_signals": 336,
+    "long_tp_before_sl": 154,
+    "long_sl_before_tp": 146,
+    "short_tp_before_sl": 69,
+    "short_sl_before_tp": 50
+  },
+  "candidates": [
+    {
+      "bullish_threshold": 0.1,
+      "bearish_threshold": -0.1,
+      "false_signal_rate": 0.4677804295942721,
+      "precision": 0.5322195704057279,
+      "coverage": 0.24460011675423235,
+      "neutral_rate": 0.7553998832457677,
+      "total_signals": 1713,
+      "long_signals": 724,
+      "short_signals": 418,
+      "neutral_signals": 571,
+      "unknown_signals": 723,
+      "long_tp_before_sl": 154,
+      "long_sl_before_tp": 146,
+      "short_tp_before_sl": 69,
+      "short_sl_before_tp": 50
+    },
+    {
+      "bullish_threshold": 0.15,
+      "bearish_threshold": -0.15,
+      "false_signal_rate": 0.4677804295942721,
+      "precision": 0.5322195704057279,
+      "coverage": 0.24460011675423235,
+      "neutral_rate": 0.7553998832457677,
+      "total_signals": 1713,
+      "long_signals": 528,
+      "short_signals": 227,
+      "neutral_signals": 958,
+      "unknown_signals": 336,
+      "long_tp_before_sl": 154,
+      "long_sl_before_tp": 146,
+      "short_tp_before_sl": 69,
+      "short_sl_before_tp": 50
+    },
+    {
+      "bullish_threshold": 0.2,
+      "bearish_threshold": -0.2,
+      "false_signal_rate": 0.48598130841121495,
+      "precision": 0.514018691588785,
+      "coverage": 0.12492702860478692,
+      "neutral_rate": 0.8750729713952131,
+      "total_signals": 1713,
+      "long_signals": 293,
+      "short_signals": 86,
+      "neutral_signals": 1334,
+      "unknown_signals": 165,
+      "long_tp_before_sl": 88,
+      "long_sl_before_tp": 79,
+      "short_tp_before_sl": 22,
+      "short_sl_before_tp": 25
+    },
+    {
+      "bullish_threshold": 0.25,
+      "bearish_threshold": -0.25,
+      "false_signal_rate": 0.4716981132075472,
+      "precision": 0.5283018867924528,
+      "coverage": 0.030939871570344425,
+      "neutral_rate": 0.9690601284296556,
+      "total_signals": 1713,
+      "long_signals": 84,
+      "short_signals": 21,
+      "neutral_signals": 1608,
+      "unknown_signals": 52,
+      "long_tp_before_sl": 23,
+      "long_sl_before_tp": 20,
+      "short_tp_before_sl": 5,
+      "short_sl_before_tp": 5
+    }
+  ],
+  "recommendation": {
+    "candidate_index": 0,
+    "bullish_threshold": 0.1,
+    "bearish_threshold": -0.1,
+    "false_signal_rate": 0.4677804295942721,
+    "precision": 0.5322195704057279,
+    "coverage": 0.24460011675423235,
+    "action": "consider_threshold_change",
+    "symmetry": "symmetric",
+    "notes": "Recommendation based on minimizing false signal rate and maximizing coverage. Baseline is included for current thresholds from scoring.py."
+  },
+  "limitations": [
+    "No transaction costs modeled.",
+    "No slippage or spread considered.",
+    "Point-in-time fundamental data not available.",
+    "Intrabar execution sequence not modeled."
+  ]
+}
