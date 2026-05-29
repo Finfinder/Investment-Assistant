@@ -10,6 +10,14 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 If you discover a security vulnerability, **do NOT open a public issue**. Instead, report it privately through [GitHub Security Advisories](https://github.com/Finfinder/Investment-Assistant/security/advisories/new). See [SECURITY.md](SECURITY.md) for details.
 
+## Issues, Roadmap, and Linking
+
+- Report bugs and feature requests through GitHub Issues: https://github.com/Finfinder/Investment-Assistant/issues
+- Larger goals are tracked with milestones and the pinned `Project Status / Roadmap` issue.
+- Link related work in commits and pull requests with `Refs #123`, `Fixes #123`, or `Closes #123`.
+- For pull requests targeting version branches, prefer `Refs #123` unless the branch change is intended to fully close the issue there.
+- Keep commit subjects aligned with this repository's existing conventions and instructions instead of forcing a global commit style.
+
 ## Getting Started
 
 ### Prerequisites

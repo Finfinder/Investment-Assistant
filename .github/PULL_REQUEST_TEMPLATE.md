@@ -4,7 +4,7 @@
 
 ## Related Issue
 
-<!-- Link to the related issue: Fixes #123, Closes #456 -->
+<!-- Link to the related issue: Refs #123, Fixes #123, or Closes #123. For PRs targeting version branches, prefer Refs #123 unless the PR fully closes the issue on that branch. -->
 
 ## Type of Change
 
