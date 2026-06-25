@@ -56,12 +56,7 @@ jobs:
           foreach ($s in $scripts) {
             if (Test-Path $s) {
               Write-Output "Running $s with -DryRun parameter (if available), output to sync-dry-run.log"
-              try {
-                & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
-              } catch {
-                Write-Warning "-DryRun execution failed, trying without parameters"
-                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { $errMsg = $_.Exception.Message; Write-Output "Error running $s: $errMsg"; "ERROR running $s`n$errMsg" | Out-File -FilePath sync-dry-run.log -Append }
-              }
+              & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
             } else { Write-Output "Script $s does not exist - skipping." | Tee-Object -FilePath sync-dry-run.log -Append }
           }
 
