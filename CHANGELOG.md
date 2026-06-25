@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unit tests for frontend formatting helpers: `formatValue`, `confidenceBarClass`, `formatRiskReward`, `riskRewardClass` — 36 test cases covering null/undefined handling, boundary values, edge cases (NaN, Infinity, -0, negative numbers)
+
 - `calibrate_signal_thresholds.py` now supports real OHLCV data calibration via `--real` CLI flag and optional `--step-size` parameter; adds `run_with_real_data()` async orchestrator building calibration samples from live OHLCV data through the full pattern-recognition, technical-analysis, and SL/TP pipeline; `REAL_DATA_PERIOD` configures per-timeframe historical data ranges (`M15: 55d`, `H1/H4: 700d`, `D1: 5y`, `W1: 10y`)
 
 - Threshold calibration infrastructure for `BULLISH_THRESHOLD` / `BEARISH_THRESHOLD` in `signal_aggregation`: added optional `bullish_threshold` and `bearish_threshold` parameters to `determine_direction()` (defaults preserve existing behavior), new `threshold_calibration.py` module with `CalibrationSample`, `CandidateMetrics`, `label_signal_outcome()`, `evaluate_candidates()`, and `recommend_candidate()` pure functions, and `backend/scripts/calibrate_signal_thresholds.py` CLI runner generating a JSON calibration report; threshold constants in `scoring.py` remain at `BULLISH_THRESHOLD = 0.15` / `BEARISH_THRESHOLD = -0.15` — no live data was available during this iteration to justify a change
