@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { formatValue } from "@/components/IndicatorTable/shared";
 
 describe("formatValue", () => {
-  it("zwraca pomić dla null", () => {
+  it("zwraca myślnik dla null", () => {
     expect(formatValue(null)).toBe("—");
   });
 
-  it("zwraca pomić dla undefined", () => {
+  it("zwraca myślnik dla undefined", () => {
     expect(formatValue(undefined)).toBe("—");
   });
 
@@ -26,11 +26,11 @@ describe("formatValue", () => {
     expect(formatValue(-2.5)).toBe("-2.5000");
   });
 
-  it("formatuje wartość procentową (liczbę)", () => {
+  it("zwraca 4 miejsca po przecinku dla liczby dziesiętnej (procent)", () => {
     expect(formatValue(75.25)).toBe("75.2500");
   });
 
-  it("formatuje wartość walutową (liczbę)", () => {
+  it("zwraca 4 miejsca po przecinku dla liczby dziesiętnej (kwota)", () => {
     expect(formatValue(1234.56)).toBe("1234.5600");
   });
 
