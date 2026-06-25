@@ -55,8 +55,8 @@ jobs:
           $scripts = @('./scripts/sync-github-meta.ps1', './scripts/seed-github-issues.ps1')
           foreach ($s in $scripts) {
             if (Test-Path $s) {
-              Write-Output "Running $s with -DryRun parameter (if available), output to sync-dry-run.log"
-              & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
+              Write-Output "Running $s in dry-run mode, output to sync-dry-run.log"
+              & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
             } else { Write-Output "Script $s does not exist - skipping." | Tee-Object -FilePath sync-dry-run.log -Append }
           }
 
