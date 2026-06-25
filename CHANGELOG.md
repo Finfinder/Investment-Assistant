@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Synchronized `.github/gh-sync.json` with GitHub repository labels: added 6 missing labels (`duplicate`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`) and 4 Dependabot labels (`dependabot`, `python`, `javascript`, `ci`); local label set now matches GitHub (20 labels total)
+
 - Unit tests for frontend formatting helpers: `formatValue`, `confidenceBarClass`, `formatRiskReward`, `riskRewardClass` — 36 test cases covering null/undefined handling, boundary values, edge cases (NaN, Infinity, -0, negative numbers)
 
 - `calibrate_signal_thresholds.py` now supports real OHLCV data calibration via `--real` CLI flag and optional `--step-size` parameter; adds `run_with_real_data()` async orchestrator building calibration samples from live OHLCV data through the full pattern-recognition, technical-analysis, and SL/TP pipeline; `REAL_DATA_PERIOD` configures per-timeframe historical data ranges (`M15: 55d`, `H1/H4: 700d`, `D1: 5y`, `W1: 10y`)
