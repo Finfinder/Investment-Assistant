@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Investment Assistant — Frontend
 
-## Getting Started
+Frontend for the Investment Assistant application — technical and fundamental analysis of CFD instruments. Built with Next.js 14 (App Router), TypeScript, Tailwind CSS, and lightweight-charts.
 
-First, run the development server:
+## Table of Contents
+
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Local Development](#local-development)
+- [Configuration](#configuration)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Docker](#docker)
+- [NPM Scripts](#npm-scripts)
+- [Conventions](#conventions)
+
+## Tech Stack
+
+- **Next.js 14.2** (App Router, React 18, standalone output)
+- **TypeScript 5** (strict mode)
+- **Tailwind CSS 3.4** with CSS custom properties (dark theme)
+- **lightweight-charts v5** — interactive candlestick charts
+- **Vitest 4** — unit tests
+- **Playwright** — E2E and accessibility tests
+
+## Prerequisites
+
+- Node.js 20+
+- npm 10+
+- Running Investment Assistant backend (defaults to `http://localhost:8000`)
+
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Application available at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Environment variables (optional — defaults are provided):
 
-## Learn More
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000/api/v1` | Backend REST API URL |
+| `NEXT_PUBLIC_WS_URL` | `ws://localhost:8000/api/v1` | Backend WebSocket URL |
 
-To learn more about Next.js, take a look at the following resources:
+Example `.env.local`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/api/v1
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/                    # Next.js App Router (layout, page)
+├── components/             # UI components
+│   ├── AnalysisForm.tsx    # Instrument and timeframe selection form
+│   ├── Chart/              # Candlestick chart (lightweight-charts)
+│   ├── Fundamental/        # Fundamental analysis panel
+│   ├── IndicatorTable/     # Indicator tables (oscillators, MA)
+│   ├── Patterns/           # Price pattern list
+│   ├── PivotPoints/        # Pivot Points
+│   ├── SignalSummary/      # Signal summary
+│   ├── Strategy/           # Strategy table
+│   ├── Section.tsx         # Section container
+│   └── ProgressIndicator.tsx
+├── lib/                    # API client, formatting, signals logic
+│   ├── api.ts              # HTTP/WS client (triggerAnalysis, getAnalysis)
+│   ├── format.ts           # Value formatting
+│   └── signals.ts          # Signal mapping
+└── types/                  # TypeScript types (mirroring backend Pydantic)
+    └── index.ts
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Testing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Unit tests (Vitest)
+npm run test
+
+# E2E tests (Playwright)
+npm run test:e2e
+```
+
+Unit tests are in `__tests__/`, E2E tests in `e2e/`.
+
+## Docker
+
+Production image based on `node:20-alpine` with Next.js standalone output:
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=http://backend:8000/api/v1 \
+  --build-arg NEXT_PUBLIC_WS_URL=ws://backend:8000/api/v1 \
+  -t investment-assistant-frontend .
+```
+
+Port: `3000`.
+
+## NPM Scripts
+
+| Script | Description |
+|--------|-------------|
+| `dev` | Development server (`next dev`) |
+| `build` | Production build (`next build`) |
+| `start` | Run production build (`next start`) |
+| `lint` | ESLint (`next lint`) |
+| `test` | Unit tests (`vitest run`) |
+| `test:e2e` | E2E tests (`playwright test`) |
+
+## Conventions
+
+- **Code style**: ESLint (`next/core-web-vitals`, `prettier`) + Prettier (double quotes, trailing commas, 120 print width)
+- **TypeScript**: strict mode, path alias `@/*` → `./src/*`
+- **Components**: functional with hooks, `"use client"` where state/effects are needed
+- **Styling**: Tailwind CSS with custom properties (dark theme)
+- **Charts**: dynamic import of `lightweight-charts` with `ssr: false`
+- **UI language**: Polish
