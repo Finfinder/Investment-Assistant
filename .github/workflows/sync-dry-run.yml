@@ -26,7 +26,8 @@ jobs:
               try {
                 $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction Stop
               } catch {
-                Write-Warning "$f is not valid UTF-8 or cannot be read: $($_.Exception.Message)"
+                $errMsg = $_.Exception.Message
+                Write-Warning "$f is not valid UTF-8 or cannot be read: $errMsg"
                 $warnings += "$f encoding"
                 continue
               }
@@ -39,7 +40,8 @@ jobs:
                 $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
                 if ($dups) { Write-Warning "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
               } catch {
-                Write-Warning "Cannot parse JSON from $f: $($_.Exception.Message)"
+                $errMsg = $_.Exception.Message
+                Write-Warning "Cannot parse JSON from $f: $errMsg"
                 $warnings += "$f parse"
               }
             } else {
@@ -60,7 +62,7 @@ jobs:
                 & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
               } catch {
                 Write-Warning "-DryRun execution failed, trying without parameters"
-                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { Write-Warning "Error running $s: $($_.Exception.Message)"; "ERROR running $s`n$($_.Exception.Message)" | Out-File -FilePath sync-dry-run.log -Append }
+                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { $errMsg = $_.Exception.Message; Write-Warning "Error running $s: $errMsg"; "ERROR running $s`n$errMsg" | Out-File -FilePath sync-dry-run.log -Append }
               }
             } else { Write-Output "Script $s does not exist - skipping." | Tee-Object -FilePath sync-dry-run.log -Append }
           }
