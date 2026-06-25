@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Export `toChartTime()` from `CandlestickChart.tsx` and add Vitest unit tests covering UTC conversion, intraday timestamp differentiation, timezone normalization, and `buildPatternMarkers` regression scenarios
 - OECD SDMX integration for monthly Japan CPI YoY (`cpi_jp`) in backend fundamental analysis via dedicated `OecdSdmxSource` and `MacroDataSource` routing layer
+- `frontend-test` job in CI workflow running `npm run test` (Vitest) for unit test coverage on push/PR
+- `npm run test` step added to release workflow before E2E tests, ensuring unit tests validate before publishing
 
 ### Changed
 
