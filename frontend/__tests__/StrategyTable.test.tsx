@@ -77,9 +77,11 @@ describe("StrategyTable", () => {
 
     render(<StrategyTable strategies={strategies} />);
 
-    // Check that both directions are rendered
-    expect(screen.getByText("▲ LONG")).toBeInTheDocument();
-    expect(screen.getByText("▼ SHORT")).toBeInTheDocument();
+    // Verify direction badges have correct CSS classes for color coding
+    const longBadge = screen.getByText("▲ LONG");
+    expect(longBadge).toHaveClass("text-green-400");
+    const shortBadge = screen.getByText("▼ SHORT");
+    expect(shortBadge).toHaveClass("text-red-400");
   });
 
   it("pasek pewności renderuje się z odpowiednią szerokością", () => {

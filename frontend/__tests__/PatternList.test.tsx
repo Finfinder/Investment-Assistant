@@ -22,7 +22,7 @@ const mockPatterns: PatternScannerResult[] = [
       detected_at_index: 10,
       detected_at_timestamp: "2023-11-14T22:13:20Z",
       relevance_score: 0.85,
-      target_price: 1.2000,
+      target_price: 1.2,
       indication: "buy",
       reliability: 3,
       detailed_description: "Detailed description",
@@ -48,6 +48,29 @@ const mockPatterns: PatternScannerResult[] = [
       target_price: null,
       indication: "sell",
       reliability: 2,
+      detailed_description: "",
+    },
+  },
+  {
+    pattern_type: "Doji",
+    category: "candlestick",
+    bullish: true,
+    confidence: 0.6,
+    timeframes: ["H1"],
+    representative_pattern: {
+      pattern_type: "Doji",
+      bullish: true,
+      confidence: 0.6,
+      description: "Indecision pattern",
+      location: "body",
+      category: "candlestick",
+      timeframe: "H1",
+      detected_at_index: 3,
+      detected_at_timestamp: "2023-11-14T22:13:20Z",
+      relevance_score: 0.6,
+      target_price: null,
+      indication: "neutral",
+      reliability: 1,
       detailed_description: "",
     },
   },
@@ -84,18 +107,19 @@ describe("PatternList", () => {
 
     render(<PatternList patterns={mockPatterns} currentTimeframe="H1" />);
 
-    // Initially showReliableOnly=true, so only Hammer (reliability 3) is visible
-    // Shooting Star has reliability 2, which is >= MIN_RELIABILITY_FILTER (2), so it should also be visible
+    // Initially showReliableOnly=true, so Doji (reliability 1) is hidden
     expect(screen.getByText("Hammer")).toBeInTheDocument();
     expect(screen.getByText("Shooting Star")).toBeInTheDocument();
+    expect(screen.queryByText("Doji")).not.toBeInTheDocument();
 
     // Click the checkbox to disable the filter (show all patterns)
     const checkbox = screen.getByRole("checkbox", { name: "Pokaż tylko ★★+" });
     await user.click(checkbox);
 
-    // Both patterns should still be visible (Shooting Star has reliability 2, meets threshold)
+    // Now Doji (reliability 1) should be visible
     expect(screen.getByText("Hammer")).toBeInTheDocument();
     expect(screen.getByText("Shooting Star")).toBeInTheDocument();
+    expect(screen.getByText("Doji")).toBeInTheDocument();
   });
 
   it("przycisk 'Pokaż wszystkie' rozwija pełną listę", async () => {

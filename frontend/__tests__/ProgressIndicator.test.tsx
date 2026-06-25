@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
 import ProgressIndicator from "@/components/ProgressIndicator";
 import type { AnalysisStatus } from "@/types";
 
@@ -26,12 +26,7 @@ vi.mock("@/lib/api", () => ({
 }));
 
 describe("ProgressIndicator", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
   afterEach(() => {
-    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
