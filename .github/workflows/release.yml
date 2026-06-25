@@ -129,13 +129,16 @@ jobs:
 
       - name: Cache Next.js build
         id: cache-next-build
-        working-directory: frontend
         uses: actions/cache/restore@v4
         with:
-          path: .next/cache
+          path: frontend/.next/cache
           key: next-build-${{ runner.os }}-${{ hashFiles('frontend/package.json', 'frontend/next.config.mjs', 'frontend/tsconfig.json') }}
           restore-keys: |
             next-build-${{ runner.os }}-
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
 
       - name: Run frontend lint
         working-directory: frontend
@@ -155,10 +158,9 @@ jobs:
 
       - name: Save Next.js build cache
         if: steps.cache-next-build.outputs.cache-hit != 'true'
-        working-directory: frontend
         uses: actions/cache/save@v4
         with:
-          path: .next/cache
+          path: frontend/.next/cache
           key: next-build-${{ runner.os }}-${{ hashFiles('frontend/package.json', 'frontend/next.config.mjs', 'frontend/tsconfig.json') }}
 
       - name: Log in to GHCR

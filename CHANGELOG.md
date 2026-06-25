@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- CI workflow cache steps: restored missing `npm ci` in `frontend-lint`, `frontend-test`, and `frontend-e2e` jobs; fixed cache paths from `.next/cache` to `frontend/.next/cache` since `defaults.run.working-directory` does not apply to `uses:` steps; removed unsupported `working-directory` key from `actions/cache/restore@v4` and `actions/cache/save@v4` steps in release workflow
+
 ### Added
 
 - Cache npm dependencies and Next.js build artifacts in GitHub Actions CI and release workflows — `actions/cache@v4` with `hashFiles('frontend/package.json', 'frontend/next.config.mjs', 'frontend/tsconfig.json')` key for build cache; `setup-node@v5` with `cache: "npm"` for dependency cache; reduces frontend CI job times by 30-50% on cache hit
