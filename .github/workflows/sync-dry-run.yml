@@ -20,30 +20,28 @@ jobs:
         shell: pwsh
         run: |
           $warnings = @()
+          $errMsg = $null
           $files = @('.github/gh-sync.json', '.github/issue-seed.json')
           foreach ($f in $files) {
             if (Test-Path $f) {
-              try {
-                $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction Stop
-              } catch {
-                $errMsg = $_.Exception.Message
-                Write-Output "$f is not valid UTF-8 or cannot be read: $errMsg"
+              $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction SilentlyContinue
+              if (-not $raw) {
+                Write-Output "$f is not valid UTF-8 or cannot be read"
                 $warnings += "$f encoding"
                 continue
               }
-              try {
-                $json = $raw | ConvertFrom-Json -ErrorAction Stop
-                $ids = @()
-                if ($json -is [System.Collections.IEnumerable]) {
-                  foreach ($item in $json) { if ($null -ne $item.sourceId) { $ids += $item.sourceId } }
-                } else { if ($null -ne $json.sourceId) { $ids += $json.sourceId } }
-                $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
-                if ($dups) { Write-Warning "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
-              } catch {
-                $errMsg = $_.Exception.Message
-                Write-Output "Cannot parse JSON from $f: $errMsg"
+              $json = $raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+              if (-not $json) {
+                Write-Output "Cannot parse JSON from $f"
                 $warnings += "$f parse"
+                continue
               }
+              $ids = @()
+              if ($json -is [System.Collections.IEnumerable]) {
+                foreach ($item in $json) { if ($null -ne $item.sourceId) { $ids += $item.sourceId } }
+              } else { if ($null -ne $json.sourceId) { $ids += $json.sourceId } }
+              $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
+              if ($dups) { Write-Output "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
             } else {
               Write-Output "File $f does not exist - continuing (warning)."
             }
