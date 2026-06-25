@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- React Testing Library test assertions: fixed text matchers to use regex patterns for split text elements (score labels, signal labels), fixed `vi` import in PatternList.test.tsx, corrected score threshold expectations in FundamentalPanel.test.tsx tests (score 50 returns "Kup" not "Mocne Kup"), fixed button name matchers to use regex for accessibility names with icons
+
+### Added
+
+- Unit tests for frontend components using React Testing Library and Vitest: Section, FundamentalPanel, IndicatorTable (MovingAverageTable, OscillatorTable), PatternList, AnalysisForm, ChartToolbar, PivotTable, StrategyTable, SignalGauge, ProgressIndicator (112 test cases total)
+- Test setup file `__tests__/setup.ts` with jsdom environment configuration, browser API mocks (IntersectionObserver, ResizeObserver, WebSocket, localStorage)
+
+### Changed
+
 - CI workflow cache steps: restored missing `npm ci` in `frontend-lint`, `frontend-test`, and `frontend-e2e` jobs; fixed cache paths from `.next/cache` to `frontend/.next/cache` since `defaults.run.working-directory` does not apply to `uses:` steps; removed unsupported `working-directory` key from `actions/cache/restore@v4` and `actions/cache/save@v4` steps in release workflow
 
 ### Added
