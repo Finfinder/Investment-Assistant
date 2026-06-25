@@ -107,6 +107,8 @@ jobs:
           VERSION_TARGETS_PATH: ${{ inputs.version-targets-path }}
           README_TARGETS_PATH: ${{ inputs.readme-targets-path }}
           BASE_BRANCH: ${{ inputs.base-branch }}
+          SOURCE_REPOSITORY: ${{ inputs.source-repository }}
+          WORKFLOW_RUN_ID: ${{ inputs.workflow-run-id }}
         run: |
           $result = & "${{ github.workspace }}/ai_instruction/scripts/open-next-version-branch.ps1" `
             -RepositoryRoot "${{ github.workspace }}/repository" `
