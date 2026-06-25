@@ -32,11 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `frontend-test` job in CI workflow running `npm run test` (Vitest) for unit test coverage on push/PR
 - `npm run test` step added to release workflow before E2E tests, ensuring unit tests validate before publishing
 
-### Fixed
-
-- Normalized `python` label color to lowercase hex (`3572a5`); assigned unique colors to `dependabot` (`006b75`) and `ci` (`bfdadc`) to avoid visual ambiguity with `frontend`/`backend`
-- Added `repo.slug` format validation and `roadmapIssue.bodyPath` path traversal guard in `scripts/sync-github-meta.ps1`
-
 ### Changed
 
 - `threshold_calibration.evaluate_candidates()` now uses inlined `_classify_direction()` instead of lazy-importing `determine_direction()` from `scoring` module, eliminating a runtime cross-module dependency while preserving identical threshold comparison behavior
@@ -83,6 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `FR40` to `INDEX_SYMBOLS` in `backend/app/core/instrument_classifier.py` — `classify_instrument("FR40")` now returns `InstrumentType.INDEX`, resolving the inconsistency with YFinance `SYMBOL_MAP` which already mapped `FR40 → ^FCHI`; added `test_fr40_is_index` regression test — code review performed
 - Replaced `logger.error()` with `logger.exception()` in `patterns.py` `detect_patterns()` except block to preserve the full exception traceback in error logs (SonarQube S8572)
 - Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_aggregator.py` and `backend/tests/unit/test_scoring.py` to resolve SonarQube S1244
+
+- Normalized `python` label color to lowercase hex (`3572a5`); assigned unique colors to `dependabot` (`006b75`) and `ci` (`bfdadc`) to avoid visual ambiguity with `frontend`/`backend`
+- Added `repo.slug` format validation and `roadmapIssue.bodyPath` path traversal guard in `scripts/sync-github-meta.ps1`
 
 ## [0.1.0] - 2026-05-08
 

@@ -174,14 +174,14 @@ Nie dotyczy — zadanie konfiguracyjne bez logiki biznesowej.
 
 Lista kontrolna kryteriów akceptacji do weryfikacji, że implementacja spełnia zdefiniowane wymagania:
 
-- [ ] `gh-sync.json` zawiera wszystkie 20 etykiet (10 oryginalnych + 6 brakujących z GitHub + 4 technologiczne)
-- [ ] Wszystkie etykiety mają poprawne pola: `name`, `color`, `description`
-- [ ] Kolory etykiet są zgodne z GitHub (format hex bez `#`)
-- [ ] Wszystkie referencje w `dependabot.yml` wskazują na istniejące etykiety
-- [ ] Wszystkie referencje w `ISSUE_TEMPLATE/*.yml` wskazują na istniejące etykiety
-- [ ] Plik `gh-sync.json` jest poprawnym JSON
-- [ ] Workflow `sync-dry-run` przechodzi bez błędów
-- [ ] `CHANGELOG.md` zawiera wpis o zmianie
+- [x] `gh-sync.json` zawiera wszystkie 20 etykiet (10 oryginalnych + 6 brakujących z GitHub + 4 technologiczne)
+- [x] Wszystkie etykiety mają poprawne pola: `name`, `color`, `description`
+- [x] Kolory etykiet są zgodne z GitHub (format hex bez `#`), unikalne i lowercase
+- [x] Wszystkie referencje w `dependabot.yml` wskazują na istniejące etykiety
+- [x] Wszystkie referencje w `ISSUE_TEMPLATE/*.yml` wskazują na istniejące etykiety
+- [x] Plik `gh-sync.json` jest poprawnym JSON
+- [x] Workflow `sync-dry-run` przechodzi bez błędów
+- [x] `CHANGELOG.md` zawiera wpis o zmianie (w sekcjach `### Added` i `### Fixed`)
 
 ### Planowane quality gates z kontraktu `code-reviewing`
 
