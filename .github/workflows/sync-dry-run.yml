@@ -3,10 +3,9 @@ name: Sync dry-run
 on:
   push:
     branches: [ main, master ]
+    tags: []
   pull_request:
     branches: [ main, master ]
-  push:
-    tags: []
   workflow_dispatch: {}
 
 jobs:
@@ -21,30 +20,30 @@ jobs:
         shell: pwsh
         run: |
           $warnings = @()
+          $errMsg = $null
           $files = @('.github/gh-sync.json', '.github/issue-seed.json')
           foreach ($f in $files) {
             if (Test-Path $f) {
-              try {
-                $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction Stop
-              } catch {
-                Write-Warning "$f nie jest poprawnym UTF-8 lub nie mo¿na odczytaæ: $_"
+              $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction SilentlyContinue
+              if (-not $raw) {
+                Write-Output "$f is not valid UTF-8 or cannot be read"
                 $warnings += "$f encoding"
                 continue
               }
-              try {
-                $json = $raw | ConvertFrom-Json -ErrorAction Stop
-                $ids = @()
-                if ($json -is [System.Collections.IEnumerable]) {
-                  foreach ($item in $json) { if ($null -ne $item.sourceId) { $ids += $item.sourceId } }
-                } else { if ($null -ne $json.sourceId) { $ids += $json.sourceId } }
-                $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
-                if ($dups) { Write-Warning "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
-              } catch {
-                Write-Warning "Nie mo¿na sparsowaæ JSON z $f: $_"
+              $json = $raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+              if (-not $json) {
+                Write-Output "Cannot parse JSON from $f"
                 $warnings += "$f parse"
+                continue
               }
+              $ids = @()
+              if ($json -is [System.Collections.IEnumerable]) {
+                foreach ($item in $json) { if ($null -ne $item.sourceId) { $ids += $item.sourceId } }
+              } else { if ($null -ne $json.sourceId) { $ids += $json.sourceId } }
+              $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
+              if ($dups) { Write-Output "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
             } else {
-              Write-Output "Plik $f nie istnieje — kontynuujê (warning)."
+              Write-Output "File $f does not exist - continuing (warning)."
             }
           }
           if ($warnings.Count -gt 0) { Write-Output "WARNINGS: $($warnings -join '; ')" }
@@ -56,14 +55,14 @@ jobs:
           $scripts = @('./scripts/sync-github-meta.ps1', './scripts/seed-github-issues.ps1')
           foreach ($s in $scripts) {
             if (Test-Path $s) {
-              Write-Output "Uruchamiam $s z parametrem -DryRun (jeœli dostêpne), output do sync-dry-run.log"
-              try {
-                & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
-              } catch {
-                Write-Warning "Uruchomienie z -DryRun nie powiod³o siê, próbujê bez parametrów"
-                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { Write-Warning "B³¹d uruchomienia $s: $_"; "ERROR running $s`n$_" | Out-File -FilePath sync-dry-run.log -Append }
+              $configPath = Join-Path (Split-Path -Parent $s) (Join-Path ".github" "gh-sync.json")
+              if (Test-Path $configPath) {
+                Write-Output "Running $s in dry-run mode, output to sync-dry-run.log"
+                & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
+              } else {
+                Write-Output "Config file not found for $s at $configPath - skipping."
               }
-            } else { Write-Output "Skrypt $s nie istnieje — pomijam." | Tee-Object -FilePath sync-dry-run.log -Append }
+            } else { Write-Output "Script $s does not exist - skipping." | Tee-Object -FilePath sync-dry-run.log -Append }
           }
 
       - name: Upload dry-run log
@@ -78,9 +77,9 @@ jobs:
           if (Test-Path sync-dry-run.log) {
             $log = Get-Content sync-dry-run.log -Raw
             if ($log -match '(change|apply|will be created|will be modified|To be applied|Changes:|CHANGE)') {
-              Write-Output "POTENCJALNE ZMIANY W LOGU"
-              Write-Output "Znaleziono frazy sugeruj¹ce zmiany."
+              Write-Output "POTENTIAL CHANGES IN LOG"
+              Write-Output "Found phrases suggesting changes."
             } else {
-              Write-Output "Brak oczywistych fraz sugeruj¹cych zmiany."
+              Write-Output "No obvious phrases suggesting changes found."
             }
-          } else { Write-Output "Brak pliku sync-dry-run.log do analizy." }
+          } else { Write-Output "No sync-dry-run.log file for analysis." }
