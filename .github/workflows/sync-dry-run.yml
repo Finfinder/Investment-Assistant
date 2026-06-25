@@ -26,7 +26,7 @@ jobs:
               try {
                 $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction Stop
               } catch {
-                Write-Warning "$f nie jest poprawnym UTF-8 lub nie mo¿na odczytaæ: $_"
+                Write-Warning "$f nie jest poprawnym UTF-8 lub nie mozna odczytac: ${_}"
                 $warnings += "$f encoding"
                 continue
               }
@@ -39,11 +39,11 @@ jobs:
                 $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
                 if ($dups) { Write-Warning "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
               } catch {
-                Write-Warning "Nie mo¿na sparsowaæ JSON z $f: $_"
+                Write-Warning "Nie mozna sparsowac JSON z $f: ${_}"
                 $warnings += "$f parse"
               }
             } else {
-              Write-Output "Plik $f nie istnieje — kontynuujê (warning)."
+              Write-Output "Plik $f nie istnieje - kontynuujemy (warning)."
             }
           }
           if ($warnings.Count -gt 0) { Write-Output "WARNINGS: $($warnings -join '; ')" }
@@ -55,14 +55,14 @@ jobs:
           $scripts = @('./scripts/sync-github-meta.ps1', './scripts/seed-github-issues.ps1')
           foreach ($s in $scripts) {
             if (Test-Path $s) {
-              Write-Output "Uruchamiam $s z parametrem -DryRun (jeœli dostêpne), output do sync-dry-run.log"
+              Write-Output "Uruchamiam $s z parametrem -DryRun (jesli dostepne), output do sync-dry-run.log"
               try {
                 & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
               } catch {
-                Write-Warning "Uruchomienie z -DryRun nie powiod³o siê, próbujê bez parametrów"
-                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { Write-Warning "B³¹d uruchomienia $s: $_"; "ERROR running $s`n$_" | Out-File -FilePath sync-dry-run.log -Append }
+                Write-Warning "Uruchomienie z -DryRun nie powiodlo sie, probuje bez parametrow"
+                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { Write-Warning "Blad uruchomienia $s: ${_}"; "ERROR running $s`n${_}" | Out-File -FilePath sync-dry-run.log -Append }
               }
-            } else { Write-Output "Skrypt $s nie istnieje — pomijam." | Tee-Object -FilePath sync-dry-run.log -Append }
+            } else { Write-Output "Skrypt $s nie istnieje - pomijam." | Tee-Object -FilePath sync-dry-run.log -Append }
           }
 
       - name: Upload dry-run log
