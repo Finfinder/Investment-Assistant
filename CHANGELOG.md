@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Cache npm dependencies and Next.js build artifacts in GitHub Actions CI and release workflows — `actions/cache@v4` with `hashFiles('frontend/package.json', 'frontend/next.config.mjs', 'frontend/tsconfig.json')` key for build cache; `setup-node@v5` with `cache: "npm"` for dependency cache; reduces frontend CI job times by 30-50% on cache hit
+
 - Synchronized `.github/gh-sync.json` with GitHub repository labels: added 6 missing labels (`duplicate`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`) and 4 Dependabot labels (`dependabot`, `python`, `javascript`, `ci`); local label set now matches GitHub (20 labels total)
 
 - Unit tests for frontend formatting helpers: `formatValue`, `confidenceBarClass`, `formatRiskReward`, `riskRewardClass` — 36 test cases covering null/undefined handling, boundary values, edge cases (NaN, Infinity, -0, negative numbers)
