@@ -91,12 +91,12 @@
     },
     {
       "name": "dependabot",
-      "color": "0366d6",
+      "color": "006b75",
       "description": "Dependabot dependency update."
     },
     {
       "name": "python",
-      "color": "3572A5",
+      "color": "3572a5",
       "description": "Python language or ecosystem topic."
     },
     {
@@ -106,7 +106,7 @@
     },
     {
       "name": "ci",
-      "color": "5319e7",
+      "color": "bfdadc",
       "description": "Continuous integration, workflows, or automation topic."
     }
   ],

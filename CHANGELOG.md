@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Synchronized `.github/gh-sync.json` with GitHub repository labels: added 6 missing labels (`duplicate`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`) and 4 Dependabot labels (`dependabot`, `python`, `javascript`, `ci`); local label set now matches GitHub (20 labels total)
+- Code review fixes: normalized `python` label color to lowercase hex (`3572a5`), assigned unique colors to `dependabot` (`006b75`) and `ci` (`bfdadc`) to avoid visual ambiguity with `frontend`/`backend`; added `repo.slug` format validation and `roadmapIssue.bodyPath` path traversal guard in `scripts/sync-github-meta.ps1`
 
 - Unit tests for frontend formatting helpers: `formatValue`, `confidenceBarClass`, `formatRiskReward`, `riskRewardClass` — 36 test cases covering null/undefined handling, boundary values, edge cases (NaN, Infinity, -0, negative numbers)
 
