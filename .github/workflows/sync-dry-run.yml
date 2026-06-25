@@ -26,7 +26,7 @@ jobs:
               try {
                 $raw = Get-Content -Raw -Encoding UTF8 $f -ErrorAction Stop
               } catch {
-                Write-Warning "$f nie jest poprawnym UTF-8 lub nie mozna odczytac: ${_}"
+                Write-Warning "$f is not valid UTF-8 or cannot be read: ${_}"
                 $warnings += "$f encoding"
                 continue
               }
@@ -39,11 +39,11 @@ jobs:
                 $dups = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
                 if ($dups) { Write-Warning "$f zawiera duplikaty sourceId: $($dups | ForEach-Object { $_.Name } -join ', ')"; $warnings += "$f duplicates" }
               } catch {
-                Write-Warning "Nie mozna sparsowac JSON z $f: ${_}"
+                Write-Warning "Cannot parse JSON from $f: ${_}"
                 $warnings += "$f parse"
               }
             } else {
-              Write-Output "Plik $f nie istnieje - kontynuujemy (warning)."
+              Write-Output "File $f does not exist - continuing (warning)."
             }
           }
           if ($warnings.Count -gt 0) { Write-Output "WARNINGS: $($warnings -join '; ')" }
@@ -55,14 +55,14 @@ jobs:
           $scripts = @('./scripts/sync-github-meta.ps1', './scripts/seed-github-issues.ps1')
           foreach ($s in $scripts) {
             if (Test-Path $s) {
-              Write-Output "Uruchamiam $s z parametrem -DryRun (jesli dostepne), output do sync-dry-run.log"
+              Write-Output "Running $s with -DryRun parameter (if available), output to sync-dry-run.log"
               try {
                 & $s -DryRun *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
               } catch {
-                Write-Warning "Uruchomienie z -DryRun nie powiodlo sie, probuje bez parametrow"
-                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { Write-Warning "Blad uruchomienia $s: ${_}"; "ERROR running $s`n${_}" | Out-File -FilePath sync-dry-run.log -Append }
+                Write-Warning "-DryRun execution failed, trying without parameters"
+                try { & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append } catch { Write-Warning "Error running $s: ${_}"; "ERROR running $s`n${_}" | Out-File -FilePath sync-dry-run.log -Append }
               }
-            } else { Write-Output "Skrypt $s nie istnieje - pomijam." | Tee-Object -FilePath sync-dry-run.log -Append }
+            } else { Write-Output "Script $s does not exist - skipping." | Tee-Object -FilePath sync-dry-run.log -Append }
           }
 
       - name: Upload dry-run log
@@ -77,9 +77,9 @@ jobs:
           if (Test-Path sync-dry-run.log) {
             $log = Get-Content sync-dry-run.log -Raw
             if ($log -match '(change|apply|will be created|will be modified|To be applied|Changes:|CHANGE)') {
-              Write-Output "POTENCJALNE ZMIANY W LOGU"
-              Write-Output "Znaleziono frazy sugeruj¹ce zmiany."
+              Write-Output "POTENTIAL CHANGES IN LOG"
+              Write-Output "Found phrases suggesting changes."
             } else {
-              Write-Output "Brak oczywistych fraz sugeruj¹cych zmiany."
+              Write-Output "No obvious phrases suggesting changes found."
             }
-          } else { Write-Output "Brak pliku sync-dry-run.log do analizy." }
+          } else { Write-Output "No sync-dry-run.log file for analysis." }
