@@ -78,6 +78,9 @@ function Get-SyncConfig {
     if (-not $config.repo.slug) {
         throw "Missing repo.slug in $Path"
     }
+    if ($config.repo.slug -notmatch '^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$') {
+        throw "Invalid repo.slug format in $Path. Expected 'owner/repo' with alphanumeric characters, underscores, dots, and hyphens only."
+    }
     if (-not $config.features) {
         throw "Missing features section in $Path"
     }
@@ -235,7 +238,11 @@ function Sync-RoadmapIssue {
     }
 
     $bodyRelativePath = [string]$Config.roadmapIssue.bodyPath
-    $bodyPath = Join-Path $repoRoot $bodyRelativePath
+    $normalizedRoot = [System.IO.Path]::GetFullPath($repoRoot).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+    $bodyPath = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $bodyRelativePath))
+    if (-not $bodyPath.StartsWith($normalizedRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "roadmapIssue.bodyPath escapes repository root: $bodyRelativePath"
+    }
     if (-not (Test-Path $bodyPath)) {
         throw "Roadmap issue body file not found: $bodyPath"
     }

@@ -1,0 +1,154 @@
+{
+  "repo": {
+    "slug": "Finfinder/Investment-Assistant"
+  },
+  "features": {
+    "issues": true,
+    "projects": true,
+    "wiki": false,
+    "discussions": true
+  },
+  "labels": [
+    {
+      "name": "bug",
+      "color": "d73a4a",
+      "description": "Bug to investigate and fix."
+    },
+    {
+      "name": "enhancement",
+      "color": "a2eeef",
+      "description": "Improvement or new capability."
+    },
+    {
+      "name": "documentation",
+      "color": "0075ca",
+      "description": "Documentation-only change."
+    },
+    {
+      "name": "priority:high",
+      "color": "b60205",
+      "description": "High-priority work."
+    },
+    {
+      "name": "ai",
+      "color": "1d76db",
+      "description": "AI-assisted workflow or automation topic."
+    },
+    {
+      "name": "technical-debt",
+      "color": "fbca04",
+      "description": "Refactoring, cleanup, or maintenance debt."
+    },
+    {
+      "name": "roadmap",
+      "color": "0e8a16",
+      "description": "Roadmap or larger planning topic."
+    },
+    {
+      "name": "backend",
+      "color": "5319e7",
+      "description": "Backend API, domain module, or data-processing topic."
+    },
+    {
+      "name": "frontend",
+      "color": "0366d6",
+      "description": "Frontend UI, UX, or Next.js topic."
+    },
+    {
+      "name": "infrastructure",
+      "color": "e99695",
+      "description": "CI, Docker, deployment, or platform topic."
+    },
+    {
+      "name": "duplicate",
+      "color": "cfd3d7",
+      "description": "This issue or pull request already exists"
+    },
+    {
+      "name": "good first issue",
+      "color": "7057ff",
+      "description": "Good for newcomers"
+    },
+    {
+      "name": "help wanted",
+      "color": "008672",
+      "description": "Extra attention is needed"
+    },
+    {
+      "name": "invalid",
+      "color": "e4e669",
+      "description": "This doesn't seem right"
+    },
+    {
+      "name": "question",
+      "color": "d876e3",
+      "description": "Further information is requested"
+    },
+    {
+      "name": "wontfix",
+      "color": "ffffff",
+      "description": "This will not be worked on"
+    },
+    {
+      "name": "dependabot",
+      "color": "006b75",
+      "description": "Dependabot dependency update."
+    },
+    {
+      "name": "python",
+      "color": "3572a5",
+      "description": "Python language or ecosystem topic."
+    },
+    {
+      "name": "javascript",
+      "color": "f1e05a",
+      "description": "JavaScript/TypeScript language or ecosystem topic."
+    },
+    {
+      "name": "ci",
+      "color": "bfdadc",
+      "description": "Continuous integration, workflows, or automation topic."
+    }
+  ],
+  "milestones": [
+    {
+      "title": "0.5.x Repository Foundations and Quality Gates",
+      "description": "Establish repository quality gates, dependency hygiene, GitHub metadata, and contributor-facing docs.",
+      "state": "open"
+    },
+    {
+      "title": "0.6.x Core Platform, Contracts, and Scale",
+      "description": "Scale core backend services, contracts, caching, task execution, and instrument coverage.",
+      "state": "open"
+    },
+    {
+      "title": "0.7.x Analysis UX and Chart Experience",
+      "description": "Improve chart usability, analysis presentation, and frontend feedback across the main workflow.",
+      "state": "open"
+    },
+    {
+      "title": "0.8.x Pattern Intelligence and Strategy Calibration",
+      "description": "Expand pattern intelligence, scoring calibration, and trader-facing pattern UX.",
+      "state": "open"
+    },
+    {
+      "title": "0.9.x Macro Data Reliability and Coverage",
+      "description": "Harden macro data sourcing, fallback policies, observability, and country coverage.",
+      "state": "open"
+    },
+    {
+      "title": "1.0.x User Accounts, Automation, and New Product Surfaces",
+      "description": "Open user accounts, automation, notifications, and new product surfaces such as PWA and mobile.",
+      "state": "open"
+    }
+  ],
+  "roadmapIssue": {
+    "enabled": true,
+    "title": "Project Status / Roadmap",
+    "labels": [
+      "roadmap"
+    ],
+    "bodyPath": ".github/roadmap-issue.md",
+    "pin": true
+  }
+}

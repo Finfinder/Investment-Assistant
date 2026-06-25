@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Synchronized `.github/gh-sync.json` with GitHub repository labels: added 6 missing labels (`duplicate`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`) and 4 Dependabot labels (`dependabot`, `python`, `javascript`, `ci`); local label set now matches GitHub (20 labels total)
+
 - Unit tests for frontend formatting helpers: `formatValue`, `confidenceBarClass`, `formatRiskReward`, `riskRewardClass` — 36 test cases covering null/undefined handling, boundary values, edge cases (NaN, Infinity, -0, negative numbers)
 
 - `calibrate_signal_thresholds.py` now supports real OHLCV data calibration via `--real` CLI flag and optional `--step-size` parameter; adds `run_with_real_data()` async orchestrator building calibration samples from live OHLCV data through the full pattern-recognition, technical-analysis, and SL/TP pipeline; `REAL_DATA_PERIOD` configures per-timeframe historical data ranges (`M15: 55d`, `H1/H4: 700d`, `D1: 5y`, `W1: 10y`)
@@ -76,6 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `FR40` to `INDEX_SYMBOLS` in `backend/app/core/instrument_classifier.py` — `classify_instrument("FR40")` now returns `InstrumentType.INDEX`, resolving the inconsistency with YFinance `SYMBOL_MAP` which already mapped `FR40 → ^FCHI`; added `test_fr40_is_index` regression test — code review performed
 - Replaced `logger.error()` with `logger.exception()` in `patterns.py` `detect_patterns()` except block to preserve the full exception traceback in error logs (SonarQube S8572)
 - Applied `pytest.approx()` to float equality assertions in `backend/tests/unit/test_aggregator.py` and `backend/tests/unit/test_scoring.py` to resolve SonarQube S1244
+
+- Normalized `python` label color to lowercase hex (`3572a5`); assigned unique colors to `dependabot` (`006b75`) and `ci` (`bfdadc`) to avoid visual ambiguity with `frontend`/`backend`
+- Added `repo.slug` format validation and `roadmapIssue.bodyPath` path traversal guard in `scripts/sync-github-meta.ps1`
 
 ## [0.1.0] - 2026-05-08
 
