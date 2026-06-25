@@ -55,8 +55,13 @@ jobs:
           $scripts = @('./scripts/sync-github-meta.ps1', './scripts/seed-github-issues.ps1')
           foreach ($s in $scripts) {
             if (Test-Path $s) {
-              Write-Output "Running $s in dry-run mode, output to sync-dry-run.log"
-              & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
+              $configPath = Join-Path (Split-Path -Parent $s) (Join-Path ".github" "gh-sync.json")
+              if (Test-Path $configPath) {
+                Write-Output "Running $s in dry-run mode, output to sync-dry-run.log"
+                & $s *>&1 | Tee-Object -FilePath sync-dry-run.log -Append
+              } else {
+                Write-Output "Config file not found for $s at $configPath - skipping."
+              }
             } else { Write-Output "Script $s does not exist - skipping." | Tee-Object -FilePath sync-dry-run.log -Append }
           }
 
