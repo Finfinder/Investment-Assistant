@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     CACHE_TTL_INTRADAY: int = 300
     CACHE_TTL_DAILY: int = 3600
 
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_PASSWORD: str = ""
+    REDIS_MAX_CONNECTIONS: int = 10
+    REDIS_CACHE_TTL_OVERRIDE: int | None = None
+
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 

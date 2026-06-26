@@ -7,12 +7,13 @@ from app.api.v1.validators import validate_period, validate_symbol
 from app.core.config import get_settings
 from app.core.models import OHLCVData, Timeframe
 from app.core.rate_limit import limiter
-from app.modules.data_acquisition.cache import InMemoryCache, make_cache_key
+from app.modules.data_acquisition.cache import make_cache_key
 from app.modules.data_acquisition.fallback_chain import (
     DataProviderError,
     FallbackChainManager,
     build_fallback_chain,
 )
+from app.modules.data_acquisition.redis_cache import RedisCache, create_redis_cache
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,11 @@ router = APIRouter(tags=["market-data"])
 
 
 @lru_cache(maxsize=1)
-def _get_caches() -> tuple[InMemoryCache, InMemoryCache]:
+def _get_caches() -> tuple["RedisCache", "RedisCache"]:
     settings = get_settings()
-    intraday_cache = InMemoryCache(default_ttl=settings.CACHE_TTL_INTRADAY)
-    daily_cache = InMemoryCache(default_ttl=settings.CACHE_TTL_DAILY)
+    ttl_override = settings.REDIS_CACHE_TTL_OVERRIDE
+    intraday_cache = create_redis_cache(default_ttl=ttl_override or settings.CACHE_TTL_INTRADAY, key_prefix="ohlcv")
+    daily_cache = create_redis_cache(default_ttl=ttl_override or settings.CACHE_TTL_DAILY, key_prefix="ohlcv")
     return intraday_cache, daily_cache
 
 
@@ -53,9 +55,9 @@ async def get_market_data(
     cache = daily_cache if timeframe == Timeframe.D1 else intraday_cache
 
     cache_key = make_cache_key(symbol, timeframe.value, period)
-    cached = cache.get(cache_key)
+    cached = await cache.get(cache_key)
     if cached is not None:
-        return cached  # type: ignore[no-any-return]
+        return [OHLCVData(**item) for item in cached]
 
     chain = get_fallback_chain()
 
@@ -66,6 +68,7 @@ async def get_market_data(
         raise HTTPException(status_code=502, detail="Unable to fetch market data from any provider") from exc
 
     if data:
-        cache.set(cache_key, data)
+        serialized_data = [item.model_dump(mode="json") for item in data]
+        await cache.set(cache_key, serialized_data)
 
     return data
