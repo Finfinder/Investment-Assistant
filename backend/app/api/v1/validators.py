@@ -11,6 +11,9 @@ SYMBOL_PATTERN = re.compile(r"^[A-Za-z0-9/\-]{2,20}$")
 # Period format: 1-4 digits followed by d/m/y (e.g. 30d, 6m, 1y).
 PERIOD_PATTERN = re.compile(r"^\d{1,4}[dymDYM]$")
 
+# UUID4 pattern for analysis_id validation.
+UUID4_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+
 
 def validate_symbol(symbol: str) -> None:
     """Raise HTTP 400 if symbol format is invalid."""
@@ -22,3 +25,9 @@ def validate_period(period: str) -> None:
     """Raise HTTP 400 if period format is invalid."""
     if not PERIOD_PATTERN.match(period):
         raise HTTPException(status_code=400, detail="Invalid period format (e.g. 30d, 6m, 1y)")
+
+
+def validate_analysis_id(analysis_id: str) -> None:
+    """Raise HTTP 400 if analysis_id is not a valid UUID4."""
+    if not UUID4_PATTERN.match(analysis_id):
+        raise HTTPException(status_code=400, detail="Invalid analysis ID format")

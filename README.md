@@ -23,6 +23,7 @@ CFD instrument technical and fundamental analysis application. Provides market d
 
 - **Python 3.13** / FastAPI / Pydantic 2
 - **SQLAlchemy 2** (async, SQLite for MVP)
+- **Redis** (caching with fallback to in-memory)
 - **Data providers**: yfinance (primary), Twelve Data, Financial Modeling Prep
 - **Analysis**: pandas-ta, TA-Lib
 

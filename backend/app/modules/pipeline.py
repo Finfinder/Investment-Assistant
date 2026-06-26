@@ -91,7 +91,7 @@ class AnalysisPipeline:
     def _complete_step(self, step_name: str) -> None:
         self._status.steps_completed.append(step_name)
 
-    def _fail(self, error: str) -> None:
+    def fail(self, error: str) -> None:
         self._status.status = AnalysisStatusType.FAILED
         self._status.error_message = error
         analysis_tasks[self.analysis_id] = self._status
@@ -125,7 +125,7 @@ class AnalysisPipeline:
             self._complete_step(PIPELINE_STEPS[0])
 
             if not ohlcv:
-                self._fail("Brak danych rynkowych dla podanego symbolu")
+                self.fail("Brak danych rynkowych dla podanego symbolu")
                 return None
 
             daily_ohlcv = fetch_bundle.get(DataTimeframe.D1)
@@ -210,7 +210,7 @@ class AnalysisPipeline:
 
         except Exception as exc:
             logger.exception("Pipeline failed for %s: %s", self.symbol, exc)
-            self._fail(str(exc))
+            self.fail(str(exc))
             return None
 
     async def _step_fetch_data(self) -> MultiTimeframeFetchBundle:

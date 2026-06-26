@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,18 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import get_settings
 from app.core.logging_config import setup_logging
 from app.core.rate_limit import limiter
+from app.core.redis import redis_manager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage Redis connection lifecycle."""
+    settings = get_settings()
+    if settings.REDIS_PASSWORD == "" and not settings.DEBUG:
+        raise RuntimeError("REDIS_PASSWORD must be configured in production")
+    await redis_manager.initialize()
+    yield
+    await redis_manager.close()
 
 
 def create_app() -> FastAPI:
@@ -18,8 +31,10 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         version="0.1.0",
-        docs_url=f"{settings.API_V1_PREFIX}/docs",
-        openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
+        docs_url=f"{settings.API_V1_PREFIX}/docs" if settings.DEBUG else None,
+        redoc_url=f"{settings.API_V1_PREFIX}/redoc" if settings.DEBUG else None,
+        openapi_url=f"{settings.API_V1_PREFIX}/openapi.json" if settings.DEBUG else None,
+        lifespan=lifespan,
     )
 
     app.state.limiter = limiter

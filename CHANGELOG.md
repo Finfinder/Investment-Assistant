@@ -7,9 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Redis caching for market data and analysis results: `RedisCache` class with JSON serialization and `InMemoryCache` fallback, `RedisManager` singleton for connection lifecycle, Redis service in docker-compose.yml, `REDIS_URL` and `REDIS_MAX_CONNECTIONS` configuration in Settings
+
 ### Fixed
 
-- React Testing Library test assertions: fixed text matchers to use regex patterns for split text elements (score labels, signal labels), fixed `vi` import in PatternList.test.tsx, corrected score threshold expectations in FundamentalPanel.test.tsx tests (score 50 returns "Kup" not "Mocne Kup"), fixed button name matchers to use regex for accessibility names with icons
+- Security: Redis healthcheck now uses `REDISCLI_AUTH` env var instead of `-a` flag to avoid password exposure in process args; fails fast if `REDIS_PASSWORD` is empty
+- Security: WebSocket per-IP rate limiter now uses UUID4 connection IDs instead of `time.monotonic()` timestamps to prevent theoretical collision edge case
+- Resilience: Cache validation errors in analysis and market data endpoints now treated as cache miss with invalidation instead of returning 500
+- Unit tests for API validators: `test_validators.py` covering symbol, period, and UUID4 validation (21 test cases)
+
+### Fixed
+
+- Security: Removed hardcoded Redis password fallback in docker-compose.yml and `.env.example` - now requires explicit `REDIS_PASSWORD` environment variable
+- Security: Added WebSocket origin check in `analysis_websocket` to reject connections from unauthorized origins
+- Security: Added per-IP rate limiting for WebSocket connections (max 5 concurrent per IP in 60s window)
+- Race condition: Added `asyncio.Lock` for atomic guard against duplicate `analysis_id` in `trigger_analysis` endpoint
+- Error handling: Added exception logging in `_run_pipeline` with `logger.exception()` for failed pipeline executions
+- Stability: Changed `_background_tasks` from `TTLCache(maxsize=1000)` to plain `dict` — active tasks are no longer at risk of eviction by size limit
+- **ISSUE-1**: Pipeline exceptions now call `pipeline._fail()` to update `analysis_tasks` status to FAILED
+- **C-1**: Added Redis password validation in `lifespan()` - raises `RuntimeError` if `REDIS_PASSWORD` is empty in production
+- **H-1/H-2**: Added cleanup of `_ws_connections_per_ip` entries on WebSocket disconnect and empty list removal
+- **BUG-3**: Made `RedisManager.reset()` async and now closes connection before resetting
+- **BUG-4**: Added `PackageNotFoundError` fallback for `_APP_VERSION` in health endpoint (returns "dev" if package not installed)
+- **GAP-3**: Added unit test for `create_redis_cache()` factory
+
+### Code Review Round 2 — Findings & Fixes
+
+#### MEDIUM — FIXED
+- **B-1**: WebSocket cleanup używał `now` z momentu akceptacji zamiast aktualnego czasu → naprawione: `cleanup_now = time.monotonic()` w `finally` bloku
+- **CS-4**: `pipeline._fail()` była prywatną metodą wywoływaną z zewnątrz → zmieniona na publiczną `pipeline.fail()`
+- **GAP-1 (Round 2)**: Brak testu dla ścieżki `pipeline.fail()` w `_run_pipeline` → dodano 2 testy: `test_run_pipeline_sets_failed_status_on_exception` i `test_run_pipeline_sets_failed_status_on_none_report`
+
+#### Remaining LOW (non-blocking)
+- CS-3: `_analysis_guard_lock` jako modułowy `asyncio.Lock()` — leniwa inicjalizacja
+- CS-6/V-3: `@pytest.mark.asyncio` zbędne w istniejących testach integracyjnych
+
+### Code Review Round 3 — Findings & Fixes
+
+#### HIGH — FIXED
+- **V-3**: Swagger/OpenAPI dostępny bez autentykacji → warunkowe `docs_url`, `redoc_url`, `openapi_url` (wyłączone gdy `DEBUG=False`)
+
+#### MEDIUM — FIXED
+- **CS-1**: Singleton `RedisManager` — `_client` przeniesiony do zmiennej instancji, dodany `asyncio.Lock` do `initialize()` (idempotentne, thread-safe), `reset()` odtwarza lock
+- **CS-1 (test)**: Fixture `reset_redis_manager` zaktualizowany — resetuje `_instance` i `_init_lock` zamiast `_client`
+
+#### LOW — FIXED
+- **CS-5**: Brak logowania fallbacku w `health.py` → dodany `logger.debug()` przy `PackageNotFoundError`
+
+### Code Review Findings (Resolved)
+
+#### HIGH Priority - RESOLVED
+- **ISSUE-1 (IT)**: Pipeline exception nie aktualizuje `analysis_tasks` na FAILED — użytkownik dostaje `status=running` w nieskończoność. Wymagane wywołanie `pipeline.fail()` w `except` bloku.
+- **C-1 (Security)**: Puste hasło Redis domyślnie + healthcheck exposure — `redis-cli -a "" ping` w Dockerze. Wymagana walidacja hasła w `lifespan()`.
+- **H-1 (Security)**: Memory leak w `_ws_connections_per_ip` — klucze IP nigdy nie są usuwane ze słownika.
+- **H-2 (Security)**: Brak limitu na `_background_tasks` dict — atakujący może wysyłać requesty z różnymi symbolami → memory exhaustion.
+
+#### MEDIUM Priority - RESOLVED
+- **BUG-3 (Code)**: `RedisManager.reset()` nie zamyka połączenia — connection leak w testach.
+- **BUG-4 (Code)**: `_APP_VERSION` crash jeśli pakiet nie zainstalowany — `version("investment-assistant")` rzuca `PackageNotFoundError`.
+- **GAP-3 (Test)**: Brak testu dla `create_redis_cache()` factory.
+
+#### LOW Priority
+- **STYLE-2**: CORS `allow_headers` nie zawiera `Authorization`.
+- **M-3 (Security)**: CORS `allow_credentials=True` bez `allow_headers=["*"]` — authenticated requests nie zadziałaj.
+- **M-4 (Security)**: Healthcheck hasło w subprocess args — widoczne w `ps aux`, `/proc/*/cmdline`.
+- **L-1 (Security)**: `expose` vs `ports` — poprawne, ale brak custom network definition.
+- **STYLE-3**: Hardcoded version w `main.py` zamiast import z `version.py`.
+- **STYLE-4**: String type annotation zamiast `Tuple` w `market_data.py`.
+- **STYLE-5**: Brak `__all__` w `redis.py`.
+- Code quality: Removed redundant nested `with` statements in test file (SIM117)
 
 ### Added
 
