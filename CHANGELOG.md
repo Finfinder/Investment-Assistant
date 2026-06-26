@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Redis caching for market data and analysis results: `RedisCache` class with JSON serialization and `InMemoryCache` fallback, `RedisManager` singleton for connection lifecycle, Redis service in docker-compose.yml, `REDIS_URL` and `REDIS_MAX_CONNECTIONS` configuration in Settings
+
+### Fixed
+
+- Security: Redis healthcheck now uses `REDISCLI_AUTH` env var instead of `-a` flag to avoid password exposure in process args; fails fast if `REDIS_PASSWORD` is empty
+- Security: WebSocket per-IP rate limiter now uses UUID4 connection IDs instead of `time.monotonic()` timestamps to prevent theoretical collision edge case
+- Resilience: Cache validation errors in analysis and market data endpoints now treated as cache miss with invalidation instead of returning 500
 - Unit tests for API validators: `test_validators.py` covering symbol, period, and UUID4 validation (21 test cases)
 
 ### Fixed

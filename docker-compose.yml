@@ -7,7 +7,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "test -n \"${REDIS_PASSWORD}\" && REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3

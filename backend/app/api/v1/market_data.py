@@ -57,7 +57,11 @@ async def get_market_data(
     cache_key = make_cache_key(symbol, timeframe.value, period)
     cached = await cache.get(cache_key)
     if cached is not None:
-        return [OHLCVData(**item) for item in cached]
+        try:
+            return [OHLCVData(**item) for item in cached]
+        except Exception:
+            logger.warning("Cached market data for %s failed validation, invalidating cache", cache_key, exc_info=True)
+            await cache.invalidate(cache_key)
 
     chain = get_fallback_chain()
 
