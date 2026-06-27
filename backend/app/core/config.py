@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     REDIS_CACHE_TTL_OVERRIDE: int | None = None
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost"]
 
 
 @lru_cache(maxsize=1)
