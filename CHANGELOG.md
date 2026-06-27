@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix `test_settings_cors_origins_default` to match actual `CORS_ORIGINS` default including `http://localhost`
+
+### Fixed
+
 - Security: Redis healthcheck now uses `REDISCLI_AUTH` env var instead of `-a` flag to avoid password exposure in process args; fails fast if `REDIS_PASSWORD` is empty
 - Security: WebSocket per-IP rate limiter now uses UUID4 connection IDs instead of `time.monotonic()` timestamps to prevent theoretical collision edge case
 - Resilience: Cache validation errors in analysis and market data endpoints now treated as cache miss with invalidation instead of returning 500

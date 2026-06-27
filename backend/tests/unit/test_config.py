@@ -44,4 +44,4 @@ def test_settings_loads_from_env() -> None:
 
 def test_settings_cors_origins_default() -> None:
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
-    assert settings.CORS_ORIGINS == ["http://localhost:3000"]
+    assert settings.CORS_ORIGINS == ["http://localhost:3000", "http://localhost"]
