@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Optional
 
 import redis.asyncio as redis
 
@@ -12,8 +11,9 @@ logger = logging.getLogger(__name__)
 class RedisManager:
     """Singleton manager for Redis connection lifecycle."""
 
-    _instance: Optional["RedisManager"] = None
+    _instance: "RedisManager | None" = None
     _init_lock: asyncio.Lock = asyncio.Lock()
+    _client: redis.Redis | None
 
     def __new__(cls) -> "RedisManager":
         if cls._instance is None:
@@ -79,6 +79,8 @@ def _mask_url(url: str) -> str:
         if ":" in credentials:
             user, _ = credentials.split(":", 1)
             return f"{protocol}://{user}:***@{host_part}"
+        # Format: redis://password@host (no username, no colon in credentials)
+        return f"{protocol}://***@{host_part}"
     return url
 
 

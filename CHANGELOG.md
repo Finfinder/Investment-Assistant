@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix `test_settings_cors_origins_default` to match actual `CORS_ORIGINS` default including `http://localhost`
+- Security: `_mask_url()` in `redis.py` now masks password-only URLs (`redis://password@host`) to prevent credential leakage in logs
+- Security: Removed `or ["http://localhost:3000"]` fallback in WebSocket CORS check to enforce explicit origin allowlist (fail-closed)
+- Types: Fixed mypy errors — added `_client` type annotation in `RedisManager`, `AsyncIterator[None]` return type for `lifespan`, replaced `Optional[X]` with `X | None`
+
+### Tests
+
+- Added `test_mask_url.py` with 12 unit tests covering all Redis URL formats for password masking
 
 ### Fixed
 
