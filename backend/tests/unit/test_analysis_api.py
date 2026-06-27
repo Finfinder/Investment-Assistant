@@ -214,8 +214,9 @@ async def test_get_analysis_status_invalid_uuid(client):
 
 def test_ws_connections_per_ip_cleanup_logic():
     """Test that _ws_connections_per_ip cleanup logic works correctly."""
-    from app.api.v1.analysis import _ws_connections_per_ip, _WS_RATE_WINDOW
     import time
+
+    from app.api.v1.analysis import _WS_RATE_WINDOW, _ws_connections_per_ip
 
     _ws_connections_per_ip.clear()
 
