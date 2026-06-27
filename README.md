@@ -102,11 +102,11 @@ GitHub Release notes are generated from `CHANGELOG.md`. The supported release ar
 ## Architecture
 
 ```
-┌──────────────┐      ┌──────────────┐
-│   Frontend   │      │   Backend    │
-│  Next.js 14  │◄────►│  FastAPI     │
-│  :3000       │      │  :8000       │
-└──────┬───────┘      └──────┬───────┘
+┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│   Frontend   │      │   Backend    │      │    Redis     │
+│  Next.js 14  │◄────►│  FastAPI     │◄────►│   Cache      │
+│  :3000       │      │  :8000       │      │   :6379      │
+└──────┬───────┘      └──────┬───────┘      └──────────────┘
        │                     │
        └────────┬────────────┘
                 │

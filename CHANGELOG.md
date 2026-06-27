@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Documentation: Architecture diagram in README.md updated to include Redis caching layer, reflecting actual docker-compose.yml topology (Backend ↔ Redis) ([#104](https://github.com/Finfinder/Investment-Assistant/issues/104))
 - Security: Removed hardcoded Redis password fallback in docker-compose.yml and `.env.example` - now requires explicit `REDIS_PASSWORD` environment variable
 - Security: Added WebSocket origin check in `analysis_websocket` to reject connections from unauthorized origins
 - Security: Added per-IP rate limiting for WebSocket connections (max 5 concurrent per IP in 60s window)
