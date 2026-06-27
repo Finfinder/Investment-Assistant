@@ -158,7 +158,7 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str) -> None:
     # Origin check for WebSocket security
     origin = websocket.headers.get("origin", "")
     settings = get_settings()
-    allowed_origins = settings.CORS_ORIGINS or ["http://localhost:3000"]
+    allowed_origins = settings.CORS_ORIGINS
     if origin and origin not in allowed_origins:
         logger.warning("WebSocket rejected: origin %s not in allowed origins", origin)
         await websocket.close(code=1008)
