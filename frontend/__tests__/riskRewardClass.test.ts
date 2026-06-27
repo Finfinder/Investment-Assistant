@@ -14,7 +14,7 @@ describe("riskRewardClass", () => {
     ["ratio -0.5 (ujemne, aktualne zachowanie)", -0.5, "text-green-400"],
     ["ratio -1 (ujemne, zielone)", -1, "text-green-400"],
     ["ratio -Infinity (ujemne, zielone)", -Infinity, "text-green-400"],
-    ["ratio 0.51 (granica żółte)", 0.51, "text-yellow-400"],
+    ["ratio 0.51 (tuż powyżej progu, żółte)", 0.51, "text-yellow-400"],
     ["ratio 0.7 (żółte)", 0.7, "text-yellow-400"],
     ["ratio 1 (żółte)", 1, "text-yellow-400"],
     ["ratio 100 (duże, żółte)", 100, "text-yellow-400"],
@@ -23,7 +23,7 @@ describe("riskRewardClass", () => {
     // NaN <= 0.5 → false → żółty (gałąź else)
     ["ratio NaN (żółte)", NaN, "text-yellow-400"],
     ["ratio Infinity (żółte)", Infinity, "text-yellow-400"],
-  ])("zwraca %s dla %s", (_desc, ratio, expected) => {
-    expect(riskRewardClass(ratio as number | null)).toBe(expected);
+  ] as const)("zwraca %s dla %s", (_desc, ratio, expected) => {
+    expect(riskRewardClass(ratio)).toBe(expected);
   });
 });
