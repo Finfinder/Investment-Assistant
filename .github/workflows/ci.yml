@@ -193,5 +193,6 @@ jobs:
     needs: [test, frontend-test]
     permissions:
       contents: read
+      pull-requests: read
     uses: ./.github/workflows/reusable-sonarcloud.yml
     secrets: inherit

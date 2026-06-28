@@ -13,12 +13,14 @@ on:
         description: SonarCloud authentication token for code analysis.
         required: true
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   sonarcloud:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     defaults:
       run:
         working-directory: backend
@@ -48,6 +50,21 @@ jobs:
 
       - name: Run tests with coverage
         run: pytest --cov=app --cov-branch --cov-report=xml --cov-report=term-missing
+
+      - name: Set up Node.js for frontend coverage
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generate frontend coverage (LCOV)
+        working-directory: frontend
+        run: npm run test:coverage
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v4
