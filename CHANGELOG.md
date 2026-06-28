@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Security: Redact clear-text API key names in `main.py` startup logs - replaced with count-based logging to fix CodeQL `py/clear-text-logging-sensitive-data` alert ([#134](https://github.com/Finfinder/Investment-Assistant/issues/134))
+- Security: Extended `JSONFormatter` to sanitize `record.args` and exception tracebacks to prevent sensitive data leakage via log arguments and stack traces
+- Security: Extended `_SENSITIVE_KEYS` with API key names (`twelve_data_api_key`, `fmp_api_key`, `fred_api_key`) and infrastructure secrets (`redis_password`, `database_url`)
+
 ### Changed
 
 - Frontend: reformat `tsconfig.json` to multi-line array style and add `"target": "ES2017"`

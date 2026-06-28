@@ -17,12 +17,17 @@ _SENSITIVE_KEYS = frozenset(
         "authorization",
         "cookie",
         "credit_card",
+        "twelve_data_api_key",
+        "fmp_api_key",
+        "fred_api_key",
+        "redis_password",
+        "database_url",
     }
 )
 
 
 class JSONFormatter(logging.Formatter):
-    """Outputs one JSON object per log line — no sensitive data."""
+    """Outputs one JSON object per log line - no sensitive data."""
 
     def format(self, record: logging.LogRecord) -> str:
         import json
@@ -35,14 +40,31 @@ class JSONFormatter(logging.Formatter):
             "message": record.getMessage(),
         }
         if record.exc_info and record.exc_info[0] is not None:
-            payload["exception"] = self.formatException(record.exc_info)
-        # Strip sensitive data
-        msg_lower = payload["message"].lower()
-        for key in _SENSITIVE_KEYS:
-            if key in msg_lower:
-                payload["message"] = "[REDACTED — contains sensitive key]"
-                break
+            payload["exception"] = self._sanitize(str(self.formatException(record.exc_info)))
+        # Sanitize message
+        payload["message"] = self._sanitize(payload["message"])
+        # Sanitize record.args (W5: CWE-532)
+        # Note: dict args (%-style logging) must be handled separately -
+        # iterating a dict yields only keys, which would silently drop values
+        # and bypass sanitization of sensitive data.
+        if record.args:
+            if isinstance(record.args, dict):
+                safe_args: dict[str, str] | tuple[str, ...] = {
+                    k: self._sanitize(str(v)) for k, v in record.args.items()
+                }
+            else:
+                safe_args = tuple(self._sanitize(str(arg)) for arg in record.args)
+            payload["args"] = safe_args
         return json.dumps(payload, ensure_ascii=False)
+
+    @staticmethod
+    def _sanitize(text: str) -> str:
+        """Redact sensitive keys from text."""
+        text_lower = text.lower()
+        for key in _SENSITIVE_KEYS:
+            if key in text_lower:
+                return "[REDACTED - contains sensitive key]"
+        return text
 
 
 class SensitiveFilter(logging.Formatter):
@@ -53,7 +75,7 @@ class SensitiveFilter(logging.Formatter):
         msg_lower = message.lower()
         for key in _SENSITIVE_KEYS:
             if key in msg_lower:
-                return "[REDACTED — contains sensitive key]"
+                return "[REDACTED - contains sensitive key]"
         return message
 
 
@@ -72,7 +94,7 @@ def setup_logging() -> None:
     handler.setLevel(level)
 
     if settings.DEBUG:
-        handler.setFormatter(SensitiveFilter(fmt="%(asctime)s %(levelname)-8s %(name)s — %(message)s"))
+        handler.setFormatter(SensitiveFilter(fmt="%(asctime)s %(levelname)-8s %(name)s - %(message)s"))
     else:
         handler.setFormatter(JSONFormatter())
 
