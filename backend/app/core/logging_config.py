@@ -49,7 +49,9 @@ class JSONFormatter(logging.Formatter):
         # and bypass sanitization of sensitive data.
         if record.args:
             if isinstance(record.args, dict):
-                safe_args = {k: self._sanitize(str(v)) for k, v in record.args.items()}
+                safe_args: dict[str, str] | tuple[str, ...] = {
+                    k: self._sanitize(str(v)) for k, v in record.args.items()
+                }
             else:
                 safe_args = tuple(self._sanitize(str(arg)) for arg in record.args)
             payload["args"] = safe_args

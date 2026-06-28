@@ -357,9 +357,9 @@ class TestApiKeyValuesNotLeaked:
             # Verify that create_app() actually logged the expected startup message
             # (prevents vacuous pass if logging is silently dropped or moved)
             assert mock_logger.info.called, "Expected at least one info log from create_app()"
-            assert any(
-                "optional API key(s)" in str(call) for call in mock_logger.info.call_args_list
-            ), "Expected 'optional API key(s)' log message from create_app()"
+            assert any("optional API key(s)" in str(call) for call in mock_logger.info.call_args_list), (
+                "Expected 'optional API key(s)' log message from create_app()"
+            )
 
             # Check all log calls for secret value leakage
             for call in mock_logger.info.call_args_list:
