@@ -39,7 +39,7 @@ def test_reusable_version_consistency_uses_repo_local_validator() -> None:
         encoding="utf-8"
     )
 
-    assert 'uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5' in reusable_text
+    assert "uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5" in reusable_text
     assert "Checkout automation repository" not in reusable_text
     assert '"${{ github.workspace }}/repository/.github/scripts/validate-version-consistency.ps1"' in reusable_text
     assert '"${{ github.workspace }}/ai_instruction/scripts/validate-version-consistency.ps1"' not in reusable_text
