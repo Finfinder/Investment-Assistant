@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Frontend: reformat `tsconfig.json` to multi-line array style and add `"target": "ES2017"`
+
 ### Fixed
 
 - CI: Restore `actions/checkout` SHA pin in `reusable-version-consistency.yml` to prevent tag hijacking; update contract test assertion to match SHA format
