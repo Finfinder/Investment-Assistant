@@ -194,3 +194,4 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/reusable-sonarcloud.yml
+    secrets: inherit

@@ -8,6 +8,10 @@ on:
         required: false
         default: 0
         type: number
+    secrets:
+      SONAR_TOKEN:
+        description: SonarCloud authentication token for code analysis.
+        required: true
 
 permissions:
   contents: read
