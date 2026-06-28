@@ -76,7 +76,7 @@ const PRESETS: { value: IndicatorPreset; label: string }[] = [
 ];
 
 interface AnalysisFormProps {
-  onSubmit: (symbol: string, timeframe: Timeframe, preset: IndicatorPreset) => void;
+  onSubmit: (symbol: string, timeframe: Timeframe, preset: IndicatorPreset) => void | Promise<void>;
   isLoading: boolean;
 }
 
@@ -172,7 +172,7 @@ export default function AnalysisForm({ onSubmit, isLoading }: Readonly<AnalysisF
       setError("Symbol musi mieć co najmniej 2 znaki");
       return;
     }
-    onSubmit(symbol.trim(), timeframe, preset);
+    void onSubmit(symbol.trim(), timeframe, preset);
   }
 
   return (

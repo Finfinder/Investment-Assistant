@@ -17,8 +17,8 @@ const PIPELINE_STEPS = [
 
 interface ProgressIndicatorProps {
   analysisId: string;
-  onComplete: () => void;
-  onError: (message: string) => void;
+  onComplete: () => void | Promise<void>;
+  onError: (message: string) => void | Promise<void>;
 }
 
 function StepIcon({ isCompleted, isCurrent }: Readonly<{ isCompleted: boolean; isCurrent: boolean }>) {
@@ -72,9 +72,9 @@ export default function ProgressIndicator({ analysisId, onComplete, onError }: R
         reconnectAttempt.current = 0;
         setStatus(s);
         if (s.status === "completed") {
-          onCompleteRef.current();
+          void onCompleteRef.current();
         } else if (s.status === "failed") {
-          onErrorRef.current(s.error_message || "Analiza zakończyła się błędem");
+          void onErrorRef.current(s.error_message || "Analiza zakończyła się błędem");
         }
       },
       () => {
@@ -83,7 +83,7 @@ export default function ProgressIndicator({ analysisId, onComplete, onError }: R
           reconnectAttempt.current += 1;
           reconnectTimer.current = setTimeout(connect, delay);
         } else {
-          onErrorRef.current("Utracono połączenie z serwerem");
+          void onErrorRef.current("Utracono połączenie z serwerem");
         }
       },
     );
