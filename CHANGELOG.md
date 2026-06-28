@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix `test_settings_cors_origins_default` to match actual `CORS_ORIGINS` default including `http://localhost`
 - Security: `_mask_url()` in `redis.py` now masks password-only URLs (`redis://password@host`) to prevent credential leakage in logs
 - Security: Removed `or ["http://localhost:3000"]` fallback in WebSocket CORS check to enforce explicit origin allowlist (fail-closed)
+- Security: Patch PostCSS XSS vulnerability (postcss < 8.5.10) by adding npm overrides in frontend/package.json to force postcss >= 8.5.10 across the dependency tree, including the transitive dependency from Next.js 15.5.18 ([#133](https://github.com/Finfinder/Investment-Assistant/issues/133))
 - Types: Fixed mypy errors — added `_client` type annotation in `RedisManager`, `AsyncIterator[None]` return type for `lifespan`, replaced `Optional[X]` with `X | None`
 
 ### Tests
