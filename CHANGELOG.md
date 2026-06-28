@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Frontend: reformat `tsconfig.json` to multi-line array style and add `"target": "ES2017"`
+- CI: limit `push` trigger to `main` and `release/**` branches to avoid duplicate CI runs on task branches with open PRs
 
 ### Fixed
 
