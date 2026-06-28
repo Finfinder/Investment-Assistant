@@ -19,6 +19,7 @@ ENV/
 *.swp
 *.swo
 *~
+.vscode/settings.json
 
 # Environment
 .env

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- CI: Restore `actions/checkout` SHA pin in `reusable-version-consistency.yml` to prevent tag hijacking; update contract test assertion to match SHA format
+- CI: Remove `sonarcloud` from `release` job `needs` to unblock release pipeline; SonarCloud still runs in parallel
+- CI: Add `.vscode/settings.json` to `.gitignore` to prevent committing local SonarLint configuration
+
 ### Added
 
 - SonarCloud project integration: `sonar-project.properties` configuration, `sonarcloud` job in CI and release workflows, SonarCloud badge in README.md ([#2](https://github.com/Finfinder/Investment-Assistant/issues/2))
