@@ -1,0 +1,73 @@
+name: Reusable SonarCloud Scan
+
+on:
+  workflow_call:
+    inputs:
+      fetch-depth:
+        description: Git fetch-depth for checkout (0 = full history for SonarCloud blame).
+        required: false
+        default: 0
+        type: number
+    secrets:
+      SONAR_TOKEN:
+        description: SonarCloud authentication token for code analysis.
+        required: true
+
+permissions: {}
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade pip
+        run: pip install --upgrade pip
+
+      - name: Install backend dependencies
+        run: pip install ".[dev]"
+
+      - name: Run tests with coverage
+        run: pytest --cov=app --cov-branch --cov-report=xml --cov-report=term-missing
+
+      - name: Set up Node.js for frontend coverage
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generate frontend coverage (LCOV)
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

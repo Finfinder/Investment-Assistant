@@ -188,3 +188,11 @@ jobs:
         with:
           path: frontend/.next/cache
           key: next-build-${{ runner.os }}-${{ hashFiles('frontend/package.json', 'frontend/next.config.mjs', 'frontend/tsconfig.json') }}
+
+  sonarcloud:
+    needs: [test, frontend-test]
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/reusable-sonarcloud.yml
+    secrets: inherit

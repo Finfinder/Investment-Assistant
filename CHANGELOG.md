@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- SonarCloud project integration: `sonar-project.properties` configuration, `sonarcloud` job in CI and release workflows, SonarCloud badge in README.md ([#2](https://github.com/Finfinder/Investment-Assistant/issues/2))
 - Redis caching for market data and analysis results: `RedisCache` class with JSON serialization and `InMemoryCache` fallback, `RedisManager` singleton for connection lifecycle, Redis service in docker-compose.yml, `REDIS_URL` and `REDIS_MAX_CONNECTIONS` configuration in Settings
 
 ### Fixed

@@ -28,8 +28,15 @@ jobs:
       expected-release-version: ${{ github.ref_name }}
     secrets: inherit
 
+  sonarcloud:
+    needs: [version-consistency]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-sonarcloud.yml
+    secrets: inherit
+
   release:
-    needs: [version-consistency, next-version-request]
+    needs: [version-consistency, next-version-request, sonarcloud]
     runs-on: ubuntu-latest
     permissions:
       contents: write

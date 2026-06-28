@@ -49,6 +49,9 @@ node_modules/
 .next/
 out/
 
+# Frontend coverage (Vitest)
+frontend/coverage/
+
 # Docker
 *.log
 
