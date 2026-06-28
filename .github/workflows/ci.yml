@@ -11,6 +11,7 @@ on:
 
 jobs:
   version-consistency:
+    if: github.actor != 'dependabot[bot]'
     permissions:
       contents: read
     uses: ./.github/workflows/reusable-version-consistency.yml
@@ -21,6 +22,7 @@ jobs:
 
   lint:
     needs: [version-consistency]
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,6 +46,7 @@ jobs:
 
   type-check:
     needs: [version-consistency]
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,6 +67,7 @@ jobs:
 
   test:
     needs: [version-consistency]
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -87,6 +91,7 @@ jobs:
 
   security:
     needs: [version-consistency]
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -109,6 +114,7 @@ jobs:
 
   frontend-lint:
     needs: [version-consistency]
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -131,6 +137,7 @@ jobs:
 
   frontend-test:
     needs: [version-consistency]
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -154,6 +161,7 @@ jobs:
   frontend-e2e:
     runs-on: ubuntu-latest
     needs: [version-consistency, frontend-lint]
+    if: github.actor != 'dependabot[bot]'
     defaults:
       run:
         working-directory: frontend
@@ -194,6 +202,7 @@ jobs:
 
   sonarcloud:
     needs: [test, frontend-test]
+    if: github.actor != 'dependabot[bot]'
     permissions:
       contents: read
       pull-requests: read
