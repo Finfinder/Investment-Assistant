@@ -1,3 +1,13 @@
+/**
+ * ESLint 10 flat config.
+ *
+ * NOTE: eslint-config-next@15.x does not support ESLint 10 (peer: ^7.23.0 || ^8.0.0 || ^9.0.0).
+ * To use ESLint 10 we import plugins directly instead of via eslint-config-next.
+ * @next/eslint-plugin-next@16.2.9 is used for Next.js Core Vitals rules.
+ * typescript-eslint@8.62.0 provides TypeScript-specific rules.
+ * eslint-plugin-react-hooks provides React Hooks rules.
+ */
+
 import nextPlugin from "@next/eslint-plugin-next";
 import tseslint from "typescript-eslint";
 import reactHooksPlugin from "eslint-plugin-react-hooks";

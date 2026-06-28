@@ -32,7 +32,6 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^10",
-    "eslint-config-next": "16.2.9",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -45,8 +44,5 @@
     "typescript": "^5",
     "typescript-eslint": "^8.62.0",
     "vitest": "^4.1.4"
-  },
-  "overrides": {
-    "eslint-plugin-react": "7.5.1"
   }
 }
