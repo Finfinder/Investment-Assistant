@@ -464,3 +464,41 @@ class TestStackTraceSanitization:
         )
         result = formatter.format(record)
         assert "connection timeout" in result
+
+
+class TestDictArgsSanitization:
+    """Verify JSONFormatter handles dict-style %-logging args correctly."""
+
+    def test_redacts_sensitive_values_in_dict_args(self) -> None:
+        """JSONFormatter must sanitize values in dict args, not just keys."""
+        formatter = JSONFormatter()
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="test.py",
+            lineno=1,
+            msg="Login: %(user)s, token=%(token)s",
+            args={"user": "admin", "token": "secret123"},
+            exc_info=None,
+        )
+        result = formatter.format(record)
+        assert "secret123" not in result
+        assert "REDACTED" in result
+        # Ensure values are preserved (not dropped)
+        assert "admin" in result
+
+    def test_dict_args_safe_values_pass_through(self) -> None:
+        """JSONFormatter must preserve safe dict arg values."""
+        formatter = JSONFormatter()
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="test.py",
+            lineno=1,
+            msg="User %(user)s action %(action)s",
+            args={"user": "admin", "action": "login"},
+            exc_info=None,
+        )
+        result = formatter.format(record)
+        assert "admin" in result
+        assert "login" in result

@@ -44,8 +44,14 @@ class JSONFormatter(logging.Formatter):
         # Sanitize message
         payload["message"] = self._sanitize(payload["message"])
         # Sanitize record.args (W5: CWE-532)
+        # Note: dict args (%-style logging) must be handled separately -
+        # iterating a dict yields only keys, which would silently drop values
+        # and bypass sanitization of sensitive data.
         if record.args:
-            safe_args = tuple(self._sanitize(str(arg)) for arg in record.args)
+            if isinstance(record.args, dict):
+                safe_args = {k: self._sanitize(str(v)) for k, v in record.args.items()}
+            else:
+                safe_args = tuple(self._sanitize(str(arg)) for arg in record.args)
             payload["args"] = safe_args
         return json.dumps(payload, ensure_ascii=False)
 
