@@ -13,15 +13,18 @@ class TestCreateAppLogging:
     def test_no_api_key_names_in_logs_when_keys_configured(self) -> None:
         """create_app() must not log API key names in clear text."""
         get_settings.cache_clear()
-        with patch.dict(
-            "os.environ",
-            {
-                "TWELVE_DATA_API_KEY": "test-key-12",
-                "FMP_API_KEY": "test-key-fmp",
-                "FRED_API_KEY": "test-key-fred",
-            },
-            clear=False,
-        ), patch("logging.getLogger") as mock_get_logger:
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "TWELVE_DATA_API_KEY": "test-key-12",
+                    "FMP_API_KEY": "test-key-fmp",
+                    "FRED_API_KEY": "test-key-fred",
+                },
+                clear=False,
+            ),
+            patch("logging.getLogger") as mock_get_logger,
+        ):
             mock_logger = mock_get_logger.return_value
             from app.main import create_app
 
@@ -41,15 +44,18 @@ class TestCreateAppLogging:
     def test_logs_warning_when_no_keys_configured(self) -> None:
         """create_app() must log warning when no API keys are configured."""
         get_settings.cache_clear()
-        with patch.dict(
-            "os.environ",
-            {
-                "TWELVE_DATA_API_KEY": "",
-                "FMP_API_KEY": "",
-                "FRED_API_KEY": "",
-            },
-            clear=False,
-        ), patch("logging.getLogger") as mock_get_logger:
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "TWELVE_DATA_API_KEY": "",
+                    "FMP_API_KEY": "",
+                    "FRED_API_KEY": "",
+                },
+                clear=False,
+            ),
+            patch("logging.getLogger") as mock_get_logger,
+        ):
             mock_logger = mock_get_logger.return_value
             from app.main import create_app
 
@@ -65,15 +71,18 @@ class TestCreateAppLogging:
     def test_partial_keys_logs_count(self) -> None:
         """create_app() must log correct count when only some keys are configured."""
         get_settings.cache_clear()
-        with patch.dict(
-            "os.environ",
-            {
-                "TWELVE_DATA_API_KEY": "test-key-12",
-                "FMP_API_KEY": "",
-                "FRED_API_KEY": "test-key-fred",
-            },
-            clear=False,
-        ), patch("logging.getLogger") as mock_get_logger:
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "TWELVE_DATA_API_KEY": "test-key-12",
+                    "FMP_API_KEY": "",
+                    "FRED_API_KEY": "test-key-fred",
+                },
+                clear=False,
+            ),
+            patch("logging.getLogger") as mock_get_logger,
+        ):
             mock_logger = mock_get_logger.return_value
             from app.main import create_app
 
@@ -328,15 +337,18 @@ class TestApiKeyValuesNotLeaked:
         """create_app() must not log API key values."""
         get_settings.cache_clear()
         secret_value = "super-secret-api-key-12345"  # noqa: S105
-        with patch.dict(
-            "os.environ",
-            {
-                "TWELVE_DATA_API_KEY": secret_value,
-                "FMP_API_KEY": "",
-                "FRED_API_KEY": "",
-            },
-            clear=False,
-        ), patch("logging.getLogger") as mock_get_logger:
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "TWELVE_DATA_API_KEY": secret_value,
+                    "FMP_API_KEY": "",
+                    "FRED_API_KEY": "",
+                },
+                clear=False,
+            ),
+            patch("logging.getLogger") as mock_get_logger,
+        ):
             mock_logger = mock_get_logger.return_value
             from app.main import create_app
 
@@ -346,15 +358,11 @@ class TestApiKeyValuesNotLeaked:
             for call in mock_logger.info.call_args_list:
                 args = call[0]
                 for arg in args:
-                    assert secret_value not in str(arg), (
-                        f"API key value leaked in log: {arg}"
-                    )
+                    assert secret_value not in str(arg), f"API key value leaked in log: {arg}"
             for call in mock_logger.warning.call_args_list:
                 args = call[0]
                 for arg in args:
-                    assert secret_value not in str(arg), (
-                        f"API key value leaked in warning: {arg}"
-                    )
+                    assert secret_value not in str(arg), f"API key value leaked in warning: {arg}"
         get_settings.cache_clear()
 
     def test_json_formatter_redacts_key_value_in_message(self) -> None:
@@ -419,6 +427,7 @@ class TestStackTraceSanitization:
             raise RuntimeError("api_key=secret12345 failed")
         except RuntimeError:
             import sys
+
             exc_info = sys.exc_info()
 
         record = logging.LogRecord(
@@ -441,6 +450,7 @@ class TestStackTraceSanitization:
             raise RuntimeError("connection timeout")
         except RuntimeError:
             import sys
+
             exc_info = sys.exc_info()
 
         record = logging.LogRecord(
