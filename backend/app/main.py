@@ -49,7 +49,7 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type"],
     )
 
-    # Log available API keys (names only, never values)
+    # Log count of configured API keys (never names or values)
     configured_keys = [
         name
         for name, val in [
@@ -60,9 +60,9 @@ def create_app() -> FastAPI:
         if val
     ]
     if configured_keys:
-        logger.info("Configured API keys: %s", ", ".join(configured_keys))
+        logger.info("Configured %d optional API key(s)", len(configured_keys))
     else:
-        logger.warning("No optional API keys configured — only yfinance provider available")
+        logger.warning("No optional API keys configured - only yfinance provider available")
 
     from app.api.v1.analysis import router as analysis_router
     from app.api.v1.fundamental import router as fundamental_router
