@@ -18,8 +18,8 @@ describe("PostCSS XSS security", () => {
 
     // Output NIE MOŻE zawierać nieprzepisanej sekwencji </style>
     expect(output).not.toContain("</style>");
-    // Output POWINIEN zawierać escaped wersję
-    expect(output).toContain("\\3c /style>");
+    // Output POWINIEN zawierać escaped wersję (case-insensitive na hex: \3c lub \3C)
+    expect(output).toMatch(/\\3[cC] \/style>/);
   });
 
   it("escapes </style> with different casing", () => {
