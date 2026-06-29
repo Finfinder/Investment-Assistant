@@ -42,7 +42,7 @@ class TokenData(BaseModel):
     sub: str
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(data: dict[str, object], expires_delta: timedelta | None = None) -> str:
     settings = get_settings()
     to_encode = data.copy()
     now = datetime.now(UTC)
