@@ -1,6 +1,6 @@
 [project]
 name = "investment-assistant"
-version = "0.3.0"
+version = "0.4.0"
 description = "CFD instrument technical and fundamental analysis application"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
