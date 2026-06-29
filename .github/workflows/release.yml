@@ -46,7 +46,7 @@ jobs:
       packages: write
     concurrency:
       group: release-${{ github.ref_name }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
