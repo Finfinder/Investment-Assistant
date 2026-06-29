@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- JWT authentication for all API endpoints: `require_auth()` dependency with PyJWT, `POST /api/v1/auth/token` endpoint, WebSocket token auth via query param, argon2 password hashing, lifespan guards for production secrets ([#110](https://github.com/Finfinder/Investment-Assistant/issues/110))
+
 ### Fixed
 
 - CI: Add missing `type: string` to `automation-sha` input in `reusable-open-next-version-branch.yml` to fix invalid workflow file error

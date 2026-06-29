@@ -2,11 +2,12 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from app.api.v1.market_data import get_fallback_chain
 from app.api.v1.validators import validate_period, validate_symbol
+from app.core.auth import require_auth
 from app.core.models import PatternDetection, Timeframe
 from app.core.rate_limit import limiter
 from app.modules.data_acquisition.fallback_chain import DataProviderError
@@ -36,7 +37,9 @@ class PatternsResponse(BaseModel):
 
 @router.post("/patterns", response_model=PatternsResponse)
 @limiter.limit("20/minute")
-async def detect_patterns(request: Request, body: PatternsRequest) -> PatternsResponse:
+async def detect_patterns(
+    request: Request, body: PatternsRequest, user: str = Depends(require_auth)
+) -> PatternsResponse:
     validate_symbol(body.symbol)
     validate_period(body.period)
 

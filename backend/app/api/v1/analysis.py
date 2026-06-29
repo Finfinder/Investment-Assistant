@@ -5,10 +5,11 @@ import logging
 import time
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from app.api.v1.validators import validate_analysis_id, validate_symbol
+from app.core.auth import require_auth, ws_require_auth
 from app.core.config import get_settings
 from app.core.database import AnalysisResult, get_session_factory
 from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, IndicatorPreset, Timeframe
@@ -48,7 +49,9 @@ class AnalysisResponse(BaseModel):
 
 @router.post("/analysis", response_model=AnalysisResponse)
 @limiter.limit("10/minute")
-async def trigger_analysis(request: Request, body: AnalysisRequest) -> AnalysisResponse:
+async def trigger_analysis(
+    request: Request, body: AnalysisRequest, user: str = Depends(require_auth)
+) -> AnalysisResponse:
     """Trigger a full analysis pipeline for a given symbol and timeframe.
 
     Returns an analysis_id to poll for status/results.
@@ -111,7 +114,7 @@ async def _load_report_from_db(analysis_id: str) -> AnalysisReport | None:
 
 
 @router.get("/analysis/{analysis_id}")
-async def get_analysis(analysis_id: str) -> AnalysisReport | AnalysisStatus:
+async def get_analysis(analysis_id: str, user: str = Depends(require_auth)) -> AnalysisReport | AnalysisStatus:
     """Get analysis result or current status.
 
     Returns AnalysisReport when completed, AnalysisStatus otherwise.
@@ -142,7 +145,7 @@ async def get_analysis(analysis_id: str) -> AnalysisReport | AnalysisStatus:
 
 
 @router.get("/analysis/{analysis_id}/status", response_model=AnalysisStatus)
-async def get_analysis_status(analysis_id: str) -> AnalysisStatus:
+async def get_analysis_status(analysis_id: str, user: str = Depends(require_auth)) -> AnalysisStatus:
     """Get current analysis status (progress, steps)."""
     validate_analysis_id(analysis_id)
     status: AnalysisStatus | None = analysis_tasks.get(analysis_id)
@@ -152,9 +155,11 @@ async def get_analysis_status(analysis_id: str) -> AnalysisStatus:
 
 
 @router.websocket("/ws/analysis/{analysis_id}")
-async def analysis_websocket(websocket: WebSocket, analysis_id: str) -> None:
+async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str) -> None:
     """WebSocket endpoint pushing AnalysisStatus updates until completion."""
     validate_analysis_id(analysis_id)
+    # Authenticate before accepting the WebSocket connection
+    ws_require_auth(token)
     # Origin check for WebSocket security
     origin = websocket.headers.get("origin", "")
     settings = get_settings()

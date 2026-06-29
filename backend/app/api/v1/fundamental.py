@@ -2,10 +2,11 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from app.api.v1.validators import validate_symbol
+from app.core.auth import require_auth
 from app.core.instrument_classifier import classify_instrument
 from app.core.models import FundamentalData, InstrumentType
 from app.core.rate_limit import limiter
@@ -21,7 +22,9 @@ class FundamentalRequest(BaseModel):
 
 @router.post("/fundamental-analysis", response_model=FundamentalData)
 @limiter.limit("20/minute")
-async def analyze_fundamental(request: Request, body: FundamentalRequest) -> FundamentalData:
+async def analyze_fundamental(
+    request: Request, body: FundamentalRequest, user: str = Depends(require_auth)
+) -> FundamentalData:
     """Run fundamental analysis for a given instrument.
 
     Automatically routes to the correct analyzer based on instrument type

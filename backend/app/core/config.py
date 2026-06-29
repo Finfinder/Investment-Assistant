@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     REDIS_MAX_CONNECTIONS: int = 10
     REDIS_CACHE_TTL_OVERRIDE: int | None = None
 
+    # Authentication
+    SECRET_KEY: str = "dev-secret-key-change-in-production"  # noqa: S105
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    AUTH_USERNAME: str = "dev"
+    AUTH_PASSWORD_HASH: str = ""
+
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost"]
 
