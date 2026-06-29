@@ -2,7 +2,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN echo "legacy-peer-deps=true" >> .npmrc && npm ci
 COPY . .
 
 ARG NEXT_PUBLIC_API_URL
