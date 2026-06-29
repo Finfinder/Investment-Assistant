@@ -59,7 +59,8 @@ jobs:
       cancel-in-progress: false
     env:
       # Security: allowed automation repositories (CodeQL untrusted-checkout mitigation)
-      ALLOWED_AUTOMATION_REPOS: "finfinder/ai-instruction"
+      # Must match the default input value (Finfinder/AI_Instruction) after lowercasing.
+      ALLOWED_AUTOMATION_REPOS: "finfinder/ai_instruction"
     steps:
       - name: Checkout target repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
