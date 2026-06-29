@@ -40,6 +40,7 @@ on:
         description: "Pinned commit SHA of the automation repository (security: untrusted-checkout mitigation)."
         required: false
         default: "7c8eed4ee2b1c76e08203637f12109ffc9e9e8d5"
+        type: string
     secrets:
       AI_INSTRUCTION_WORKFLOW_TOKEN:
         description: Optional token with read access to the automation repository for cross-repo checkout.
