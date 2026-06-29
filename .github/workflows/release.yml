@@ -1,3 +1,4 @@
+# Release workflow - triggered by version tags
 name: Release
 
 on:
