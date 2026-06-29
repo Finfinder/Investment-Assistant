@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-29
+
+### Fixed
+
+- CI: Fix release workflow `startup_failure` by adding `pull-requests: read` permission to `sonarcloud` job in `release.yml`
+- CI: Fix npm peer dependency conflict in frontend Dockerfile by adding `legacy-peer-deps=true` for `eslint-plugin-import` compatibility with `eslint@10`
+- CI: Pin `actions/cache/restore` and `actions/cache/save` to v4 SHA (`0057852b`) for reliable cache operations in release and CI workflows
+
+### Security
+
+- CI: Add explicit `permissions: contents: read` to release workflow to replace empty permissions block
+
 ## [Unreleased]
 
 ### Fixed
