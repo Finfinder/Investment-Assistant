@@ -32,10 +32,14 @@ on:
         default: .github/versioning/readme-targets.json
         type: string
       automation-repository:
-        description: Repository hosting the shared script.
+        description: Repository hosting the shared script. Must be in the allowed list.
         required: false
         default: Finfinder/AI_Instruction
         type: string
+      automation-sha:
+        description: "Pinned commit SHA of the automation repository (security: untrusted-checkout mitigation)."
+        required: false
+        default: "7c8eed4ee2b1c76e08203637f12109ffc9e9e8d5"
     secrets:
       AI_INSTRUCTION_WORKFLOW_TOKEN:
         description: Optional token with read access to the automation repository for cross-repo checkout.
@@ -46,12 +50,16 @@ permissions: {}
 jobs:
   open-next-version-branch:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: write
     concurrency:
       group: open-next-version-${{ inputs.source-repository }}-${{ inputs.workflow-run-id }}
       cancel-in-progress: false
+    env:
+      # Security: allowed automation repositories (CodeQL untrusted-checkout mitigation)
+      ALLOWED_AUTOMATION_REPOS: "finfinder/ai-instruction"
     steps:
       - name: Checkout target repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -62,11 +70,33 @@ jobs:
           token: ${{ github.token }}
           path: repository
 
+      - name: Validate automation-repository input
+        shell: bash
+        env:
+          INPUT_REPO: ${{ inputs.automation-repository }}
+        run: |
+          # Security: allowlist validation (CodeQL untrusted-checkout mitigation)
+          NORMALIZED_INPUT=$(echo "$INPUT_REPO" | tr '[:upper:]' '[:lower:]')
+          IFS=',' read -ra ALLOWED <<< "${{ env.ALLOWED_AUTOMATION_REPOS }}"
+          FOUND=0
+          for entry in "${ALLOWED[@]}"; do
+            entry_normalized=$(echo "$entry" | tr -d ' ' | tr '[:upper:]' '[:lower:]')
+            if [ "$NORMALIZED_INPUT" = "$entry_normalized" ]; then
+              FOUND=1
+              break
+            fi
+          done
+          if [ "$FOUND" -ne 1 ]; then
+            echo "::error::Repository '$INPUT_REPO' is not in the allowed automation repositories list. Allowed: ${{ env.ALLOWED_AUTOMATION_REPOS }}"
+            exit 1
+          fi
+          echo "Repository '$INPUT_REPO' passed allowlist validation."
+
       - name: Checkout automation repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           repository: ${{ inputs.automation-repository }}
-          ref: main
+          ref: ${{ inputs.automation-sha }}
           token: ${{ secrets.AI_INSTRUCTION_WORKFLOW_TOKEN != '' && secrets.AI_INSTRUCTION_WORKFLOW_TOKEN || github.token }}
           fetch-depth: 1
           path: ai_instruction
