@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +10,14 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
     )
+
+    @field_validator("ALGORITHM")
+    @classmethod
+    def algorithm_must_be_supported(cls, v: str) -> str:
+        supported = {"HS256", "HS384", "HS512"}
+        if v not in supported:
+            raise ValueError(f"Unsupported JWT algorithm: {v}. Must be one of {sorted(supported)}")
+        return v
 
     APP_NAME: str = "Investment Assistant"
     DEBUG: bool = False

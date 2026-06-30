@@ -35,8 +35,6 @@ oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{get_settings().API_V1_PREFIX}/auth/token"
 )
 
-# Hardcoded algorithm allowlist prevents algorithm confusion attacks
-_ALLOWED_ALGORITHMS = ["HS256"]
 _TOKEN_ISSUER = "investment-assistant"  # noqa: S105
 
 
@@ -62,7 +60,7 @@ def verify_token(token: str) -> TokenData:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=_ALLOWED_ALGORITHMS,
+            algorithms=[settings.ALGORITHM],
             issuer=_TOKEN_ISSUER,
             options={"require": ["exp", "sub", "iat", "iss"]},
         )
