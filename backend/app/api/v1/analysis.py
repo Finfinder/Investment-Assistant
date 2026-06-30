@@ -155,7 +155,7 @@ async def get_analysis_status(analysis_id: str, user: str = Depends(require_auth
 
 
 @router.websocket("/ws/analysis/{analysis_id}")
-async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str) -> None:
+async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str | None = None) -> None:
     """WebSocket endpoint pushing AnalysisStatus updates until completion."""
     validate_analysis_id(analysis_id)
     # Authenticate before accepting the WebSocket connection
