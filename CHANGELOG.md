@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Pattern detector exceptions crashing `/api/v1/patterns` endpoint — added per-detector try/except isolation with graceful degradation and `warnings` field in response ([#116](https://github.com/Finfinder/Investment-Assistant/issues/116))
+- Translate inline comments to English in `patterns.py` for consistency with backend codebase
 
 ### Fixed
 
