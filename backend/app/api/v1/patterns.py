@@ -1,15 +1,19 @@
 """REST API endpoints for pattern recognition."""
 
 import logging
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.v1.market_data import get_fallback_chain
 from app.api.v1.validators import validate_period, validate_symbol
 from app.core.auth import require_auth
-from app.core.models import PatternDetection, Timeframe
+from app.core.models import OHLCVData, PatternDetection, Timeframe
 from app.core.rate_limit import limiter
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 from app.modules.data_acquisition.fallback_chain import DataProviderError
 from app.modules.pattern_recognition.candlestick import detect_candlestick_patterns
 from app.modules.pattern_recognition.chart_patterns import detect_chart_patterns
@@ -33,6 +37,7 @@ class PatternsResponse(BaseModel):
     symbol: str
     timeframe: Timeframe
     patterns: list[PatternDetection]
+    warnings: list[str] = Field(default_factory=list)
 
 
 @router.post("/patterns", response_model=PatternsResponse)
@@ -54,11 +59,23 @@ async def detect_patterns(
         raise HTTPException(status_code=404, detail="No data returned for the given symbol")
 
     patterns: list[PatternDetection] = []
-    patterns.extend(detect_candlestick_patterns(ohlcv))
-    patterns.extend(detect_support_resistance(ohlcv))
-    patterns.extend(calculate_fibonacci_levels(ohlcv))
-    patterns.extend(detect_iki_pattern(ohlcv))
-    patterns.extend(detect_chart_patterns(ohlcv))
+    warnings: list[str] = []
+
+    # Lista detektorów do wywołania — każdy opakowany w try/except
+    # aby izolować awarie i zwracać częściowe wyniki
+    detectors: list[tuple[str, Callable[[list[OHLCVData]], list[PatternDetection]]]] = [
+        ("candlestick", detect_candlestick_patterns),
+        ("support_resistance", detect_support_resistance),
+        ("fibonacci", calculate_fibonacci_levels),
+        ("iki", detect_iki_pattern),
+        ("chart_patterns", detect_chart_patterns),
+    ]
+    for detector_name, detector_fn in detectors:
+        try:
+            patterns.extend(detector_fn(ohlcv))
+        except Exception as exc:
+            logger.exception("Detector '%s' failed for %s: %s", detector_name, body.symbol, exc)
+            warnings.append(f"{detector_name}: {type(exc).__name__}")
 
     # Wypełnij detected_at_timestamp z danych OHLCV
     for pattern in patterns:
@@ -78,4 +95,5 @@ async def detect_patterns(
         symbol=body.symbol.upper(),
         timeframe=body.timeframe,
         patterns=patterns,
+        warnings=warnings,
     )
