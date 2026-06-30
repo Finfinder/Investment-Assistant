@@ -31,7 +31,9 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{get_settings().API_V1_PREFIX}/auth/token"
+)
 
 # Hardcoded algorithm allowlist prevents algorithm confusion attacks
 _ALLOWED_ALGORITHMS = ["HS256"]
