@@ -57,8 +57,8 @@ async def detect_patterns(
     patterns: list[PatternDetection] = []
     warnings: list[str] = []
 
-    # Lista detektorów do wywołania — każdy opakowany w try/except
-    # aby izolować awarie i zwracać częściowe wyniki
+    # List of detectors to invoke - each wrapped in try/except
+    # to isolate failures and return partial results
     detectors = [
         ("candlestick", detect_candlestick_patterns),
         ("support_resistance", detect_support_resistance),
@@ -73,7 +73,7 @@ async def detect_patterns(
             logger.exception("Detector '%s' failed for %s: %s", detector_name, body.symbol, exc)
             warnings.append(f"{detector_name}: {type(exc).__name__}")
 
-    # Wypełnij detected_at_timestamp z danych OHLCV
+    # Fill detected_at_timestamp from OHLCV data
     for pattern in patterns:
         idx = pattern.detected_at_index if pattern.detected_at_index is not None else len(ohlcv) - 1
         idx = max(0, min(idx, len(ohlcv) - 1))
