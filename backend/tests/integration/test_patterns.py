@@ -35,6 +35,8 @@ class TestPatternsEndpoint:
         assert data["symbol"] == "AAPL"
         assert data["timeframe"] == "H1"
         assert isinstance(data["patterns"], list)
+        assert "warnings" in data
+        assert isinstance(data["warnings"], list)
 
     @pytest.mark.asyncio
     async def test_invalid_symbol(self, client):

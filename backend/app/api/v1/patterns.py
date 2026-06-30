@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.v1.market_data import get_fallback_chain
 from app.api.v1.validators import validate_period, validate_symbol
@@ -33,6 +33,7 @@ class PatternsResponse(BaseModel):
     symbol: str
     timeframe: Timeframe
     patterns: list[PatternDetection]
+    warnings: list[str] = Field(default_factory=list)
 
 
 @router.post("/patterns", response_model=PatternsResponse)
@@ -54,13 +55,25 @@ async def detect_patterns(
         raise HTTPException(status_code=404, detail="No data returned for the given symbol")
 
     patterns: list[PatternDetection] = []
-    patterns.extend(detect_candlestick_patterns(ohlcv))
-    patterns.extend(detect_support_resistance(ohlcv))
-    patterns.extend(calculate_fibonacci_levels(ohlcv))
-    patterns.extend(detect_iki_pattern(ohlcv))
-    patterns.extend(detect_chart_patterns(ohlcv))
+    warnings: list[str] = []
 
-    # Wypełnij detected_at_timestamp z danych OHLCV
+    # List of detectors to invoke - each wrapped in try/except
+    # to isolate failures and return partial results
+    detectors = [
+        ("candlestick", detect_candlestick_patterns),
+        ("support_resistance", detect_support_resistance),
+        ("fibonacci", calculate_fibonacci_levels),
+        ("iki", detect_iki_pattern),
+        ("chart_patterns", detect_chart_patterns),
+    ]
+    for detector_name, detector_fn in detectors:
+        try:
+            patterns.extend(detector_fn(ohlcv))
+        except Exception as exc:
+            logger.exception("Detector '%s' failed for %s: %s", detector_name, body.symbol, exc)
+            warnings.append(f"{detector_name}: {type(exc).__name__}")
+
+    # Fill detected_at_timestamp from OHLCV data
     for pattern in patterns:
         idx = pattern.detected_at_index if pattern.detected_at_index is not None else len(ohlcv) - 1
         idx = max(0, min(idx, len(ohlcv) - 1))
@@ -78,4 +91,5 @@ async def detect_patterns(
         symbol=body.symbol.upper(),
         timeframe=body.timeframe,
         patterns=patterns,
+        warnings=warnings,
     )

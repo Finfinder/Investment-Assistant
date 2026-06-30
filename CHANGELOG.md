@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Pattern detector exceptions crashing `/api/v1/patterns` endpoint — added per-detector try/except isolation with graceful degradation and `warnings` field in response ([#116](https://github.com/Finfinder/Investment-Assistant/issues/116))
+- Translate inline comments to English in `patterns.py` for consistency with backend codebase
+- Strengthen `test_detector_failure_isolation` to verify working detectors actually contribute results via sentinel pattern
+
+### Fixed
+
 - CI: Add missing `type: string` to `automation-sha` input in `reusable-open-next-version-branch.yml` to fix invalid workflow file error
 - Security: Pin automation repository checkout to commit SHA and add allowlist validation in `reusable-open-next-version-branch.yml` to fix CodeQL `actions/untrusted-checkout/high` alert ([#135](https://github.com/Finfinder/Investment-Assistant/issues/135))
 - Security: Redact clear-text API key names in `main.py` startup logs - replaced with count-based logging to fix CodeQL `py/clear-text-logging-sensitive-data` alert ([#134](https://github.com/Finfinder/Investment-Assistant/issues/134))
