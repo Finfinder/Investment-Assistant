@@ -1,7 +1,6 @@
 """REST API endpoints for pattern recognition."""
 
 import logging
-from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -9,11 +8,8 @@ from pydantic import BaseModel, Field
 from app.api.v1.market_data import get_fallback_chain
 from app.api.v1.validators import validate_period, validate_symbol
 from app.core.auth import require_auth
-from app.core.models import OHLCVData, PatternDetection, Timeframe
+from app.core.models import PatternDetection, Timeframe
 from app.core.rate_limit import limiter
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 from app.modules.data_acquisition.fallback_chain import DataProviderError
 from app.modules.pattern_recognition.candlestick import detect_candlestick_patterns
 from app.modules.pattern_recognition.chart_patterns import detect_chart_patterns
@@ -63,7 +59,7 @@ async def detect_patterns(
 
     # Lista detektorów do wywołania — każdy opakowany w try/except
     # aby izolować awarie i zwracać częściowe wyniki
-    detectors: list[tuple[str, Callable[[list[OHLCVData]], list[PatternDetection]]]] = [
+    detectors = [
         ("candlestick", detect_candlestick_patterns),
         ("support_resistance", detect_support_resistance),
         ("fibonacci", calculate_fibonacci_levels),
