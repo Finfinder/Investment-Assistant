@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
-from app.core.models import OHLCVData
+from app.core.models import OHLCVData, PatternCategory, PatternDetection
 from tests.helpers import make_ohlcv
 
 
@@ -87,10 +87,18 @@ class TestPatternDetectorResilience:
         mock_chain = AsyncMock()
         mock_chain.fetch_ohlcv.return_value = _mock_ohlcv(120)
 
-        # Make candlestick fail, others should still work
+        sentinel = PatternDetection(
+            pattern_type="sentinel_support",
+            category=PatternCategory.SUPPORT_RESISTANCE,
+            confidence=0.9,
+            description="Sentinel pattern to verify detector isolation",
+        )
+
+        # Make candlestick fail, support_resistance returns sentinel
         with (
             patch("app.api.v1.patterns.get_fallback_chain", return_value=mock_chain),
             patch("app.api.v1.patterns.detect_candlestick_patterns", side_effect=Exception("boom")),
+            patch("app.api.v1.patterns.detect_support_resistance", return_value=[sentinel]),
         ):
             resp = await client.post(
                 "/api/v1/patterns",
@@ -99,11 +107,10 @@ class TestPatternDetectorResilience:
 
         assert resp.status_code == 200
         data = resp.json()
-        # Other detectors should still produce results (support_resistance, fibonacci, etc.)
-        # At minimum, we should have warnings for the failed one
+        # Verify the sentinel pattern from working detector is present
+        assert any(p["pattern_type"] == "sentinel_support" for p in data["patterns"])
+        # And warning for the failed detector
         assert any("candlestick" in w for w in data["warnings"])
-        # And no warnings for working detectors
-        assert not any("support_resistance" in w for w in data["warnings"])
 
     async def test_no_failures_returns_empty_warnings(self, client):
         """When all detectors succeed, warnings is an empty list."""
