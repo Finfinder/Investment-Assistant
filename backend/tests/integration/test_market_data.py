@@ -5,6 +5,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.api.v1.market_data import _get_caches, _get_chain
+from app.core.auth import require_auth
 from app.core.models import OHLCVData
 from app.main import app
 from app.modules.data_acquisition.fallback_chain import DataProviderError
@@ -46,6 +47,9 @@ async def api_client(mock_chain: AsyncMock):
     async def _mock_delete(key):
         _redis_store.pop(key, None)
 
+    async def _override_require_auth():
+        return "dev"
+
     with (
         patch("app.modules.data_acquisition.redis_cache.redis_manager") as mock_manager,
         patch("app.api.v1.market_data.get_fallback_chain", return_value=mock_chain),
@@ -55,9 +59,11 @@ async def api_client(mock_chain: AsyncMock):
         mock_client.setex = _mock_setex
         mock_client.delete = _mock_delete
         mock_manager.client = mock_client
+        app.dependency_overrides[require_auth] = _override_require_auth
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac
+        app.dependency_overrides.clear()
 
     _get_caches.cache_clear()
     _get_chain.cache_clear()

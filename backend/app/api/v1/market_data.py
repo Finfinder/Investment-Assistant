@@ -1,9 +1,10 @@
 import logging
 from functools import lru_cache
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.validators import validate_period, validate_symbol
+from app.core.auth import require_auth
 from app.core.config import get_settings
 from app.core.models import OHLCVData, Timeframe
 from app.core.rate_limit import limiter
@@ -44,6 +45,7 @@ def get_fallback_chain() -> FallbackChainManager:
 async def get_market_data(
     request: Request,
     symbol: str,
+    user: str = Depends(require_auth),
     timeframe: Timeframe = Timeframe.H1,
     period: str = "30d",
 ) -> list[OHLCVData]:

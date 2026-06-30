@@ -6,6 +6,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.auth import create_access_token, require_auth
 from app.core.database import Base, get_db
 from app.core.models import OHLCVData
 from app.main import app
@@ -30,7 +31,45 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession]:
 
 
 @pytest.fixture
+def auth_token() -> str:
+    return create_access_token(data={"sub": "dev"})
+
+
+@pytest.fixture
+def auth_headers(auth_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {auth_token}"}
+
+
+@pytest.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
+    async def _override_get_db() -> AsyncGenerator[AsyncSession]:
+        yield db_session
+
+    async def _override_require_auth():
+        return "dev"
+
+    app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[require_auth] = _override_require_auth
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def auth_client(db_session: AsyncSession, auth_headers: dict[str, str]) -> AsyncGenerator[AsyncClient]:
+    async def _override_get_db() -> AsyncGenerator[AsyncSession]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = _override_get_db
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test", headers=auth_headers) as ac:
+        yield ac
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def raw_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
     async def _override_get_db() -> AsyncGenerator[AsyncSession]:
         yield db_session
 

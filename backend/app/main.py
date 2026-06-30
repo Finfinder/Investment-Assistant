@@ -12,6 +12,8 @@ from app.core.logging_config import setup_logging
 from app.core.rate_limit import limiter
 from app.core.redis import redis_manager
 
+_lifespan_logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -19,6 +21,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     if settings.REDIS_PASSWORD == "" and not settings.DEBUG:
         raise RuntimeError("REDIS_PASSWORD must be configured in production")
+    _dev_secret = "dev-secret-key-change-in-production"  # noqa: S105
+    if _dev_secret == settings.SECRET_KEY and not settings.DEBUG:
+        raise RuntimeError("SECRET_KEY must be configured in production")
+    if _dev_secret == settings.SECRET_KEY:
+        _lifespan_logger.warning("Using development SECRET_KEY - do not use in production")
+    if settings.AUTH_PASSWORD_HASH == "" and not settings.DEBUG:
+        raise RuntimeError("AUTH_PASSWORD_HASH must be configured in production")
     await redis_manager.initialize()
     yield
     await redis_manager.close()
@@ -46,7 +55,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     # Log count of configured API keys (never names or values)
@@ -65,12 +74,14 @@ def create_app() -> FastAPI:
         logger.warning("No optional API keys configured - only yfinance provider available")
 
     from app.api.v1.analysis import router as analysis_router
+    from app.api.v1.auth import router as auth_router
     from app.api.v1.fundamental import router as fundamental_router
     from app.api.v1.health import router as health_router
     from app.api.v1.market_data import router as market_data_router
     from app.api.v1.patterns import router as patterns_router
     from app.api.v1.technical_analysis import router as ta_router
 
+    app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
     app.include_router(market_data_router, prefix=settings.API_V1_PREFIX)
     app.include_router(ta_router, prefix=settings.API_V1_PREFIX)
