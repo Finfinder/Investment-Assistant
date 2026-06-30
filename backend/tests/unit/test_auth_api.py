@@ -1,10 +1,11 @@
 """Integration tests for auth endpoint and protected API endpoints."""
 
 import pytest
+from fastapi import WebSocketException
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import create_access_token
+from app.core.auth import create_access_token, ws_require_auth
 from app.core.config import get_settings
 from app.main import app
 
@@ -122,26 +123,16 @@ class TestWebSocketAuth:
     """
 
     def test_ws_require_auth_rejects_empty_token(self):
-        from fastapi import WebSocketException
-
-        from app.core.auth import ws_require_auth
-
         with pytest.raises(WebSocketException) as exc_info:
             ws_require_auth("")
         assert exc_info.value.code == 1008
 
     def test_ws_require_auth_rejects_invalid_token(self):
-        from fastapi import WebSocketException
-
-        from app.core.auth import ws_require_auth
-
         with pytest.raises(WebSocketException) as exc_info:
             ws_require_auth("not-a-jwt")
         assert exc_info.value.code == 1008
 
     def test_ws_require_auth_accepts_valid_token(self):
-        from app.core.auth import ws_require_auth
-
         token = create_access_token(data={"sub": "dev"})
         result = ws_require_auth(token)
         assert result == "dev"
