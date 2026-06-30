@@ -31,9 +31,7 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{get_settings().API_V1_PREFIX}/auth/token"
-)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{get_settings().API_V1_PREFIX}/auth/token")
 
 _TOKEN_ISSUER = "investment-assistant"  # noqa: S105
 
@@ -85,7 +83,7 @@ async def require_auth(token: str = Depends(oauth2_scheme)) -> str:
     return token_data.sub
 
 
-def ws_require_auth(token: str) -> str:
+def ws_require_auth(token: str | None) -> str:
     if not token:
         raise WebSocketException(code=1008, reason="Authentication required")
     try:
