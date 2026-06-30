@@ -73,8 +73,9 @@ class TestLoginEndpoint:
 
 class TestProtectedEndpoints:
     @pytest.mark.asyncio
-    async def test_health_endpoint_without_auth(self, client: AsyncClient):
-        response = await client.get("/api/v1/health")
+    async def test_health_endpoint_without_auth(self, raw_client: AsyncClient):
+        """Health endpoint remains accessible without authentication (monitoring)."""
+        response = await raw_client.get("/api/v1/health")
         assert response.status_code == 200
 
     @pytest.mark.asyncio
