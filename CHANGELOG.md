@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Tests
 
-- JWT authentication for all API endpoints: `require_auth()` dependency with PyJWT, `POST /api/v1/auth/token` endpoint, WebSocket token auth via query param, argon2 password hashing, lifespan guards for production secrets ([#110](https://github.com/Finfinder/Investment-Assistant/issues/110))
+- Refactor formatting helper tests (`confidenceBarClass`, `formatRiskReward`, `formatValue`) to use `it.each` for improved readability and maintainability
+- Add comprehensive unit tests for PatternDetailModal component covering open/close behavior, escape key handling, and all field rendering ([#100](https://github.com/Finfinder/Investment-Assistant/issues/100))
+
 
 ### Fixed
 
