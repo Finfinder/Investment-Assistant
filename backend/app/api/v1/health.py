@@ -90,7 +90,7 @@ async def _check_database() -> str:
     try:
         factory = get_session_factory()
         async with factory() as session:
-            await session.execute(text("SELECT 1"), timeout=5)
+            await session.execute(text("SELECT 1"))
         return "ok"
     except Exception:
         return "error"
