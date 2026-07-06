@@ -101,13 +101,33 @@
     },
     {
       "name": "javascript",
-      "color": "f1e05a",
-      "description": "JavaScript/TypeScript language or ecosystem topic."
+      "color": "168700",
+      "description": "Pull requests that update javascript code"
     },
     {
       "name": "ci",
       "color": "bfdadc",
       "description": "Continuous integration, workflows, or automation topic."
+    },
+    {
+      "name": "dependencies",
+      "color": "0366d6",
+      "description": "Pull requests that update a dependency file"
+    },
+    {
+      "name": "priority:low",
+      "color": "0e8a16",
+      "description": "Low-priority work"
+    },
+    {
+      "name": "priority:medium",
+      "color": "fbca04",
+      "description": "Medium-priority work"
+    },
+    {
+      "name": "security",
+      "color": "d73a4a",
+      "description": "Security vulnerability, hardening, or auth/authz topic."
     }
   ],
   "milestones": [

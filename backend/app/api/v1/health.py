@@ -1,13 +1,22 @@
-"""Health check endpoints for monitoring application and dependency state."""
+"""Health check endpoints for monitoring application and dependency state.
+
+Usage:
+    GET /api/v1/health - Public minimal health check
+    GET /api/v1/health/dependencies - Authenticated detailed dependency status
+"""
 
 import logging
 import time
 from importlib.metadata import PackageNotFoundError, version
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy import text
 
+from app.core.auth import require_auth
 from app.core.config import get_settings
+from app.core.database import get_session_factory
+from app.core.redis import redis_manager
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +32,6 @@ except PackageNotFoundError:
 
 class HealthResponse(BaseModel):
     status: str
-    version: str
-    uptime_seconds: float
 
 
 class DependencyStatus(BaseModel):
@@ -38,16 +45,27 @@ class DependencyStatus(BaseModel):
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
-    return HealthResponse(
-        status="ok",
-        version=_APP_VERSION,
-        uptime_seconds=round(time.monotonic() - _start_time, 1),
-    )
+    """Public health check returning minimal status.
+
+    Returns a simple OK status without exposing sensitive information
+    like version numbers or uptime that could aid attackers in reconnaissance.
+    """
+    return HealthResponse(status="ok")
 
 
 @router.get("/health/dependencies", response_model=DependencyStatus)
-async def health_dependencies() -> DependencyStatus:
-    """Check connectivity / availability of external dependencies."""
+async def health_dependencies(user: str = Depends(require_auth)) -> DependencyStatus:
+    """Check connectivity / availability of external dependencies.
+
+    Requires authentication. Provides detailed status of external API keys
+    and dependencies for diagnostic purposes.
+
+    Args:
+        user: Authenticated user (injected via require_auth dependency)
+
+    Returns:
+        DependencyStatus with detailed status of all dependencies
+    """
     db_status = await _check_database()
     redis_status = await _check_redis()
     yfinance_status = _check_yfinance()
@@ -64,20 +82,26 @@ async def health_dependencies() -> DependencyStatus:
 
 
 async def _check_database() -> str:
+    """Check database connectivity.
+
+    Returns:
+        "ok" if database connection is working, "error" otherwise.
+    """
     try:
-        from sqlalchemy import text
-
-        from app.core.database import get_session_factory
-
         factory = get_session_factory()
         async with factory() as session:
-            await session.execute(text("SELECT 1"))
+            await session.execute(text("SELECT 1"), timeout=5)
         return "ok"
     except Exception:
         return "error"
 
 
 def _check_yfinance() -> str:
+    """Check if yfinance library is available.
+
+    Returns:
+        "ok" if yfinance is installed, "error" otherwise.
+    """
     try:
         import yfinance  # noqa: F401
 
@@ -87,9 +111,13 @@ def _check_yfinance() -> str:
 
 
 async def _check_redis() -> str:
-    try:
-        from app.core.redis import redis_manager
+    """Check Redis connectivity.
 
+    Returns:
+        "ok" if Redis connection is working, "error" on failure,
+        "not_configured" if Redis is not configured.
+    """
+    try:
         if await redis_manager.health_check():
             return "ok"
         return "error"
