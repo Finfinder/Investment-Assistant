@@ -259,6 +259,20 @@ The API applies per-client rate limits (via `slowapi`). Client identity is resol
 
 See [Issue #112](https://github.com/Finfinder/Investment-Assistant/issues/112) for the original finding.
 
+### Security response headers
+
+In production (`DEBUG=false`) the backend injects the following security headers into every API response via `SecurityHeadersMiddleware` (`app/core/security_headers.py`):
+
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- `Content-Security-Policy: default-src 'none'` (API is not browser-rendered)
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+
+The nginx reverse proxy adds `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` and `Strict-Transport-Security` (on the HTTPS server block) at the proxy layer, and scopes a browser-oriented `Content-Security-Policy` to the frontend `location /` so the API keeps its minimal CSP. Headers are intentionally skipped in local development to avoid breaking hot reload.
+
+See [Issue #114](https://github.com/Finfinder/Investment-Assistant/issues/114) for the original finding.
+
 ---
 
 ## Changelog

@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.core.logging_config import setup_logging
 from app.core.rate_limit import limiter
 from app.core.redis import redis_manager
+from app.core.security_headers import SecurityHeadersMiddleware
 
 _lifespan_logger = logging.getLogger(__name__)
 
@@ -57,6 +58,11 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],
     )
+
+    # Security headers (HSTS, CSP, X-Frame-Options, etc.) only in production.
+    # In local development (DEBUG=True) they are skipped to avoid breaking hot reload.
+    if not settings.DEBUG:
+        app.add_middleware(SecurityHeadersMiddleware)
 
     # Log count of configured API keys (never names or values)
     configured_keys = [
