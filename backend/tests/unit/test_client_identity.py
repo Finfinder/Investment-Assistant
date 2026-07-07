@@ -8,7 +8,7 @@ from fastapi import Request
 from app.core.client_identity import get_rate_limit_key, resolve_client_ip
 
 
-def _net(cidr: str) -> ipaddress._BaseNetwork:
+def _net(cidr: str) -> ipaddress.IPv4Network | ipaddress.IPv6Network:
     return ipaddress.ip_network(cidr, strict=False)
 
 
@@ -58,14 +58,15 @@ def test_resolve_client_ip_all_hops_trusted_falls_back_to_peer() -> None:
     assert suspected is False
 
 
-def test_resolve_client_ip_chain_longer_than_trusted_flags_spoofing() -> None:
+def test_resolve_client_ip_long_chain_behind_trusted_proxy_not_flagged() -> None:
     trusted = (_net("10.0.0.0/8"),)
-    # 3 hops but only 1 trusted proxy -> exceeds len(trusted)+1.
-    # Rightmost untrusted hop (203.0.113.9) is the originating client.
+    # A single broad CIDR can cover many proxy layers, so a long chain behind a
+    # trusted proxy is legitimate and must NOT be flagged as spoofing. The
+    # rightmost untrusted hop (203.0.113.9) is the originating client.
     headers = _headers(**{"X-Forwarded-For": "198.51.100.23, 203.0.113.9, 10.0.0.1"})
     ip, suspected = resolve_client_ip(headers, "10.0.0.1", trusted_proxies=trusted)
     assert ip == "203.0.113.9"
-    assert suspected is True
+    assert suspected is False
 
 
 def test_resolve_client_ip_single_untrusted_hop_no_spoof_flag() -> None:

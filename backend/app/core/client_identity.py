@@ -12,7 +12,7 @@ import logging
 from collections.abc import Mapping
 from functools import lru_cache
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 
 from app.core.auth import verify_token
 from app.core.config import get_settings
@@ -113,9 +113,19 @@ def resolve_client_ip(
         # Every hop was a trusted proxy; fall back to the direct peer.
         client_ip = direct_peer
 
-    # A chain longer than trusted proxies + 1 original client is suspicious.
-    if len(hops) > len(trusted_proxies) + 1:
-        spoofing_suspected = True
+    # NOTE: chain length is intentionally NOT used as a spoofing signal.
+    # ``len(trusted_proxies)`` counts configured CIDR *rules*, not the number of
+    # physical proxy hops - a single broad CIDR (e.g. 10.0.0.0/8) can cover many
+    # proxy layers, while several narrow /32 rules inflate the threshold without
+    # adding real depth. Either way the comparison is meaningless, so a long
+    # chain behind a legitimate proxy topology must not be flagged as spoofing.
+    # Spoofing is instead detected by the hop-by-hop membership validation above:
+    # we walk from the right, trust only hops inside ``trusted_proxies``, and the
+    # first untrusted valid IP becomes the client. Anything further left is
+    # client-appended and simply ignored, so its presence neither changes the
+    # resolved client IP nor indicates an attack. The remaining spoofing signals
+    # are: no trusted proxies configured, an untrusted direct peer, or a
+    # non-IP (junk) hop in the chain.
 
     return client_ip, spoofing_suspected
 
@@ -132,9 +142,15 @@ def get_rate_limit_key(request: Request) -> str:
         try:
             token_data = verify_token(token)
             return f"user:{token_data.sub}"
-        except Exception:
-            # Invalid/expired token: do not leak identity, fall through to IP.
+        except HTTPException:
+            # Invalid/expired token (per verify_token contract): do not leak
+            # identity, fall through to IP-based rate limiting.
             logger.debug("Rate-limit key: invalid Bearer token, falling back to IP")
+        except Exception:
+            # Unexpected failure (e.g. misconfiguration, future refactor bug):
+            # log it so monitoring can alert, but keep graceful degradation to IP
+            # instead of propagating and returning 500 on every authorized request.
+            logger.exception("Rate-limit key: unexpected error verifying token, falling back to IP")
 
     direct_peer = request.client.host if request.client else "127.0.0.1"
     client_ip, spoofing_suspected = resolve_client_ip(request.headers, direct_peer)

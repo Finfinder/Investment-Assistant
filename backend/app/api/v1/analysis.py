@@ -171,7 +171,14 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
         return
     # Per-IP rate limiting for WebSocket connections
     direct_peer = websocket.client.host if websocket.client else "unknown"
-    client_ip, _ = resolve_client_ip(websocket.headers, direct_peer)
+    client_ip, spoofing_suspected = resolve_client_ip(websocket.headers, direct_peer)
+    if spoofing_suspected:
+        logger.warning(
+            "Suspicious WebSocket connection attempt: spoofed X-Forwarded-For chain detected. "
+            "Resolved IP: %s, Direct Peer: %s",
+            client_ip,
+            direct_peer,
+        )
     conn_id = str(uuid.uuid4())
     now = time.monotonic()
     connections = _ws_connections_per_ip.get(client_ip, {})
