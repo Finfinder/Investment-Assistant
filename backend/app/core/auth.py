@@ -26,8 +26,8 @@ import jwt
 from argon2.exceptions import VerificationError, VerifyMismatchError
 from fastapi import Depends, HTTPException, WebSocketException
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel
 from pwdlib import PasswordHash
+from pydantic import BaseModel
 
 from app.core.config import get_settings
 
