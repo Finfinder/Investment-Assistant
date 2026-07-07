@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Rate limiting: defend against `X-Forwarded-For` spoofing by validating the header against configured `TRUSTED_PROXIES`, preferring the verified JWT subject as the rate-limit key, and falling back to the direct peer when no trusted proxy is configured ([#112](https://github.com/Finfinder/Investment-Assistant/issues/112))
+
 ### Tests
 
 - Refactor formatting helper tests (`confidenceBarClass`, `formatRiskReward`, `formatValue`) to use `it.each` for improved readability and maintainability

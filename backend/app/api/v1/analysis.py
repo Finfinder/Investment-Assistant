@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.api.v1.validators import validate_analysis_id, validate_symbol
 from app.core.auth import require_auth, ws_require_auth
+from app.core.client_identity import resolve_client_ip
 from app.core.config import get_settings
 from app.core.database import AnalysisResult, get_session_factory
 from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, IndicatorPreset, Timeframe
@@ -169,7 +170,8 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
         await websocket.close(code=1008)
         return
     # Per-IP rate limiting for WebSocket connections
-    client_ip = websocket.client.host if websocket.client else "unknown"
+    direct_peer = websocket.client.host if websocket.client else "unknown"
+    client_ip, _ = resolve_client_ip(websocket.headers, direct_peer)
     conn_id = str(uuid.uuid4())
     now = time.monotonic()
     connections = _ws_connections_per_ip.get(client_ip, {})

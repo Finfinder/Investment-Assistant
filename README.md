@@ -249,6 +249,16 @@ Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md)
 
 To report a security vulnerability, please see [SECURITY.md](SECURITY.md) for instructions.
 
+### Rate limiting and client identity
+
+The API applies per-client rate limits (via `slowapi`). Client identity is resolved with spoof-resistance in mind:
+
+- **Authenticated requests** are limited by the verified JWT subject (`user:<sub>`), which is stable per user and cannot be rotated by an attacker.
+- **Requests behind a trusted proxy** use the rightmost *untrusted* IP from `X-Forwarded-For`. The header is only trusted when the direct peer belongs to a network listed in `TRUSTED_PROXIES` (CIDR list). Configure it to match your reverse proxy (e.g. nginx in Docker: `TRUSTED_PROXIES=["127.0.0.1","172.16.0.0/12"]`).
+- **Requests without a trusted proxy** ignore `X-Forwarded-For` and fall back to the direct connection peer, logging a warning when the header chain looks suspicious.
+
+See [Issue #112](https://github.com/Finfinder/Investment-Assistant/issues/112) for the original finding.
+
 ---
 
 ## Changelog

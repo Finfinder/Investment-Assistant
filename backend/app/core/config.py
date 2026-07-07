@@ -1,3 +1,4 @@
+import ipaddress
 from functools import lru_cache
 
 from pydantic import field_validator
@@ -50,6 +51,19 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost"]
+
+    # Trusted proxy CIDRs for X-Forwarded-For validation (rate limiting anti-spoofing)
+    TRUSTED_PROXIES: list[str] = []
+
+    @field_validator("TRUSTED_PROXIES")
+    @classmethod
+    def trusted_proxies_must_be_valid_cidr(cls, v: list[str]) -> list[str]:
+        for entry in v:
+            try:
+                ipaddress.ip_network(entry, strict=False)
+            except ValueError as err:
+                raise ValueError(f"Invalid TRUSTED_PROXIES entry '{entry}': {err}") from err
+        return v
 
 
 @lru_cache(maxsize=1)

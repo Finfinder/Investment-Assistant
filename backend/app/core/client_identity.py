@@ -1,0 +1,133 @@
+"""Client identity resolution for rate limiting and proxy-aware IP extraction.
+
+This module centralizes how the application identifies a client for rate
+limiting purposes. It defends against ``X-Forwarded-For`` header spoofing by
+only trusting that header when the request originates from a configured trusted
+proxy, and prefers an authenticated JWT subject over IP-based identification
+when available.
+"""
+
+import ipaddress
+import logging
+from collections.abc import Mapping
+from functools import lru_cache
+
+from fastapi import Request
+
+from app.core.auth import verify_token
+from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
+
+# Header carrying the original client chain behind proxies (IETF standard).
+_X_FORWARDED_FOR = "x-forwarded-for"
+
+# Union of concrete network types (avoids private _BaseNetwork generic args).
+NetworkType = ipaddress.IPv4Network | ipaddress.IPv6Network
+
+
+@lru_cache(maxsize=1)
+def _get_trusted_proxies() -> tuple[NetworkType, ...]:
+    """Parse configured trusted proxy CIDRs into a cached tuple of networks."""
+    settings = get_settings()
+    return tuple(ipaddress.ip_network(entry, strict=False) for entry in settings.TRUSTED_PROXIES)
+
+
+def _is_trusted_peer(peer: str, trusted: tuple[NetworkType, ...]) -> bool:
+    """Return True if the direct peer address belongs to a trusted proxy network."""
+    try:
+        addr = ipaddress.ip_address(peer)
+    except ValueError:
+        return False
+    return any(addr in network for network in trusted)
+
+
+def resolve_client_ip(
+    headers: Mapping[str, str],
+    direct_peer: str,
+    *,
+    trusted_proxies: tuple[NetworkType, ...] | None = None,
+) -> tuple[str, bool]:
+    """Resolve the originating client IP from proxy headers with spoofing checks.
+
+    Args:
+        headers: Incoming request headers (case-insensitive lookup).
+        direct_peer: The direct TCP peer address (``request.client.host``).
+        trusted_proxies: Optional pre-parsed trusted networks. When omitted, the
+            configured ``TRUSTED_PROXIES`` setting is used.
+
+    Returns:
+        A tuple of ``(client_ip, spoofing_suspected)`` where ``client_ip`` is the
+        resolved identifier and ``spoofing_suspected`` flags a potentially forged
+        ``X-Forwarded-For`` chain.
+    """
+    if trusted_proxies is None:
+        trusted_proxies = _get_trusted_proxies()
+
+    xff = headers.get(_X_FORWARDED_FOR)
+    if not xff:
+        return direct_peer, False
+
+    # Split into hops, trimming whitespace and dropping empty entries.
+    hops = [hop.strip() for hop in xff.split(",") if hop.strip()]
+    if not hops:
+        return direct_peer, False
+
+    # Without trusted proxies the header is fully attacker-controlled: ignore it.
+    if not trusted_proxies:
+        return direct_peer, True
+
+    # Only trust the header when the request actually comes from a trusted proxy.
+    # An attacker connecting directly (untrusted peer) could forge the chain to
+    # impersonate another client, so we must reject XFF unless the peer is trusted.
+    if not _is_trusted_peer(direct_peer, trusted_proxies):
+        return direct_peer, True
+
+    # Walk from the rightmost hop (closest to us) and skip trusted proxy hops.
+    # The first untrusted hop from the right is the originating client.
+    client_ip = direct_peer
+    spoofing_suspected = False
+    for hop in reversed(hops):
+        if _is_trusted_peer(hop, trusted_proxies):
+            continue
+        client_ip = hop
+        spoofing_suspected = False
+        break
+    else:
+        # Every hop was a trusted proxy; fall back to the direct peer.
+        client_ip = direct_peer
+
+    # A chain longer than trusted proxies + 1 original client is suspicious.
+    if len(hops) > len(trusted_proxies) + 1:
+        spoofing_suspected = True
+
+    return client_ip, spoofing_suspected
+
+
+def get_rate_limit_key(request: Request) -> str:
+    """Return the rate-limit key for a request.
+
+    Prefers the authenticated JWT subject (``user:<sub>``) when a valid Bearer
+    token is present, otherwise falls back to the proxy-aware client IP.
+    """
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[len("bearer ") :].strip()
+        try:
+            token_data = verify_token(token)
+            return f"user:{token_data.sub}"
+        except Exception:
+            # Invalid/expired token: do not leak identity, fall through to IP.
+            logger.debug("Rate-limit key: invalid Bearer token, falling back to IP")
+
+    direct_peer = request.client.host if request.client else "127.0.0.1"
+    client_ip, spoofing_suspected = resolve_client_ip(request.headers, direct_peer)
+    if spoofing_suspected:
+        xff = request.headers.get(_X_FORWARDED_FOR, "")
+        last_hop = [h.strip() for h in xff.split(",") if h.strip()][-1] if xff else direct_peer
+        logger.warning(
+            "Possible X-Forwarded-For spoofing: %d hops, last hop %s",
+            len([h for h in xff.split(",") if h.strip()]),
+            last_hop,
+        )
+    return client_ip
