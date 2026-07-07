@@ -1,6 +1,7 @@
 """Application-wide rate limiter instance."""
 
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 
-limiter = Limiter(key_func=get_remote_address)
+from app.core.client_identity import get_rate_limit_key
+
+limiter = Limiter(key_func=get_rate_limit_key)
