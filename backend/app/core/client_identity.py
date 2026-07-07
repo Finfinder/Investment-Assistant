@@ -42,6 +42,15 @@ def _is_trusted_peer(peer: str, trusted: tuple[NetworkType, ...]) -> bool:
     return any(addr in network for network in trusted)
 
 
+def _is_valid_ip(value: str) -> bool:
+    """Return True if the value is a parseable IP address (v4 or v6)."""
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
+
+
 def resolve_client_ip(
     headers: Mapping[str, str],
     direct_peer: str,
@@ -84,12 +93,19 @@ def resolve_client_ip(
         return direct_peer, True
 
     # Walk from the rightmost hop (closest to us) and skip trusted proxy hops.
-    # The first untrusted hop from the right is the originating client.
+    # The first untrusted hop from the right that is a *valid* IP address is the
+    # originating client. Hops that are not valid IPs are attacker-controlled junk
+    # (e.g. "attacker-controlled"): they must never become the rate-limit key, so
+    # we flag spoofing and fall back to the direct peer instead of trusting them.
     client_ip = direct_peer
     spoofing_suspected = False
     for hop in reversed(hops):
         if _is_trusted_peer(hop, trusted_proxies):
             continue
+        if not _is_valid_ip(hop):
+            # Invalid hop cannot be a real client IP -> treat as spoofing.
+            spoofing_suspected = True
+            break
         client_ip = hop
         spoofing_suspected = False
         break

@@ -96,6 +96,27 @@ def test_resolve_client_ip_trusted_peer_with_untrusted_first_hop() -> None:
     assert suspected is False
 
 
+def test_resolve_client_ip_invalid_hop_not_used_as_client() -> None:
+    # Behind a trusted proxy, an attacker sends a non-IP junk hop
+    # (e.g. "attacker-controlled, 10.0.0.1"). The junk hop must NOT become the
+    # rate-limit key; we fall back to the direct peer and flag spoofing.
+    trusted = (_net("10.0.0.0/8"),)
+    headers = _headers(**{"X-Forwarded-For": "attacker-controlled, 10.0.0.1"})
+    ip, suspected = resolve_client_ip(headers, "10.0.0.1", trusted_proxies=trusted)
+    assert ip == "10.0.0.1"
+    assert suspected is True
+
+
+def test_resolve_client_ip_all_hops_invalid_flags_spoofing() -> None:
+    # All hops are junk (no valid IP at all): never return attacker-controlled
+    # string; fall back to the direct peer and flag spoofing.
+    trusted = (_net("10.0.0.0/8"),)
+    headers = _headers(**{"X-Forwarded-For": "foo, bar, baz"})
+    ip, suspected = resolve_client_ip(headers, "10.0.0.1", trusted_proxies=trusted)
+    assert ip == "10.0.0.1"
+    assert suspected is True
+
+
 # ---------------------------------------------------------------------------
 # get_rate_limit_key
 # ---------------------------------------------------------------------------
