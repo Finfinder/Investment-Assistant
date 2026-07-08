@@ -2,7 +2,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm,id=frontend-npm npm ci
 COPY . .
 
 ARG NEXT_PUBLIC_API_URL
