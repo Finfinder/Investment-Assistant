@@ -32,6 +32,7 @@ jobs:
     needs: [version-consistency]
     permissions:
       contents: read
+      pull-requests: read
     uses: ./.github/workflows/reusable-sonarcloud.yml
     secrets: inherit
 
