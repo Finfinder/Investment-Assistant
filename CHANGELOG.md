@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Reorganize `CHANGELOG.md`: merge duplicate subsection headers (Security, Tests, Fixed, Changed, Added) in `[Unreleased]` and `[0.1.0]`, remove internal code-review round sections, and move the floating candlestick-pattern entry under `### Added`
+
 ### Security
 
 - Add security response headers (HSTS, CSP `default-src 'none'`, X-Frame-Options `DENY`, X-Content-Type-Options `nosniff`, Referrer-Policy) via `SecurityHeadersMiddleware` in production mode; configure nginx to add HSTS on HTTPS and scope CSP to the frontend location ([#114](https://github.com/Finfinder/Investment-Assistant/issues/114))
@@ -19,15 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add comprehensive unit tests for PatternDetailModal component covering open/close behavior, escape key handling, and all field rendering ([#100](https://github.com/Finfinder/Investment-Assistant/issues/100))
 - Add error path coverage for fundamental data providers (BFS, BLS, OECD SDMX, StatCan CPI sources) with comprehensive unit tests covering edge cases and exception handling ([#121](https://github.com/Finfinder/Investment-Assistant/issues/121))
 
-
 ### Fixed
 
 - nginx: remove deprecated `X-XSS-Protection` header and fix `add_header` inheritance — the frontend `location /` block defines its own `add_header` directives, which stopped inheriting server-level headers; the deprecated header is now omitted entirely rather than silently dropped on frontend responses ([#114](https://github.com/Finfinder/Investment-Assistant/issues/114))
 - Pattern detector exceptions crashing `/api/v1/patterns` endpoint — added per-detector try/except isolation with graceful degradation and `warnings` field in response ([#116](https://github.com/Finfinder/Investment-Assistant/issues/116))
 - Translate inline comments to English in `patterns.py` for consistency with backend codebase
 - Strengthen `test_detector_failure_isolation` to verify working detectors actually contribute results via sentinel pattern
-
-### Fixed
 
 - CI: Add missing `type: string` to `automation-sha` input in `reusable-open-next-version-branch.yml` to fix invalid workflow file error
 - Security: Pin automation repository checkout to commit SHA and add allowlist validation in `reusable-open-next-version-branch.yml` to fix CodeQL `actions/untrusted-checkout/high` alert ([#135](https://github.com/Finfinder/Investment-Assistant/issues/135))
@@ -40,8 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend: reformat `tsconfig.json` to multi-line array style and add `"target": "ES2017"`
 - CI: limit `push` trigger to `main` and `release/**` branches to avoid duplicate CI runs on task branches with open PRs
 
-### Fixed
-
 - CI: Restore `actions/checkout` SHA pin in `reusable-version-consistency.yml` to prevent tag hijacking; update contract test assertion to match SHA format
 - CI: Remove `sonarcloud` from `release` job `needs` to unblock release pipeline; SonarCloud still runs in parallel
 - CI: Add `.vscode/settings.json` to `.gitignore` to prevent committing local SonarLint configuration
@@ -51,26 +50,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SonarCloud project integration: `sonar-project.properties` configuration, `sonarcloud` job in CI and release workflows, SonarCloud badge in README.md ([#2](https://github.com/Finfinder/Investment-Assistant/issues/2))
 - Redis caching for market data and analysis results: `RedisCache` class with JSON serialization and `InMemoryCache` fallback, `RedisManager` singleton for connection lifecycle, Redis service in docker-compose.yml, `REDIS_URL` and `REDIS_MAX_CONNECTIONS` configuration in Settings
 
-### Fixed
-
 - Fix `test_settings_cors_origins_default` to match actual `CORS_ORIGINS` default including `http://localhost`
 - Security: `_mask_url()` in `redis.py` now masks password-only URLs (`redis://password@host`) to prevent credential leakage in logs
 - Security: Removed `or ["http://localhost:3000"]` fallback in WebSocket CORS check to enforce explicit origin allowlist (fail-closed)
 - Security: Patch PostCSS XSS vulnerability (postcss < 8.5.10) by adding npm overrides in frontend/package.json to force postcss >= 8.5.10 across the dependency tree, including the transitive dependency from Next.js 15.5.18 ([#133](https://github.com/Finfinder/Investment-Assistant/issues/133))
 - Types: Fixed mypy errors — added `_client` type annotation in `RedisManager`, `AsyncIterator[None]` return type for `lifespan`, replaced `Optional[X]` with `X | None`
 
-### Tests
-
 - Added `test_mask_url.py` with 12 unit tests covering all Redis URL formats for password masking
-
-### Fixed
 
 - Security: Redis healthcheck now uses `REDISCLI_AUTH` env var instead of `-a` flag to avoid password exposure in process args; fails fast if `REDIS_PASSWORD` is empty
 - Security: WebSocket per-IP rate limiter now uses UUID4 connection IDs instead of `time.monotonic()` timestamps to prevent theoretical collision edge case
 - Resilience: Cache validation errors in analysis and market data endpoints now treated as cache miss with invalidation instead of returning 500
 - Unit tests for API validators: `test_validators.py` covering symbol, period, and UUID4 validation (21 test cases)
-
-### Fixed
 
 - Documentation: Architecture diagram in README.md updated to include Redis caching layer, reflecting actual docker-compose.yml topology (Backend ↔ Redis) ([#104](https://github.com/Finfinder/Investment-Assistant/issues/104))
 - Security: Removed hardcoded Redis password fallback in docker-compose.yml and `.env.example` - now requires explicit `REDIS_PASSWORD` environment variable
@@ -86,62 +77,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BUG-4**: Added `PackageNotFoundError` fallback for `_APP_VERSION` in health endpoint (returns "dev" if package not installed)
 - **GAP-3**: Added unit test for `create_redis_cache()` factory
 
-### Code Review Round 2 — Findings & Fixes
-
-#### MEDIUM — FIXED
-- **B-1**: WebSocket cleanup używał `now` z momentu akceptacji zamiast aktualnego czasu → naprawione: `cleanup_now = time.monotonic()` w `finally` bloku
-- **CS-4**: `pipeline._fail()` była prywatną metodą wywoływaną z zewnątrz → zmieniona na publiczną `pipeline.fail()`
-- **GAP-1 (Round 2)**: Brak testu dla ścieżki `pipeline.fail()` w `_run_pipeline` → dodano 2 testy: `test_run_pipeline_sets_failed_status_on_exception` i `test_run_pipeline_sets_failed_status_on_none_report`
-
-#### Remaining LOW (non-blocking)
-- CS-3: `_analysis_guard_lock` jako modułowy `asyncio.Lock()` — leniwa inicjalizacja
-- CS-6/V-3: `@pytest.mark.asyncio` zbędne w istniejących testach integracyjnych
-
-### Code Review Round 3 — Findings & Fixes
-
-#### HIGH — FIXED
-- **V-3**: Swagger/OpenAPI dostępny bez autentykacji → warunkowe `docs_url`, `redoc_url`, `openapi_url` (wyłączone gdy `DEBUG=False`)
-
-#### MEDIUM — FIXED
-- **CS-1**: Singleton `RedisManager` — `_client` przeniesiony do zmiennej instancji, dodany `asyncio.Lock` do `initialize()` (idempotentne, thread-safe), `reset()` odtwarza lock
-- **CS-1 (test)**: Fixture `reset_redis_manager` zaktualizowany — resetuje `_instance` i `_init_lock` zamiast `_client`
-
-#### LOW — FIXED
-- **CS-5**: Brak logowania fallbacku w `health.py` → dodany `logger.debug()` przy `PackageNotFoundError`
-
-### Code Review Findings (Resolved)
-
-#### HIGH Priority - RESOLVED
-- **ISSUE-1 (IT)**: Pipeline exception nie aktualizuje `analysis_tasks` na FAILED — użytkownik dostaje `status=running` w nieskończoność. Wymagane wywołanie `pipeline.fail()` w `except` bloku.
-- **C-1 (Security)**: Puste hasło Redis domyślnie + healthcheck exposure — `redis-cli -a "" ping` w Dockerze. Wymagana walidacja hasła w `lifespan()`.
-- **H-1 (Security)**: Memory leak w `_ws_connections_per_ip` — klucze IP nigdy nie są usuwane ze słownika.
-- **H-2 (Security)**: Brak limitu na `_background_tasks` dict — atakujący może wysyłać requesty z różnymi symbolami → memory exhaustion.
-
-#### MEDIUM Priority - RESOLVED
-- **BUG-3 (Code)**: `RedisManager.reset()` nie zamyka połączenia — connection leak w testach.
-- **BUG-4 (Code)**: `_APP_VERSION` crash jeśli pakiet nie zainstalowany — `version("investment-assistant")` rzuca `PackageNotFoundError`.
-- **GAP-3 (Test)**: Brak testu dla `create_redis_cache()` factory.
-
-#### LOW Priority
-- **STYLE-2**: CORS `allow_headers` nie zawiera `Authorization`.
-- **M-3 (Security)**: CORS `allow_credentials=True` bez `allow_headers=["*"]` — authenticated requests nie zadziałaj.
-- **M-4 (Security)**: Healthcheck hasło w subprocess args — widoczne w `ps aux`, `/proc/*/cmdline`.
-- **L-1 (Security)**: `expose` vs `ports` — poprawne, ale brak custom network definition.
-- **STYLE-3**: Hardcoded version w `main.py` zamiast import z `version.py`.
-- **STYLE-4**: String type annotation zamiast `Tuple` w `market_data.py`.
-- **STYLE-5**: Brak `__all__` w `redis.py`.
-- Code quality: Removed redundant nested `with` statements in test file (SIM117)
-
-### Added
-
 - Unit tests for frontend components using React Testing Library and Vitest: Section, FundamentalPanel, IndicatorTable (MovingAverageTable, OscillatorTable), PatternList, AnalysisForm, ChartToolbar, PivotTable, StrategyTable, SignalGauge, ProgressIndicator (112 test cases total)
 - Test setup file `__tests__/setup.ts` with jsdom environment configuration, browser API mocks (IntersectionObserver, ResizeObserver, WebSocket, localStorage)
 
-### Changed
-
 - CI workflow cache steps: restored missing `npm ci` in `frontend-lint`, `frontend-test`, and `frontend-e2e` jobs; fixed cache paths from `.next/cache` to `frontend/.next/cache` since `defaults.run.working-directory` does not apply to `uses:` steps; removed unsupported `working-directory` key from `actions/cache/restore@v4` and `actions/cache/save@v4` steps in release workflow
-
-### Added
 
 - Cache npm dependencies and Next.js build artifacts in GitHub Actions CI and release workflows — `actions/cache@v4` with `hashFiles('frontend/package.json', 'frontend/next.config.mjs', 'frontend/tsconfig.json')` key for build cache; `setup-node@v5` with `cache: "npm"` for dependency cache; reduces frontend CI job times by 30-50% on cache hit
 
@@ -168,8 +107,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `frontend-test` job in CI workflow running `npm run test` (Vitest) for unit test coverage on push/PR
 - `npm run test` step added to release workflow before E2E tests, ensuring unit tests validate before publishing
 
-### Changed
-
 - `threshold_calibration.evaluate_candidates()` now uses inlined `_classify_direction()` instead of lazy-importing `determine_direction()` from `scoring` module, eliminating a runtime cross-module dependency while preserving identical threshold comparison behavior
 
 - `CalibrationRunner.run_simple_stub()` now emits a `WARNING` log when the generated sample count is below `CONFIG["min_samples"]` ensuring the operator is informed when a report is produced from statistically insufficient data; the report is still returned to preserve existing behavior
@@ -190,8 +127,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/workflows/reusable-third-party-action-pinning.yml` — synced to repo-local policy bundle; policy resolved from `.github/actions-security/zizmor.yml` instead of cross-repo checkout
 - `.github/actions-security/zizmor.yml` and `.gitignore` — added repo-local zizmor policy bundle and unblocked `.github/actions-security/` from gitignore so the policy file is tracked
 - `backend/tests/unit/test_release_workflow_contract.py` — extended with `test_third_party_action_pinning_uses_repo_local_policy_bundle` asserting the local policy bundle contract
-
-### Fixed
 
 - Added a 540-day lookback override for quarterly FRED `GDP` so US index fundamental analysis keeps the informational `gdp` indicator available during delayed or temporarily stalled GDP updates
 - Replaced the browser-native symbol `datalist` popup in `AnalysisForm.tsx` with a dark-theme suggestions panel consistent with form controls (`card`/`border`/`accent` tokens), preserving uppercase filtering from `POPULAR_INSTRUMENTS`; added E2E accessibility regressions for styled suggestions visibility, keyboard selection (`Enter`), and close behavior (`Escape`)
@@ -241,8 +176,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Upgraded `pytest` from `8.x` to `>=9.0.3,<10.0.0` and `pytest-asyncio` from `0.x` to `>=1.3.0,<2.0.0` in `backend/pyproject.toml` to remediate CVE-2025-71176 (CWE-379: insecure temp directory creation; CVSS 6.8 MEDIUM)
 
-### Added
-
 - `.github/workflows/open-next-version-branch.yml`: automated next-version branch creation triggered by successful Release workflow; updates `backend/pyproject.toml`, `frontend/package.json` and `README.md` with the `next_version` provided before the release
 - `.github/workflows/release.yml`: new Release workflow adapter uploading `next-version-request` artifact for the central automation workflow in `AI_Instruction`
 - Chart layer visibility toolbar — 4 chip-style toggle buttons (EMA, Pivot Points, Fibonacci, Formacje) above the candlestick chart; preferences persisted in `localStorage`
@@ -251,17 +184,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for `buildPatternMarkers` grouping logic (6 cases) with Vitest; `vitest.config.ts` added
 - 2 new E2E tests for `ChartToolbar` (toolbar default states, toggle interaction)
 
-### Changed
 - Classic Pivot Points visual hierarchy: PP rendered with `lineWidth: 2`, R2/R3/S2/S3 with `axisLabelVisible: false` — reduces axis label clutter from 7 to 3 pivot labels
 - `buildPatternMarkers()` now groups patterns detected on the same candle into a single marker with combined name (e.g. "Hammer / Doji"); color: all bullish → green, all bearish → red, mixed → gray
 
-### Fixed
 - `.gitignore`: add `!.github/release/` exception so `next-version.json` is not blocked by the blanket `.github/*` rule during release validation
 - Target price "Cel" line disappearing after chart layer toggle — added `layerVisibility` to `useEffect` dependencies
 - `createPriceLine` `lineWidth` type error (`as const` on expression) causing Next.js build failure
 - E2E toolbar locators scoped to chart `aria-label` to avoid strict mode violation with duplicate button names
 
-13 new candlestick patterns via TA-Lib (total: 28) — Abandoned Baby, Dark Cloud Cover, Dragonfly/Gravestone Doji, Evening/Morning Doji Star, Harami Cross, Kicking Bull/Bear, Ladder Bottom, Long-Legged Doji, Mat Hold, Rising/Falling Three Methods, Three Outside Up/Down — with Polish `indication` and `detailed_description` for each
+- 13 new candlestick patterns via TA-Lib (total: 28) — Abandoned Baby, Dark Cloud Cover, Dragonfly/Gravestone Doji, Evening/Morning Doji Star, Harami Cross, Kicking Bull/Bear, Ladder Bottom, Long-Legged Doji, Mat Hold, Rising/Falling Three Methods, Three Outside Up/Down — with Polish `indication` and `detailed_description` for each
 - `indication`, `reliability` (★–★★★, int 1–3) and `detailed_description` fields on `PatternDetection` model (Pydantic + TypeScript); backward-compatible defaults for all non-candlestick detectors
 - Multi-candle scanning: `detect_candlestick_patterns` now scans last 10 candles (was: last candle only); `location` field set to `"emerging"` (last candle) or `"completed"` (older); duplicate suppression per pattern × candle index
 - `RELIABILITY_MULTIPLIER` constant (`{1: 1.0, 2: 1.3, 3: 1.6}`) in `core/models.py`; used in `normalize_pattern_signal()` (aggregator) and `_pattern_confirmation()` (confidence scorer) — patterns with higher reliability get proportionally larger weight
@@ -271,7 +202,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4 new E2E tests for `PatternDetailModal` (`pattern-detail-modal.spec.ts`): open on click, close on Escape, close on X button, WCAG aria attributes
 - 21 new backend unit tests covering: 28-pattern dictionary completeness, multi-candle scanning, reliability/confidence mapping, indication direction, deduplication, `RELIABILITY_MULTIPLIER` effect in aggregator and confidence scorer, `entry_condition` confirming patterns text
 
-### Added
 - Support for 15 new CFD instruments across all layers: 7 PLN forex pairs (EURPLN, USDPLN, GBPPLN, CHFPLN, JPYPLN, AUDPLN, CADPLN), 5 commodities (COFFEE, COPPER, PLATINUM, PALLADIUM, OILWTI) and W20 index — instrument classifier, all three data providers (YFinance, TwelveData, FMP) and frontend autocomplete suggestions
 - Architecture tests enforcing COMMODITY_SYMBOLS and INDEX_SYMBOLS consistency across all data provider symbol maps; fixes pre-existing gaps for BRENT, NATGAS, COPPER, PLATINUM and PALLADIUM
 - Unit tests for COFFEE (commodity, not forex via 6-char heuristic), EURPLN, OILWTI and W20 classification
@@ -285,12 +215,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashed target price line on chart when a pattern is selected in `PatternList`
 - `detected_at_timestamp` and `relevance_score` and `target_price` fields added to `PatternDetection` Pydantic model and TypeScript `PatternDetection` interface
 
-### Fixed
 - CA CPI (`CPALTT01CAM659N`), US CPI (`CPALTT01USM659N`) and CH CPI (`CPALTT01CHM659N`) added to `SERIES_LOOKBACK_DAYS` with 540-day windows — all OECD MEI CPI series on FRED stopped updating since May 2025 ("Next Release Date: Not Available"); the default 365-day window excluded their last observations (Mar/Apr 2025), causing `inflation_yoy = null` and `inflation_differential = null` for 17 of 26 supported forex pairs (65%), including all USD, CAD and CHF majors
 - AUD CPI (`CPALTT01AUQ659N`) added to `SERIES_LOOKBACK_DAYS` with a 540-day window, matching the NZ CPI override — the default 365-day window excluded the Q1 2025 observation (dated 2025-01-01) from April 2026 onward, causing `AUD_inflation_yoy = null` for AUD/NZD pairs
 - `_compute_inflation_differential()` and `_compute_rate_differential()` now return `None` instead of `0.0` when either component is missing — the UI correctly displays "–" instead of the misleading "0"
 
-### Added
 - Support for 5 NZD cross pairs (NZDJPY, NZDCAD, NZDCHF, EURNZD, GBPNZD) across all layers: instrument classifier, three data providers (YFinance, TwelveData, FMP), fundamental analysis pair mapping, and frontend autocomplete suggestions
 - R/R (TP2) column in entry strategies table — second Risk/Reward ratio calculated against TP2 (aspirational target) alongside existing R/R (TP1); reuses `formatRiskReward` / `riskRewardClass` helpers; column headers renamed from "Risk/Reward" to "R/R (TP1)" and "R/R (TP2)"
 - Risk/Reward column in entry strategies table — displays ratio in trading-standard `1:X.XX` format with color coding (green ≤ 0.5, yellow 0.5–1.0)
@@ -309,11 +237,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for 10 forex cross pairs (AUDCAD, AUDCHF, AUDJPY, CADJPY, CHFJPY, EURCHF, EURAUD, EURCAD, GBPCAD, GBPCHF) in all data providers and frontend suggestions
 - Architecture test enforcing FOREX_PAIRS consistency across all data provider symbol maps
 
-### Changed
 - `FredSource.fetch_series()` now retries transient FRED API errors (OSError, including ConnectionError and TimeoutError subclasses) with exponential backoff via tenacity (3 attempts, 1–10s wait); permanent errors (ValueError) and empty-data responses are not retried; improves reliability for GBP CPI and NZD interest rate data
 - Add Git Workflow section to `copilot-instructions.md` — branching strategy (semver branches + merge-forward), commit conventions, pre-commit checklist
 
-### Fixed
 - Replace discontinued FRED overnight interbank rate series for NZD (`IRSTCI01NZM156N`, last obs Dec 2024) and CHF (`IRSTCI01CHM156N`, last obs Mar 2024) with active 3-month interbank rate series (`IR3TIB01NZM156N`, `IR3TIB01CHM156N`) — restores NZD_interest_rate and CHF_interest_rate fields in fundamental analysis for all NZD and CHF pairs
 - Add lookback override of 540 days for UK CPI series (`CPALTT01GBM659N`) to account for OECD publication lag (~6 weeks)
 - Fix null NZ inflation data caused by discontinued FRED series `CPALTT01NZQ659N` — switch to `NZLCPIALLQINMEI` (quarterly index) with FRED `units=pc1` transformation
@@ -326,8 +252,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrite commodity real-rate scoring to compute actual real rate (`fed_rate - cpi_yoy`) instead of heuristic
 - Rename forex fundamental indicators from `_cpi` to `_inflation_yoy` and display inflation differential in percentage points
 
-### Fixed
-
 - Fix "Brak danych rynkowych" error for 10 forex cross pairs (AUDCAD etc.) — add missing symbol mappings to YFinance, TwelveData and FMP providers
 - Fix null inflation data for JPY and AUD currency pairs caused by discontinued FRED OECD series
 - Fix EU inflation always null — add FRED `units=pc1` parameter to convert Eurostat HICP index to YoY%
@@ -335,8 +259,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix Docker healthchecks failing inside containers — replace `localhost` with `127.0.0.1` in `wget` commands
 - Fix backend entrypoint `exec format error` on Linux — strip Windows CRLF line endings in Dockerfile
 - Fix Next.js standalone server not accepting external connections — set `HOSTNAME=0.0.0.0` in frontend Dockerfile
-
-### Added
 
 - Docker entrypoint script (`entrypoint.sh`) that runs Alembic migrations before starting uvicorn
 - `strategy_skip_reason` field on `AnalysisReport` — explains why no strategies were generated (e.g., neutral signals)
@@ -349,13 +271,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preset dropdown in analysis form (frontend) with accessibility support (label, keyboard nav, Tab order)
 - `FetchFn` type alias for async fetch callbacks in cache service (proper `Callable` typing)
 
-### Changed
-
 - Extend default data period from 90 to 200 days for improved indicator accuracy
 - Parameterize all 9 existing indicators via preset configuration instead of hardcoded values
 - Indicator names now reflect active parameters (e.g., `CCI(14)` for Investing, `CCI(20)` for TradingView)
-
-### Fixed
 
 - Fix Pivot Points showing identical values for all S/R levels on intraday timeframes — use previous completed daily candle (D1) instead of last intraday candle for calculations, with graceful fallback when D1 fetch fails
 - Fix race condition between COMPLETED status publication and report caching — pipeline now caches report before signaling completion via `complete()` method
@@ -370,8 +288,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Remove `code-quality-report.md` and `sonar-report.md` from repository (generated reports should not be tracked)
 - Remove deprecated `CURRENCYLAYER_API_KEY` and `MARKETSTACK_API_KEY` from `backend/.env.example` and `.env.production.example`
-
-### Added
 
 - `CONTRIBUTING.md` — contributor guidelines with prerequisites, coding conventions, testing strategy, and PR checklist
 - `SECURITY.md` — security policy with responsible disclosure via GitHub Security Advisories
@@ -471,8 +387,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Docker multi-stage build (node:20-alpine, non-root user)
   - Docker Compose integration with backend service
 
-### Changed
-
 - Fix `--accent` CSS color from `#3b82f6` to `#2563eb` for WCAG 2.1 AA contrast ratio compliance (4.58:1 white-on-accent)
 - Fix badge text color from `text-accent` to `text-blue-400` in `page.tsx` and `FundamentalPanel.tsx` for WCAG AA contrast on dark background
 - Fix button hover state from `hover:bg-blue-600` to `hover:bg-blue-700` in `AnalysisForm.tsx`
@@ -522,8 +436,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace soft assertions (`if results:`) with hard assertions in chart pattern tests
 - Reorganize test files: move 6 unit tests from `tests/` root to `tests/unit/`, move `test_database.py` to `tests/integration/`
 
-### Fixed
-
 - Unreachable timeframe validation in `analysis.py` removed (Pydantic handles at deserialization)
 - Removed unused `CURRENCYLAYER_API_KEY` and `MARKETSTACK_API_KEY` from Settings
 - Removed unused `DataCache` protocol from `cache.py`
@@ -534,8 +446,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolve 36 mypy strict-mode errors: list variance, nullable arithmetic, NDArray types, unused type:ignore suppressions
 - Fix chart pattern test data generators to produce oscillating data for `argrelextrema` peak/trough detection
 - Fix `fred_source.py` returning untyped cached value (`Any`) instead of `float`
-
-### Added
 
 - Project foundation: FastAPI app, Pydantic settings, async SQLAlchemy with SQLite
 - Domain models: 7 enums and 11 Pydantic models for OHLCV, indicators, signals
