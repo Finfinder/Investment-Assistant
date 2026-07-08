@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Refactor formatting helper tests (`confidenceBarClass`, `formatRiskReward`, `formatValue`) to use `it.each` for improved readability and maintainability
 - Add comprehensive unit tests for PatternDetailModal component covering open/close behavior, escape key handling, and all field rendering ([#100](https://github.com/Finfinder/Investment-Assistant/issues/100))
+- Add error path coverage for fundamental data providers (BFS, BLS, OECD SDMX, StatCan CPI sources) with comprehensive unit tests covering edge cases and exception handling ([#121](https://github.com/Finfinder/Investment-Assistant/issues/121))
 
 
 ### Fixed

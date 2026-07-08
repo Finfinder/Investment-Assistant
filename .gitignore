@@ -19,7 +19,10 @@ ENV/
 *.swp
 *.swo
 *~
-.vscode/settings.json
+.vscode/
+
+# Temporary files
+result_tmp.txt
 
 # Environment
 .env
