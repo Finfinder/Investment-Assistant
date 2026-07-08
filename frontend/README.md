@@ -92,7 +92,7 @@ Unit tests are in `__tests__/`, E2E tests in `e2e/`.
 
 ## Docker
 
-Production image based on `node:20-alpine` with Next.js standalone output:
+Production image based on `node:20-alpine` with Next.js standalone output. The Dockerfile uses BuildKit features (e.g. `RUN --mount=type=cache`), so a BuildKit-enabled builder is required — this is the default for Docker 23.0+ (`docker build` uses BuildKit automatically). On older Docker set `DOCKER_BUILDKIT=1` or use `docker buildx build`.
 
 ```bash
 docker build \
