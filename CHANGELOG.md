@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Add security response headers (HSTS, CSP `default-src 'none'`, X-Frame-Options `DENY`, X-Content-Type-Options `nosniff`, Referrer-Policy) via `SecurityHeadersMiddleware` in production mode; configure nginx to add HSTS on HTTPS and scope CSP to the frontend location ([#114](https://github.com/Finfinder/Investment-Assistant/issues/114))
 - Rate limiting: defend against `X-Forwarded-For` spoofing by validating the header against configured `TRUSTED_PROXIES`, preferring the verified JWT subject as the rate-limit key, and falling back to the direct peer when no trusted proxy is configured ([#112](https://github.com/Finfinder/Investment-Assistant/issues/112))
 - Rate limiting: remove the flawed `X-Forwarded-For` spoofing heuristic that compared chain length to the number of configured CIDR rules (`len(hops) > len(TRUSTED_PROXIES) + 1`); chain length is no longer treated as a spoofing signal, avoiding false positives on legitimate multi-proxy topologies behind a single broad CIDR ([#156](https://github.com/Finfinder/Investment-Assistant/pull/156))
 
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- nginx: remove deprecated `X-XSS-Protection` header and fix `add_header` inheritance — the frontend `location /` block defines its own `add_header` directives, which stopped inheriting server-level headers; the deprecated header is now omitted entirely rather than silently dropped on frontend responses ([#114](https://github.com/Finfinder/Investment-Assistant/issues/114))
 - Pattern detector exceptions crashing `/api/v1/patterns` endpoint — added per-detector try/except isolation with graceful degradation and `warnings` field in response ([#116](https://github.com/Finfinder/Investment-Assistant/issues/116))
 - Translate inline comments to English in `patterns.py` for consistency with backend codebase
 - Strengthen `test_detector_failure_isolation` to verify working detectors actually contribute results via sentinel pattern
