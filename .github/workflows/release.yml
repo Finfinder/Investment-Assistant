@@ -176,6 +176,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        with:
+          install: true
+
       - name: Build and push release images
         env:
           VERSION: ${{ steps.prepare.outputs.version }}
@@ -205,20 +210,28 @@ jobs:
             local semver_tag="${image_ref}:${VERSION}"
             local sha_tag="${image_ref}:sha-${COMMIT_SHA}"
 
-            docker build \
+            local tags_args=(
+              -t "$semver_tag"
+              -t "$sha_tag"
+            )
+
+            if [[ "$stable_release" == true ]]; then
+              tags_args+=( -t "${image_ref}:latest" )
+            fi
+
+            docker buildx build \
+              --cache-from "type=gha" \
+              --cache-to "type=gha,mode=max" \
               --label "org.opencontainers.image.source=https://github.com/${REPOSITORY}" \
               --label "org.opencontainers.image.revision=${COMMIT_SHA}" \
               --label "org.opencontainers.image.version=${VERSION}" \
               --label "org.opencontainers.image.licenses=MIT" \
               --label "org.opencontainers.image.title=${title}" \
               --label "org.opencontainers.image.description=${description}" \
-              -t "$semver_tag" \
-              -t "$sha_tag" \
+              "${tags_args[@]}" \
               "$@" \
+              --push \
               "$context_path"
-
-            docker push "$semver_tag"
-            docker push "$sha_tag"
 
             {
               echo "- ${semver_tag}"
@@ -226,10 +239,7 @@ jobs:
             } >> "$IMAGE_LIST_PATH"
 
             if [[ "$stable_release" == true ]]; then
-              local latest_tag="${image_ref}:latest"
-              docker tag "$semver_tag" "$latest_tag"
-              docker push "$latest_tag"
-              echo "- ${latest_tag}" >> "$IMAGE_LIST_PATH"
+              echo "- ${image_ref}:latest" >> "$IMAGE_LIST_PATH"
             fi
           }
 

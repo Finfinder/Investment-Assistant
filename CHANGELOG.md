@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Cache Docker layers for the frontend builder stage: switch release image builds to `docker buildx build` with GitHub Actions cache (`type=gha`) and add an npm cache mount in `frontend/Dockerfile`, reducing CI build times ([#96](https://github.com/Finfinder/Investment-Assistant/issues/96))
+
+## [0.4.0] - 2026-07-08
+
+### Changed
+
 - Reorganize `CHANGELOG.md`: merge duplicate subsection headers (Security, Tests, Fixed, Changed, Added) in `[Unreleased]` and `[0.1.0]`, remove internal code-review round sections, and move the floating candlestick-pattern entry under `### Added`
 
 ### Security
