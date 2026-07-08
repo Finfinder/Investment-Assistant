@@ -3,7 +3,9 @@
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
+from tenacity import wait_none
 
 from app.modules.fundamental_analysis.data_sources.bfs_cpi_source import BfsCpiSource
 
@@ -68,3 +70,103 @@ class TestBfsFetchRuntime:
         assert first is None
         assert second is None
         assert mock_request.await_count == 1
+
+
+class TestBfsFetchErrorPaths:
+    @pytest.mark.asyncio
+    async def test_fetch_ch_cpi_yoy_negative_cache_after_request_exception(self, bfs_source: BfsCpiSource):
+        with patch.object(
+            bfs_source, "_request_payload", new=AsyncMock(side_effect=RuntimeError("boom"))
+        ) as mock_request:
+            first = await bfs_source.fetch_ch_cpi_yoy()
+            second = await bfs_source.fetch_ch_cpi_yoy()
+
+        assert first is None
+        assert second is None
+        assert mock_request.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_fetch_ch_cpi_yoy_negative_cache_after_no_observation(self, bfs_source: BfsCpiSource):
+        with patch.object(
+            bfs_source,
+            "_request_payload",
+            new=AsyncMock(return_value=("TIME_PERIOD,OBS_VALUE\n", "text/csv")),
+        ) as mock_request:
+            first = await bfs_source.fetch_ch_cpi_yoy()
+            second = await bfs_source.fetch_ch_cpi_yoy()
+
+        assert first is None
+        assert second is None
+        assert mock_request.await_count == 1
+
+
+class TestBfsRequest:
+    @pytest.fixture(autouse=True)
+    def fast_retry(self):
+        original_wait = BfsCpiSource._request_payload.retry.wait  # type: ignore[attr-defined]
+        BfsCpiSource._request_payload.retry.wait = wait_none()  # type: ignore[attr-defined]
+        yield
+        BfsCpiSource._request_payload.retry.wait = original_wait  # type: ignore[attr-defined]
+
+    @pytest.mark.asyncio
+    async def test_request_payload_returns_none_for_4xx(self, bfs_source: BfsCpiSource):
+        response = httpx.Response(
+            404,
+            request=httpx.Request("GET", "https://www.bfs.admin.ch/bfsstatic/dam/assets/36552367/master"),
+        )
+        with patch("app.modules.fundamental_analysis.data_sources.bfs_cpi_source.httpx.AsyncClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=response)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_client
+
+            result = await bfs_source._request_payload()
+
+        assert result is None
+        assert mock_client.get.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_request_payload_retries_on_http_5xx(self, bfs_source: BfsCpiSource):
+        first = httpx.Response(
+            503,
+            request=httpx.Request("GET", "https://www.bfs.admin.ch/bfsstatic/dam/assets/36552367/master"),
+        )
+        second = httpx.Response(
+            200,
+            text="TIME_PERIOD,OBS_VALUE\n2025-04,0.7\n",
+            headers={"content-type": "text/csv"},
+            request=httpx.Request("GET", "https://www.bfs.admin.ch/bfsstatic/dam/assets/36552367/master"),
+        )
+        with patch("app.modules.fundamental_analysis.data_sources.bfs_cpi_source.httpx.AsyncClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(side_effect=[first, second])
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_client
+
+            result = await bfs_source._request_payload()
+
+        assert result is not None
+        assert result[1] == "text/csv"
+        assert mock_client.get.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_request_payload_retries_on_transport_error(self, bfs_source: BfsCpiSource):
+        second = httpx.Response(
+            200,
+            text="TIME_PERIOD,OBS_VALUE\n2025-04,0.7\n",
+            headers={"content-type": "text/csv"},
+            request=httpx.Request("GET", "https://www.bfs.admin.ch/bfsstatic/dam/assets/36552367/master"),
+        )
+        with patch("app.modules.fundamental_analysis.data_sources.bfs_cpi_source.httpx.AsyncClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(side_effect=[httpx.ReadTimeout("timeout"), second])
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_client
+
+            result = await bfs_source._request_payload()
+
+        assert result is not None
+        assert mock_client.get.await_count == 2

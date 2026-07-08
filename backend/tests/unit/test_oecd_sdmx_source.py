@@ -72,6 +72,48 @@ class TestOecdJsonParsing:
 
         assert value == pytest.approx(1.3)
 
+    def test_parse_json_returns_none_for_malformed_json(self):
+        value = OecdSdmxSource._extract_latest_value("{not valid json", "application/json")
+
+        assert value is None
+
+    def test_parse_json_returns_none_for_empty_datasets(self):
+        value = OecdSdmxSource._extract_latest_value('{"dataSets":[]}', "application/json")
+
+        assert value is None
+
+    def test_parse_json_returns_none_for_missing_structure(self):
+        value = OecdSdmxSource._extract_latest_value('{"dataSets":[{}]}', "application/json")
+
+        assert value is None
+
+    def test_parse_json_returns_none_for_empty_period_map(self):
+        payload = (
+            '{"dataSets":[{"series":{"0:0:0:0:0:0:0:0":{"observations":{"0":[1.3]}}}}],'
+            '"structure":{"dimensions":{"observation":[{"values":[{"id":"not-a-period"}]}]}}}'
+        )
+
+        value = OecdSdmxSource._extract_latest_value(payload, "application/json")
+
+        assert value is None
+
+    def test_parse_json_returns_none_for_empty_observations(self):
+        payload = (
+            '{"dataSets":[{"series":{"0:0:0:0:0:0:0:0":{}}}],'
+            '"structure":{"dimensions":{"observation":[{"values":[{"id":"2025-03"}]}]}}}'
+        )
+
+        value = OecdSdmxSource._extract_latest_value(payload, "application/json")
+
+        assert value is None
+
+    def test_extract_latest_value_falls_back_to_csv_for_plain_text(self):
+        payload = "TIME_PERIOD,OBS_VALUE\n2025-01,2.3\n2025-03,2.8\n2025-02,2.5\n"
+
+        value = OecdSdmxSource._extract_latest_value(payload, "text/plain")
+
+        assert value == pytest.approx(2.8)
+
 
 class TestOecdFetchRuntime:
     @pytest.mark.asyncio
