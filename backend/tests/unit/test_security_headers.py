@@ -1,5 +1,6 @@
 """Tests for security response headers middleware."""
 
+from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -36,15 +37,17 @@ def _make_client(debug: bool) -> AsyncClient:
 
 
 @pytest.fixture
-def prod_client() -> AsyncClient:
+async def prod_client() -> AsyncGenerator[AsyncClient]:
     """AsyncClient with DEBUG=False so security headers are active."""
-    yield _make_client(debug=False)
+    async with _make_client(debug=False) as client:
+        yield client
 
 
 @pytest.fixture
-def dev_client() -> AsyncClient:
+async def dev_client() -> AsyncGenerator[AsyncClient]:
     """AsyncClient with DEBUG=True so security headers are skipped."""
-    yield _make_client(debug=True)
+    async with _make_client(debug=True) as client:
+        yield client
 
 
 class TestSecurityHeadersProduction:
