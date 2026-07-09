@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Cache Docker layers for the frontend builder stage: switch release image builds to `docker buildx build` with GitHub Actions cache (`type=gha`) and add an npm cache mount in `frontend/Dockerfile`, reducing CI build times ([#96](https://github.com/Finfinder/Investment-Assistant/issues/96))
+- Centralize error handling: add correlation-ID middleware and sanitized `{"error", "reference"}` JSON responses for all errors; preserve the full exception chain in server logs and stop masking it with `from None` ([#113](https://github.com/Finfinder/Investment-Assistant/issues/113))
+
+### Security
+
+- Ensure API error responses never leak stack traces, internal paths, or exception details; clients receive only a generic message and a correlation reference UUID ([#113](https://github.com/Finfinder/Investment-Assistant/issues/113))
+- Re-review of [#113](https://github.com/Finfinder/Investment-Assistant/issues/113): confirm unhandled errors always return a generic message (no `type(exc).__name__` leak even in DEBUG), and audit all `HTTPException` `detail` values across `app/` — none expose sensitive/internal data, so no code change required for the HTTP-exception handler
 
 ## [0.4.0] - 2026-07-08
 

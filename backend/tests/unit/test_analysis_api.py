@@ -80,7 +80,7 @@ async def test_trigger_analysis_duplicate_returns_409(client):
         resp = await client.post("/api/v1/analysis", json={"symbol": "EURUSD", "timeframe": "H1"})
 
     assert resp.status_code == 409
-    assert "already running" in resp.json()["detail"]
+    assert "already running" in resp.json()["error"]
     # Clean up
     _background_tasks.pop(_UUID_TEST, None)
 
@@ -197,14 +197,14 @@ async def test_get_analysis_invalid_uuid(client):
     """GET /analysis/{id} with invalid UUID format returns 400."""
     resp = await client.get("/api/v1/analysis/not-a-uuid")
     assert resp.status_code == 400
-    assert "Invalid analysis ID format" in resp.json()["detail"]
+    assert "Invalid analysis ID format" in resp.json()["error"]
 
 
 async def test_get_analysis_status_invalid_uuid(client):
     """GET /analysis/{id}/status with invalid UUID format returns 400."""
     resp = await client.get("/api/v1/analysis/not-a-uuid/status")
     assert resp.status_code == 400
-    assert "Invalid analysis ID format" in resp.json()["detail"]
+    assert "Invalid analysis ID format" in resp.json()["error"]
 
 
 # ---------------------------------------------------------------------------
