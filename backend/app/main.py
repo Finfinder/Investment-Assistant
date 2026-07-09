@@ -8,6 +8,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.core.config import get_settings
+from app.core.errors import register_exception_handlers
 from app.core.logging_config import setup_logging
 from app.core.rate_limit import limiter
 from app.core.redis import redis_manager
@@ -50,6 +51,9 @@ def create_app() -> FastAPI:
 
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+
+    # Correlation ID + centralized, sanitized error responses.
+    register_exception_handlers(app)
 
     app.add_middleware(
         CORSMiddleware,

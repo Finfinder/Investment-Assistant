@@ -56,8 +56,6 @@ async def analyze_fundamental(
         return await analyze_index(body.symbol)
 
     except Exception:
-        logger.exception("Fundamental analysis failed for %s", body.symbol)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Blad analizy fundamentalnej dla {body.symbol}.",
-        ) from None
+        # The global exception handler logs the full chain (with correlation ID)
+        # and returns a sanitized response. Re-raise to let it take over.
+        raise
