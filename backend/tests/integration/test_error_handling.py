@@ -66,6 +66,9 @@ class TestErrorHandlingProduction:
         # No internal details leak to the client.
         assert "/" not in data["error"]
         assert "secret" not in data["error"]
+        # The correlation ID must be echoed back so the client can correlate
+        # the error with server logs even on the unhandled-exception path.
+        assert resp.headers["X-Request-ID"] == data["reference"]
 
     async def test_422_validation_error_uses_sanitized_shape(self, prod_client: AsyncClient) -> None:
         # Missing required field "symbol" triggers RequestValidationError.

@@ -61,7 +61,9 @@ async def correlation_id_middleware(request: Request, call_next: Callable[[Reque
         response.headers["X-Request-ID"] = correlation_id
         return response
     except Exception as exc:  # catch-all to sanitize response
-        return await _unhandled_exception_handler(request, exc)
+        response = await _unhandled_exception_handler(request, exc)
+        response.headers["X-Request-ID"] = correlation_id
+        return response
     finally:
         correlation_id_var.reset(token)
 
@@ -88,6 +90,7 @@ async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSON
     logger.exception(
         "Nieobslugiwany wyjatek podczas przetwarzania zadania (reference=%s)",
         reference,
+        exc_info=exc,
         extra={"correlation_id": reference},
     )
     # The full exception chain (including the exception type) is logged

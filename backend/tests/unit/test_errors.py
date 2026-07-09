@@ -66,6 +66,27 @@ class TestCorrelationIdMiddleware:
         # Correlation ID echoed back to the client.
         assert result.headers["X-Request-ID"] == captured["correlation_id"]
 
+    async def test_unhandled_exception_path_echoes_x_request_id(self) -> None:
+        async def call_next(_: object):  # type: ignore[no-untyped-def]
+            raise RuntimeError("boom")
+
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [],
+            "query_string": b"",
+        }
+        from starlette.requests import Request
+
+        request = Request(scope)
+        result = await correlation_id_middleware(request, call_next)
+        assert result.status_code == 500
+        # The correlation ID must be echoed back even on the unhandled
+        # exception path, so clients can correlate errors with server logs.
+        assert "X-Request-ID" in result.headers
+        assert len(result.headers["X-Request-ID"]) == 32  # uuid4().hex
+
     async def test_correlation_id_reset_after_request(self) -> None:
         async def call_next(_: object):
             from starlette.responses import Response
@@ -102,6 +123,10 @@ class TestUnhandledExceptionHandler:
             assert "root cause" not in data["error"]
             assert "/" not in data["error"]
             mock_log.assert_called_once()
+            # The exception must be passed explicitly so the full chain is
+            # logged regardless of the call context (e.g. direct invocation).
+            _, kwargs = mock_log.call_args
+            assert kwargs.get("exc_info") is exc
 
     async def test_debug_mode_returns_generic_message_not_internal_details(self) -> None:
         with patch.object(errors.logger, "exception"):
