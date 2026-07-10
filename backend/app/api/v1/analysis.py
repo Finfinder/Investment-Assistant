@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -15,6 +14,7 @@ from app.core.config import get_settings
 from app.core.database import AnalysisResult, get_session_factory
 from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, IndicatorPreset, Timeframe
 from app.core.rate_limit import limiter
+from app.core.ws_connection_limiter import ws_connection_limiter
 from app.modules.data_acquisition.redis_cache import create_redis_cache
 from app.modules.pipeline import AnalysisPipeline, analysis_tasks
 
@@ -30,11 +30,6 @@ _MAX_BACKGROUND_TASKS = 100  # Prevent unbounded memory growth
 _analysis_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_ANALYSES)
 # Lock for atomic guard against duplicate analysis_id
 _analysis_guard_lock = asyncio.Lock()
-
-# WebSocket per-IP connection limiter: max 5 concurrent connections per IP, tracked for 60s
-_WS_MAX_CONNECTIONS_PER_IP = 5
-_WS_RATE_WINDOW = 60
-_ws_connections_per_ip: dict[str, dict[str, float]] = {}
 
 
 class AnalysisRequest(BaseModel):
@@ -180,16 +175,11 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
             direct_peer,
         )
     conn_id = str(uuid.uuid4())
-    now = time.monotonic()
-    connections = _ws_connections_per_ip.get(client_ip, {})
-    # Prune expired entries
-    connections = {cid: ts for cid, ts in connections.items() if now - ts < _WS_RATE_WINDOW}
-    if len(connections) >= _WS_MAX_CONNECTIONS_PER_IP:
-        logger.warning("WebSocket rate limited: IP %s has %d connections", client_ip, len(connections))
+    allowed = await ws_connection_limiter.acquire(client_ip, conn_id)
+    if not allowed:
+        logger.warning("WebSocket rate limited: IP %s exceeded connection limit", client_ip)
         await websocket.close(code=1008)
         return
-    connections[conn_id] = now
-    _ws_connections_per_ip[client_ip] = connections
     await websocket.accept()
 
     try:
@@ -213,7 +203,4 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
         logger.debug("WebSocket disconnected for analysis %s", analysis_id)
     finally:
         # Cleanup: remove this specific connection from per-IP tracking
-        if client_ip in _ws_connections_per_ip:
-            _ws_connections_per_ip[client_ip].pop(conn_id, None)
-            if not _ws_connections_per_ip[client_ip]:
-                del _ws_connections_per_ip[client_ip]
+        await ws_connection_limiter.release(client_ip, conn_id)
