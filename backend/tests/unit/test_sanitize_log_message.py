@@ -122,10 +122,20 @@ class TestKeyValueMasking:
         assert "SUPER_SECRET" not in result
 
     def test_api_key_in_url_query(self):
-        """api_key in a URL query string is masked."""
+        """api_key in a URL query string is masked; rest of URL preserved."""
         result = sanitize_log_message("https://api.stlouisfed.org/series?api_key=SUPER_SECRET&series_id=FEDFUNDS")
-        assert "api_key=***" in result
+        assert result == "https://api.stlouisfed.org/series?api_key=***&series_id=FEDFUNDS"
         assert "SUPER_SECRET" not in result
+
+    def test_key_value_preserves_ampersand_suffix(self):
+        """Value match stops at '&' so the rest of the query string is kept."""
+        result = sanitize_log_message("api_key=SECRET&series_id=FEDFUNDS")
+        assert result == "api_key=***&series_id=FEDFUNDS"
+
+    def test_key_value_preserves_semicolon_delimiter(self):
+        """Value match stops at ';' so subsequent cookie attributes are kept."""
+        result = sanitize_log_message("Cookie: session=abc; token=SECRET; Path=/")
+        assert result == "Cookie=***; token=***; Path=/"
 
     def test_password_equals(self):
         """password=secret -> password=***."""

@@ -70,10 +70,13 @@ def _mask_url_creds(match: re.Match[str]) -> str:
 
 # Masks key=value / key: value pairs for sensitive keys (case-insensitive).
 # For ``authorization: Bearer <token>`` the token after the space is also
-# consumed so the credential value is not left exposed.
+# consumed so the credential value is not left exposed. The value class stops
+# at whitespace and common delimiters (& quotes , ;) so masking preserves the
+# rest of the message/URL (e.g. ``api_key=SECRET&series_id=FEDFUNDS`` keeps the
+# ``&series_id=...`` suffix) - restoring the prior ``[^&\s"']+`` behaviour.
 _KEY_VALUE_RE = re.compile(
     r"(?P<key>password|api_key|apikey|token|secret|credential|credentials|authorization|cookie)"
-    r"\s*[=:]\s*(?:Bearer\s+)?\S+",
+    r"\s*[=:]\s*(?:Bearer\s+)?[^\s&\"',;]+",
     re.IGNORECASE,
 )
 
