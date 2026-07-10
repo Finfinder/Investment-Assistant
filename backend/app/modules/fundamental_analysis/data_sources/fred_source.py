@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -10,6 +9,7 @@ from cachetools import TTLCache
 from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import get_settings
+from app.core.logging_config import sanitize_log_message
 
 from .macro_observation import MacroObservation
 
@@ -116,14 +116,11 @@ MAX_RETRIES = 3
 RETRY_MIN_WAIT_SECONDS = 1
 RETRY_MAX_WAIT_SECONDS = 10
 
-_API_KEY_RE = re.compile(r"api_key=[^&\s\"']+")
-_REDACTED_API_KEY = "api_key=***"
-
 
 def _before_sleep_log(retry_state: RetryCallState) -> None:
     """Log retry attempts without exposing the FRED API key from exception URLs."""
     exc = retry_state.outcome.exception() if retry_state.outcome else None
-    safe_msg = _API_KEY_RE.sub(_REDACTED_API_KEY, str(exc)) if exc else "unknown error"
+    safe_msg = sanitize_log_message(str(exc)) if exc else "unknown error"
     logger.warning("FRED: retry attempt %d after error: %s", retry_state.attempt_number, safe_msg)
 
 
@@ -202,7 +199,7 @@ class FredSource:
         try:
             metadata = await self._fetch_series_info_from_api(fred, series_id)
         except Exception as exc:
-            safe_msg = _API_KEY_RE.sub(_REDACTED_API_KEY, str(exc))
+            safe_msg = sanitize_log_message(str(exc))
             logger.warning("FRED: failed to fetch metadata for series %s: %s", series_id, safe_msg)
             self._series_info_negative_cache[metadata_cache_key] = _NEGATIVE_CACHE_SENTINEL
             return None
@@ -283,7 +280,7 @@ class FredSource:
                 kwargs["units"] = units
             data = await self._fetch_from_api(fred, series_id, **kwargs)
         except Exception as exc:
-            safe_msg = _API_KEY_RE.sub(_REDACTED_API_KEY, str(exc))
+            safe_msg = sanitize_log_message(str(exc))
             logger.error("FRED: failed to fetch series %s: %s", series_id, safe_msg)
             self._negative_cache[cache_key] = _NEGATIVE_CACHE_SENTINEL
             return None

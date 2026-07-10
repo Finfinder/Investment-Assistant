@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Centralize log sanitization into a single `sanitize_log_message()` helper in `core/logging_config.py`: consolidate URL-credential masking (was `_mask_url` in `redis.py`), FRED API-key masking (was `_API_KEY_RE` in `fred_source.py`), and key=value masking into one idempotent, compiled-regex entry point; formatters keep whole-message redaction for configuration key names ([#139](https://github.com/Finfinder/Investment-Assistant/issues/139))
+
 ### Fixed
 
 - Fix `riskRewardClass` returning a misleading "positive" yellow class for NaN/Infinity: non-finite ratios now map to `text-danger` to signal invalid data ([#125](https://github.com/Finfinder/Investment-Assistant/issues/125))
