@@ -14,9 +14,21 @@ export function formatRiskReward(ratio: number | null): string {
   return `1:${(1 / ratio).toFixed(2)}`;
 }
 
-/** Return a Tailwind text-color class for a risk/reward ratio. */
+/**
+ * Próg, powyżej którego R/R jest klasyfikowany jako "umiarkowany" (żółty).
+ * Wartości z przedziału [0, RISK_REWARD_FAVORABLE_THRESHOLD] oznaczają setup korzystny (zielony).
+ * Próg ma znaczenie domenowe (granica "korzystne/umiarkowane") ustalone w Issue #126.
+ */
+const RISK_REWARD_FAVORABLE_THRESHOLD = 0.5;
+
+/**
+ * Return a Tailwind text-color class for a risk/reward ratio.
+ * Semantyka kolorów: zielony = korzystne (0 <= R/R <= próg), czerwony = niekorzystne (R/R < 0),
+ * żółty = umiarkowane (R/R > próg), muted = brak danych (null).
+ */
 export function riskRewardClass(ratio: number | null): string {
   if (ratio === null) return "text-muted";
-  if (ratio <= 0.5) return "text-green-400";
+  if (ratio < 0) return "text-red-400";
+  if (ratio <= RISK_REWARD_FAVORABLE_THRESHOLD) return "text-green-400";
   return "text-yellow-400";
 }
