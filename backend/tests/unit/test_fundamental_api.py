@@ -66,7 +66,7 @@ class TestFundamentalEndpointInvalidSymbol:
             json={"symbol": "???"},
         )
         assert resp.status_code == 400
-        assert "Invalid symbol format" in resp.json()["detail"]
+        assert "Invalid symbol format" in resp.json()["error"]
 
     async def test_post_valid_but_unrecognized_symbol(self, client):
         resp = await client.post(
@@ -74,4 +74,4 @@ class TestFundamentalEndpointInvalidSymbol:
             json={"symbol": "ZZZZZ"},
         )
         assert resp.status_code == 400
-        assert "Nierozpoznany" in resp.json()["detail"]
+        assert "Nierozpoznany" in resp.json()["error"]

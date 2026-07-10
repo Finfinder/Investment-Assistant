@@ -80,7 +80,7 @@ async def test_trigger_analysis_duplicate_returns_409(client):
         resp = await client.post("/api/v1/analysis", json={"symbol": "EURUSD", "timeframe": "H1"})
 
     assert resp.status_code == 409
-    assert "already running" in resp.json()["detail"]
+    assert "already running" in resp.json()["error"]
     # Clean up
     _background_tasks.pop(_UUID_TEST, None)
 
@@ -197,14 +197,14 @@ async def test_get_analysis_invalid_uuid(client):
     """GET /analysis/{id} with invalid UUID format returns 400."""
     resp = await client.get("/api/v1/analysis/not-a-uuid")
     assert resp.status_code == 400
-    assert "Invalid analysis ID format" in resp.json()["detail"]
+    assert "Invalid analysis ID format" in resp.json()["error"]
 
 
 async def test_get_analysis_status_invalid_uuid(client):
     """GET /analysis/{id}/status with invalid UUID format returns 400."""
     resp = await client.get("/api/v1/analysis/not-a-uuid/status")
     assert resp.status_code == 400
-    assert "Invalid analysis ID format" in resp.json()["detail"]
+    assert "Invalid analysis ID format" in resp.json()["error"]
 
 
 # ---------------------------------------------------------------------------
@@ -212,45 +212,64 @@ async def test_get_analysis_status_invalid_uuid(client):
 # ---------------------------------------------------------------------------
 
 
-def test_ws_connections_per_ip_cleanup_logic():
-    """Test that _ws_connections_per_ip cleanup logic works correctly."""
-    import time
+def test_ws_connection_limit_configured():
+    """Verify WebSocket connection limit is configured via settings."""
+    from app.core.config import get_settings
 
-    from app.api.v1.analysis import _WS_RATE_WINDOW, _ws_connections_per_ip
-
-    _ws_connections_per_ip.clear()
-
-    # Simulate connections with timestamps
-    now = time.monotonic()
-    _ws_connections_per_ip["192.168.1.1"] = [now - 30, now - 10, now - 5]  # All within window
-
-    # Simulate cleanup (pruning expired entries)
-    _ws_connections_per_ip["192.168.1.1"] = [
-        t for t in _ws_connections_per_ip["192.168.1.1"] if now - t < _WS_RATE_WINDOW
-    ]
-
-    assert len(_ws_connections_per_ip["192.168.1.1"]) == 3
-
-    # Simulate expired entries - after pruning, list becomes empty and should be deleted
-    _ws_connections_per_ip["192.168.1.1"] = [now - 100, now - 70]  # Outside window
-    _ws_connections_per_ip["192.168.1.1"] = [
-        t for t in _ws_connections_per_ip["192.168.1.1"] if now - t < _WS_RATE_WINDOW
-    ]
-
-    # After pruning, if empty, the key should be removed
-    if not _ws_connections_per_ip["192.168.1.1"]:
-        del _ws_connections_per_ip["192.168.1.1"]
-
-    assert "192.168.1.1" not in _ws_connections_per_ip
-
-    _ws_connections_per_ip.clear()
+    assert get_settings().WS_MAX_CONNECTIONS_PER_IP == 5
+    assert get_settings().WS_CONNECTION_TTL_SECONDS == 300
 
 
-def test_ws_connection_limit_constant():
-    """Verify WebSocket connection limit is configured."""
-    from app.api.v1.analysis import _WS_MAX_CONNECTIONS_PER_IP
+async def test_analysis_websocket_rejects_when_limiter_denies():
+    """analysis_websocket closes with 1008 when the connection limiter rejects."""
+    from app.api.v1 import analysis as analysis_module
+    from app.api.v1.analysis import analysis_websocket
 
-    assert _WS_MAX_CONNECTIONS_PER_IP == 5
+    websocket = AsyncMock()
+    websocket.client = None
+    websocket.headers = {}
+    with (
+        patch.object(analysis_module, "ws_connection_limiter") as mock_limiter,
+        patch.object(analysis_module, "ws_require_auth") as mock_auth,
+        patch.object(analysis_module, "resolve_client_ip") as mock_resolve,
+    ):
+        mock_auth.return_value = "dev"
+        mock_resolve.return_value = ("127.0.0.1", False)
+        mock_limiter.acquire = AsyncMock(return_value=False)
+        await analysis_websocket(websocket, "00000000-0000-4000-8000-000000000002")
+        mock_limiter.acquire.assert_awaited_once()
+        websocket.accept.assert_not_awaited()
+        websocket.close.assert_awaited_once_with(code=1008)
+
+
+async def test_analysis_websocket_accepts_and_releases_on_disconnect():
+    """analysis_websocket accepts, then releases the connection on disconnect."""
+    from app.api.v1 import analysis as analysis_module
+    from app.api.v1.analysis import analysis_websocket
+    from app.core.models import AnalysisStatus, AnalysisStatusType
+
+    analysis_tasks["00000000-0000-4000-8000-000000000002"] = AnalysisStatus(
+        id="00000000-0000-4000-8000-000000000002",
+        status=AnalysisStatusType.COMPLETED,
+    )
+    websocket = AsyncMock()
+    websocket.client = None
+    websocket.headers = {}
+    websocket.send_text.side_effect = analysis_module.WebSocketDisconnect()
+    with (
+        patch.object(analysis_module, "ws_connection_limiter") as mock_limiter,
+        patch.object(analysis_module, "ws_require_auth") as mock_auth,
+        patch.object(analysis_module, "resolve_client_ip") as mock_resolve,
+    ):
+        mock_auth.return_value = "dev"
+        mock_resolve.return_value = ("127.0.0.1", False)
+        mock_limiter.acquire = AsyncMock(return_value=True)
+        mock_limiter.release = AsyncMock()
+        await analysis_websocket(websocket, "00000000-0000-4000-8000-000000000002")
+        mock_limiter.acquire.assert_awaited_once()
+        websocket.accept.assert_awaited_once()
+        mock_limiter.release.assert_awaited_once()
+    analysis_tasks.clear()
 
 
 async def test_run_pipeline_sets_failed_status_on_exception(client):

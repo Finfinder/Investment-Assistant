@@ -80,12 +80,12 @@ class TestMarketDataEndpoint:
     async def test_invalid_symbol(self, api_client: AsyncClient) -> None:
         resp = await api_client.get("/api/v1/market-data/INVALID!!!")
         assert resp.status_code == 400
-        assert "Invalid symbol" in resp.json()["detail"]
+        assert "Invalid symbol" in resp.json()["error"]
 
     async def test_invalid_period(self, api_client: AsyncClient) -> None:
         resp = await api_client.get("/api/v1/market-data/EURUSD?period=abc")
         assert resp.status_code == 400
-        assert "Invalid period" in resp.json()["detail"]
+        assert "Invalid period" in resp.json()["error"]
 
     async def test_provider_failure(self, api_client: AsyncClient, mock_chain: AsyncMock) -> None:
         mock_chain.fetch_ohlcv = AsyncMock(side_effect=DataProviderError("all failed"))

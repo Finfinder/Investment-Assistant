@@ -1,10 +1,17 @@
 """Structured JSON logging configuration for production and human-readable for development."""
 
+import contextvars
 import logging
 import sys
 from typing import Any
 
 from app.core.config import get_settings
+
+# Context variable carrying the per-request correlation ID into log records.
+# Set by the correlation-ID middleware in ``app.core.errors`` and injected into
+# every log record by ``CorrelationIdFilter`` so all logs during a request are
+# correlated without passing the ID through every call site.
+correlation_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("correlation_id", default=None)
 
 # Keys that must never appear in log output
 _SENSITIVE_KEYS = frozenset(
@@ -39,6 +46,9 @@ class JSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+        correlation_id = getattr(record, "correlation_id", None)
+        if correlation_id:
+            payload["correlation_id"] = correlation_id
         if record.exc_info and record.exc_info[0] is not None:
             payload["exception"] = self._sanitize(str(self.formatException(record.exc_info)))
         # Sanitize message
@@ -79,6 +89,20 @@ class SensitiveFilter(logging.Formatter):
         return message
 
 
+class CorrelationIdFilter(logging.Filter):
+    """Inject the per-request correlation ID into every log record.
+
+    Reads the value from ``correlation_id_var`` (set by the correlation-ID
+    middleware) so that logs emitted anywhere during a request carry the same
+    correlation ID, enabling end-to-end tracing without threading the ID
+    through every call site.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.correlation_id = correlation_id_var.get()
+        return True
+
+
 def setup_logging() -> None:
     """Configure root logger based on settings."""
     settings = get_settings()
@@ -92,6 +116,7 @@ def setup_logging() -> None:
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(level)
+    handler.addFilter(CorrelationIdFilter())
 
     if settings.DEBUG:
         handler.setFormatter(SensitiveFilter(fmt="%(asctime)s %(levelname)-8s %(name)s - %(message)s"))

@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # Trusted proxy CIDRs for X-Forwarded-For validation (rate limiting anti-spoofing)
     TRUSTED_PROXIES: list[str] = []
 
+    # WebSocket per-IP connection limiter
+    WS_MAX_CONNECTIONS_PER_IP: int = 5
+    WS_CONNECTION_TTL_SECONDS: int = 300
+
     @field_validator("TRUSTED_PROXIES")
     @classmethod
     def trusted_proxies_must_be_valid_cidr(cls, v: list[str]) -> list[str]:

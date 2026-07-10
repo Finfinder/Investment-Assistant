@@ -104,4 +104,27 @@ describe("StrategyTable", () => {
     const percentageElements = screen.getAllByText(/75/);
     expect(percentageElements.length).toBeGreaterThan(0);
   });
+
+  it("ujemne R/R renderuje się z czerwoną klasą (TP1 i TP2)", () => {
+    const strategies: StrategyEntry[] = [
+      {
+        direction: "long",
+        entry_price: 1.1,
+        stop_loss: 1.0,
+        tp1: 1.2,
+        tp2: 1.3,
+        confidence_pct: 50,
+        risk_reward_ratio: -0.5,
+        risk_reward_ratio_tp2: -0.25,
+      },
+    ];
+
+    render(<StrategyTable strategies={strategies} />);
+
+    // formatRiskReward(-0.5) => "1:-2.00", formatRiskReward(-0.25) => "1:-4.00"
+    const rrTp1 = screen.getByText("1:-2.00");
+    expect(rrTp1).toHaveClass("text-red-400");
+    const rrTp2 = screen.getByText("1:-4.00");
+    expect(rrTp2).toHaveClass("text-red-400");
+  });
 });

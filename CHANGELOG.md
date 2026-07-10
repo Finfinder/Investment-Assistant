@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Cache Docker layers for the frontend builder stage: switch release image builds to `docker buildx build` with GitHub Actions cache (`type=gha`) and add an npm cache mount in `frontend/Dockerfile`, reducing CI build times ([#96](https://github.com/Finfinder/Investment-Assistant/issues/96))
+- Centralize error handling: add correlation-ID middleware and sanitized `{"error", "reference"}` JSON responses for all errors; preserve the full exception chain in server logs and stop masking it with `from None` ([#113](https://github.com/Finfinder/Investment-Assistant/issues/113))
+
+### Security
+
+- Ensure API error responses never leak stack traces, internal paths, or exception details; clients receive only a generic message and a correlation reference UUID ([#113](https://github.com/Finfinder/Investment-Assistant/issues/113))
+- Re-review of [#113](https://github.com/Finfinder/Investment-Assistant/issues/113): confirm unhandled errors always return a generic message (no `type(exc).__name__` leak even in DEBUG), and audit all `HTTPException` `detail` values across `app/` — none expose sensitive/internal data, so no code change required for the HTTP-exception handler
+
+### Fixed
+
+- Fix `riskRewardClass` returning a "safe" green class for negative risk/reward ratios: negative R/R now maps to `text-red-400`, and the `0.5` threshold is extracted to a named constant ([#126](https://github.com/Finfinder/Investment-Assistant/issues/126))
+- Fix WebSocket per-IP limiter memory leak and DoS vulnerability: add Redis-backed connection limiter with atomic Lua scripts, TTL-based expiration (300s), in-memory fallback, max 5 concurrent connections per IP, and warning on limit exceeded ([#115](https://github.com/Finfinder/Investment-Assistant/issues/115))
+
+## [0.4.0] - 2026-07-08
+
+### Changed
+
 - Reorganize `CHANGELOG.md`: merge duplicate subsection headers (Security, Tests, Fixed, Changed, Added) in `[Unreleased]` and `[0.1.0]`, remove internal code-review round sections, and move the floating candlestick-pattern entry under `### Added`
 
 ### Security
