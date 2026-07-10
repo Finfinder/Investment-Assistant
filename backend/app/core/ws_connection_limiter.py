@@ -20,7 +20,8 @@ import redis.asyncio as redis
 from redis.commands.core import AsyncScript
 
 from app.core.config import get_settings
-from app.core.redis import _mask_url, redis_manager
+from app.core.logging_config import sanitize_log_message
+from app.core.redis import redis_manager
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +142,7 @@ class WebSocketConnectionLimiter:
         except (RuntimeError, redis.RedisError, OSError) as exc:
             logger.warning(
                 "Redis unavailable for WebSocket limiter, using in-memory fallback: %s",
-                _mask_url(str(exc)),
+                sanitize_log_message(str(exc)),
             )
             return await self._acquire_memory(client_ip, conn_id)
 
@@ -160,7 +161,7 @@ class WebSocketConnectionLimiter:
         except (RuntimeError, redis.RedisError, OSError) as exc:
             logger.warning(
                 "Redis unavailable for WebSocket limiter, release skipped (entry expires via TTL): %s",
-                _mask_url(str(exc)),
+                sanitize_log_message(str(exc)),
             )
 
     async def _acquire_memory(self, client_ip: str, conn_id: str) -> bool:

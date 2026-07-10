@@ -4,6 +4,7 @@ import logging
 import redis.asyncio as redis
 
 from app.core.config import get_settings
+from app.core.logging_config import sanitize_log_message
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class RedisManager:
                 max_connections=settings.REDIS_MAX_CONNECTIONS,
                 password=password,
             )
-            logger.info("Redis connection initialized: %s", _mask_url(settings.REDIS_URL))
+            logger.info("Redis connection initialized: %s", sanitize_log_message(settings.REDIS_URL))
 
     async def close(self) -> None:
         """Close Redis connection gracefully."""
@@ -67,21 +68,6 @@ class RedisManager:
         RedisManager._instance = None
         # Recreate lock to avoid "Future attached to a different loop" in tests
         RedisManager._init_lock = asyncio.Lock()
-
-
-def _mask_url(url: str) -> str:
-    """Mask password in Redis URL for safe logging."""
-    if "://" not in url:
-        return url
-    protocol, rest = url.split("://", 1)
-    if "@" in rest:
-        credentials, host_part = rest.rsplit("@", 1)
-        if ":" in credentials:
-            user, _ = credentials.split(":", 1)
-            return f"{protocol}://{user}:***@{host_part}"
-        # Format: redis://password@host (no username, no colon in credentials)
-        return f"{protocol}://***@{host_part}"
-    return url
 
 
 # Global singleton instance
