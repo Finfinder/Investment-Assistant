@@ -28,6 +28,8 @@ const RISK_REWARD_FAVORABLE_THRESHOLD = 0.5;
  */
 export function riskRewardClass(ratio: number | null): string {
   if (ratio === null) return "text-muted";
+  // NaN, Infinity i -Infinity to błędne dane — sygnalizujemy text-danger (czerwony).
+  if (!Number.isFinite(ratio)) return "text-danger";
   if (ratio < 0) return "text-red-400";
   if (ratio <= RISK_REWARD_FAVORABLE_THRESHOLD) return "text-green-400";
   return "text-yellow-400";
