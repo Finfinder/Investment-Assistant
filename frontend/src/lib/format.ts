@@ -11,6 +11,8 @@ export function confidenceBarClass(pct: number): string {
 /** Format risk/reward ratio as trading-standard "1:X.XX". */
 export function formatRiskReward(ratio: number | null): string {
   if (ratio === null || ratio === 0) return "—";
+  // NaN i Infinity to błędne dane — sygnalizujemy "∞" zamiast mylącego "1:0.00".
+  if (!Number.isFinite(ratio)) return "∞";
   return `1:${(1 / ratio).toFixed(2)}`;
 }
 
@@ -27,7 +29,10 @@ const RISK_REWARD_FAVORABLE_THRESHOLD = 0.5;
  * żółty = umiarkowane (R/R > próg), muted = brak danych (null).
  */
 export function riskRewardClass(ratio: number | null): string {
-  if (ratio === null) return "text-muted";
+  // ratio == null przechwytuje zarówno null, jak i undefined (dane z API bez walidacji runtime).
+  if (ratio == null) return "text-muted";
+  // NaN, Infinity i -Infinity to błędne dane — sygnalizujemy text-danger (czerwony).
+  if (!Number.isFinite(ratio)) return "text-danger";
   if (ratio < 0) return "text-red-400";
   if (ratio <= RISK_REWARD_FAVORABLE_THRESHOLD) return "text-green-400";
   return "text-yellow-400";

@@ -127,4 +127,48 @@ describe("StrategyTable", () => {
     const rrTp2 = screen.getByText("1:-4.00");
     expect(rrTp2).toHaveClass("text-red-400");
   });
+
+  it("NaN R/R renderuje się z klasą text-danger (TP1 i TP2)", () => {
+    const strategies: StrategyEntry[] = [
+      {
+        direction: "long",
+        entry_price: 1.1,
+        stop_loss: 1.0,
+        tp1: 1.2,
+        tp2: 1.3,
+        confidence_pct: 50,
+        risk_reward_ratio: NaN,
+        risk_reward_ratio_tp2: NaN,
+      },
+    ];
+
+    render(<StrategyTable strategies={strategies} />);
+
+    // formatRiskReward(NaN) => "∞", klasa pochodzi z riskRewardClass(NaN) => text-danger
+    const rrCells = screen.getAllByText("∞");
+    expect(rrCells.length).toBe(2);
+    rrCells.forEach((cell) => expect(cell).toHaveClass("text-danger"));
+  });
+
+  it("Infinity R/R renderuje się z klasą text-danger (TP1 i TP2)", () => {
+    const strategies: StrategyEntry[] = [
+      {
+        direction: "long",
+        entry_price: 1.1,
+        stop_loss: 1.0,
+        tp1: 1.2,
+        tp2: 1.3,
+        confidence_pct: 50,
+        risk_reward_ratio: Infinity,
+        risk_reward_ratio_tp2: -Infinity,
+      },
+    ];
+
+    render(<StrategyTable strategies={strategies} />);
+
+    // formatRiskReward(Infinity) => "∞", formatRiskReward(-Infinity) => "∞" (błędne dane)
+    const rrCells = screen.getAllByText("∞");
+    expect(rrCells.length).toBe(2);
+    rrCells.forEach((cell) => expect(cell).toHaveClass("text-danger"));
+  });
 });
