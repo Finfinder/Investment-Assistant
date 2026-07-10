@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix `riskRewardClass` returning a "safe" green class for negative risk/reward ratios: negative R/R now maps to `text-red-400`, and the `0.5` threshold is extracted to a named constant ([#126](https://github.com/Finfinder/Investment-Assistant/issues/126))
+- Fix WebSocket per-IP limiter memory leak and DoS vulnerability: add Redis-backed connection limiter with atomic Lua scripts, TTL-based expiration (300s), in-memory fallback, max 5 concurrent connections per IP, and warning on limit exceeded ([#115](https://github.com/Finfinder/Investment-Assistant/issues/115))
 
 ## [0.4.0] - 2026-07-08
 
