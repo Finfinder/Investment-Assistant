@@ -144,8 +144,8 @@ describe("StrategyTable", () => {
 
     render(<StrategyTable strategies={strategies} />);
 
-    // formatRiskReward(NaN) => "1:NaN", ale klasa pochodzi z riskRewardClass(NaN) => text-danger
-    const rrCells = screen.getAllByText("1:NaN");
+    // formatRiskReward(NaN) => "∞", klasa pochodzi z riskRewardClass(NaN) => text-danger
+    const rrCells = screen.getAllByText("∞");
     expect(rrCells.length).toBe(2);
     rrCells.forEach((cell) => expect(cell).toHaveClass("text-danger"));
   });
@@ -166,8 +166,8 @@ describe("StrategyTable", () => {
 
     render(<StrategyTable strategies={strategies} />);
 
-    // formatRiskReward(Infinity) => "1:0.00", formatRiskReward(-Infinity) => "1:0.00"
-    const rrCells = screen.getAllByText("1:0.00");
+    // formatRiskReward(Infinity) => "∞", formatRiskReward(-Infinity) => "∞" (błędne dane)
+    const rrCells = screen.getAllByText("∞");
     expect(rrCells.length).toBe(2);
     rrCells.forEach((cell) => expect(cell).toHaveClass("text-danger"));
   });

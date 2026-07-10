@@ -11,6 +11,8 @@ export function confidenceBarClass(pct: number): string {
 /** Format risk/reward ratio as trading-standard "1:X.XX". */
 export function formatRiskReward(ratio: number | null): string {
   if (ratio === null || ratio === 0) return "—";
+  // NaN i Infinity to błędne dane — sygnalizujemy "∞" zamiast mylącego "1:0.00".
+  if (!Number.isFinite(ratio)) return "∞";
   return `1:${(1 / ratio).toFixed(2)}`;
 }
 

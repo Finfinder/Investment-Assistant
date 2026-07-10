@@ -6,9 +6,9 @@ describe("formatRiskReward", () => {
     // Edge cases
     [null, "—", "zwraca myślnik dla null"],
     [0, "—", "zwraca myślnik dla zera"],
-    [Infinity, "1:0.00", "zwraca 1:0.00 dla Infinity (1/Infinity = 0)"],
-    [-Infinity, "1:0.00", "zwraca 1:0.00 dla -Infinity (1/-Infinity = -0)"],
-    [NaN, "1:NaN", "zwraca 1:NaN dla NaN (aktualne zachowanie)"],
+    [Infinity, "∞", "zwraca ∞ dla Infinity (błędne dane)"],
+    [-Infinity, "∞", "zwraca ∞ dla -Infinity (błędne dane)"],
+    [NaN, "∞", "zwraca ∞ dla NaN (błędne dane)"],
     // Normal cases
     [1, "1:1.00", "zwraca 1:1.00 dla ratio = 1"],
     [2, "1:0.50", "formatuje poprawnie dodatnie ratio"],
