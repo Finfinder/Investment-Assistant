@@ -27,7 +27,8 @@ const RISK_REWARD_FAVORABLE_THRESHOLD = 0.5;
  * żółty = umiarkowane (R/R > próg), muted = brak danych (null).
  */
 export function riskRewardClass(ratio: number | null): string {
-  if (ratio === null) return "text-muted";
+  // ratio == null przechwytuje zarówno null, jak i undefined (dane z API bez walidacji runtime).
+  if (ratio == null) return "text-muted";
   // NaN, Infinity i -Infinity to błędne dane — sygnalizujemy text-danger (czerwony).
   if (!Number.isFinite(ratio)) return "text-danger";
   if (ratio < 0) return "text-red-400";

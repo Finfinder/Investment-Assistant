@@ -5,6 +5,7 @@ describe("riskRewardClass", () => {
   // Ujemne R/R jest poprawnie klasyfikowane jako niekorzystne (czerwone) — poprawka Issue #126.
   it.each([
     ["null", null, "text-muted"],
+    ["undefined (brak danych z API)", undefined, "text-muted"],
     ["ratio 0 (granica zielone)", 0, "text-green-400"],
     ["ratio 0.5 (granica zielone)", 0.5, "text-green-400"],
     ["ratio 0.3 (zielone)", 0.3, "text-green-400"],
