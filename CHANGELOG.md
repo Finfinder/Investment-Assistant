@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactor `AnalysisPipeline.run()` in `app/modules/pipeline.py`: extract the long method into single-responsibility phases (`_run_fetch_phase`, `_run_analysis_phase`, `_run_aggregation_phase`, `_run_report_phase`) and introduce a typed `PipelineContext` value object to replace primitive parameter passing (Primitive Obsession); move `run()`-level lazy imports to module level ([#117](https://github.com/Finfinder/Investment-Assistant/issues/117))
+
 ### Security
 
 - Centralize log sanitization into a single `sanitize_log_message()` helper in `core/logging_config.py`: consolidate URL-credential masking (was `_mask_url` in `redis.py`), FRED API-key masking (was `_API_KEY_RE` in `fred_source.py`), and key=value masking into one idempotent, compiled-regex entry point; formatters keep whole-message redaction for configuration key names ([#139](https://github.com/Finfinder/Investment-Assistant/issues/139))

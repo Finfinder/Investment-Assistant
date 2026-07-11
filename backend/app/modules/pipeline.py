@@ -3,17 +3,19 @@
 import asyncio
 import logging
 import uuid
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from cachetools import TTLCache
 
-from app.core.database import get_session_factory
+from app.core.database import AnalysisResult, get_session_factory
 from app.core.instrument_classifier import classify_instrument
 from app.core.models import (
     AnalysisReport,
     AnalysisStatus,
     AnalysisStatusType,
     AnalysisTimeframeContext,
+    Direction,
     FundamentalData,
     IndicatorPreset,
     IndicatorValue,
@@ -22,6 +24,7 @@ from app.core.models import (
     MovingAverage,
     OHLCVData,
     PatternDetection,
+    PatternScannerResult,
     PivotPoints,
     SignalSummary,
     Timeframe,
@@ -30,6 +33,9 @@ from app.modules.data_acquisition.fallback_chain import FallbackChainManager, bu
 from app.modules.data_acquisition.multi_timeframe import MultiTimeframeFetchBundle, MultiTimeframeFetcher
 from app.modules.data_acquisition.timeframes import AnalysisTimeframePlan, DataTimeframe, resolve_analysis_timeframes
 from app.modules.pattern_recognition.consolidator import consolidate_patterns
+from app.modules.signal_aggregation.aggregator import SignalAggregator
+from app.modules.signal_aggregation.scoring import calculate_weighted_score, determine_direction
+from app.modules.strategy_generator.report_builder import build_report
 from app.modules.technical_analysis.long_term_trend import build_long_term_trend
 from app.modules.technical_analysis.pivot_points import get_pivot_candle
 
@@ -50,6 +56,33 @@ PIPELINE_STEPS = [
     "Agregacja sygnalow",
     "Generowanie strategii",
 ]
+
+
+@dataclass
+class PipelineContext:
+    """Typed value object aggregating intermediate pipeline results.
+
+    Replaces raw parameter passing between orchestration phases and into
+    build_report, eliminating Primitive Obsession in the analysis flow.
+    """
+
+    symbol: str
+    timeframe: Timeframe
+    instrument_type: InstrumentType | None
+    fetch_bundle: MultiTimeframeFetchBundle | None = None
+    ohlcv: list[OHLCVData] = field(default_factory=list)
+    pivot_candle: OHLCVData | None = None
+    indicators: list[IndicatorValue] = field(default_factory=list)
+    moving_averages: list[MovingAverage] = field(default_factory=list)
+    pivot_points: list[PivotPoints] = field(default_factory=list)
+    signal_summary: SignalSummary | None = None
+    long_term_trend: LongTermTrend | None = None
+    patterns: list[PatternDetection] = field(default_factory=list)
+    pattern_scanner_results: list[PatternScannerResult] = field(default_factory=list)
+    timeframe_context: AnalysisTimeframeContext | None = None
+    fundamental: FundamentalData | None = None
+    score: float = 0.0
+    direction: Direction | None = None
 
 
 class AnalysisPipeline:
@@ -116,102 +149,133 @@ class AnalysisPipeline:
         """
         try:
             # Classify instrument once, reuse in fundamental analysis and report
-            instrument_type = classify_instrument(self.symbol)
-
-            # Step 1: Data fetch
-            self._update_status(0, PIPELINE_STEPS[0])
-            fetch_bundle = await self._step_fetch_data()
-            ohlcv = fetch_bundle.main_ohlcv
-            self._complete_step(PIPELINE_STEPS[0])
-
-            if not ohlcv:
-                self.fail("Brak danych rynkowych dla podanego symbolu")
-                return None
-
-            daily_ohlcv = fetch_bundle.get(DataTimeframe.D1)
-            pivot_source = daily_ohlcv or ohlcv
-            pivot_candle = get_pivot_candle(pivot_source)
-
-            # Step 2: Technical Analysis (offload to thread — CPU-intensive)
-            self._update_status(1, PIPELINE_STEPS[1])
-            indicators, moving_averages, pivot_points, signal_summary = await asyncio.to_thread(
-                self._step_technical_analysis, ohlcv, pivot_candle
-            )
-            long_term_trend = await asyncio.to_thread(
-                self._step_long_term_trend,
-                fetch_bundle.get(DataTimeframe.W1),
-            )
-            self._complete_step(PIPELINE_STEPS[1])
-
-            # Step 3: Pattern Recognition (offload to thread — CPU-intensive)
-            self._update_status(2, PIPELINE_STEPS[2])
-            patterns = await asyncio.to_thread(self._step_pattern_recognition, ohlcv, self.timeframe)
-            scanner_patterns = await asyncio.to_thread(
-                self._step_multi_timeframe_pattern_recognition,
-                fetch_bundle,
-                patterns,
-            )
-            pattern_scanner_results = await asyncio.to_thread(consolidate_patterns, scanner_patterns)
-            self._complete_step(PIPELINE_STEPS[2])
-
-            # Step 4: Fundamental Analysis (graceful degradation)
-            self._update_status(3, PIPELINE_STEPS[3])
-            fundamental = await self._step_fundamental_analysis(instrument_type)
-            self._complete_step(PIPELINE_STEPS[3])
-
-            # Step 5: Signal Aggregation
-            self._update_status(4, PIPELINE_STEPS[4])
-            from app.modules.signal_aggregation.aggregator import SignalAggregator
-            from app.modules.signal_aggregation.scoring import calculate_weighted_score, determine_direction
-
-            aggregator = SignalAggregator(
-                indicators=indicators,
-                moving_averages=moving_averages,
-                signal_summary=signal_summary,
-                patterns=patterns,
-                fundamental=fundamental,
-            )
-            score = calculate_weighted_score(aggregator)
-            direction = determine_direction(score)
-            self._complete_step(PIPELINE_STEPS[4])
-
-            # Step 6: Strategy Generation & Report
-            self._update_status(5, PIPELINE_STEPS[5])
-            from app.modules.strategy_generator.report_builder import build_report
-
-            report = build_report(
+            ctx = PipelineContext(
                 symbol=self.symbol,
                 timeframe=self.timeframe,
-                ohlcv=ohlcv,
-                indicators=indicators,
-                moving_averages=moving_averages,
-                pivot_points=pivot_points,
-                patterns=patterns,
-                timeframe_context=self._build_timeframe_context(),
-                pattern_scanner_results=pattern_scanner_results,
-                long_term_trend=long_term_trend,
-                signal_summary=signal_summary,
-                fundamental=fundamental,
-                direction=direction,
-                instrument_type=instrument_type,
+                instrument_type=classify_instrument(self.symbol),
             )
-            self._complete_step(PIPELINE_STEPS[5])
 
-            # Persist result
-            await self._persist_result(report)
+            # Step 1: Data fetch
+            if await self._run_fetch_phase(ctx) is None:
+                return None
 
+            # Steps 2-4: Technical, pattern and fundamental analysis
+            await self._run_analysis_phase(ctx)
+
+            # Step 5: Signal aggregation
+            await self._run_aggregation_phase(ctx)
+
+            # Step 6: Strategy generation & report
             # NOTE: COMPLETED status is NOT published here — the caller
             # (_run_pipeline in analysis.py) must call complete() AFTER
             # caching the report in _analysis_results to avoid the race
             # condition where WebSocket sends COMPLETED before the report
             # is available via GET /analysis/{id}.
-
-            return report
+            return await self._run_report_phase(ctx)
 
         except Exception as exc:
             logger.exception("Pipeline failed for %s: %s", self.symbol, exc)
             self.fail(str(exc))
             return None
+
+    async def _run_fetch_phase(self, ctx: PipelineContext) -> PipelineContext | None:
+        """Step 1: fetch market data and resolve the pivot candle.
+
+        Returns the populated context, or None when no market data is
+        available (the pipeline is then marked as failed).
+        """
+        self._update_status(0, PIPELINE_STEPS[0])
+        fetch_bundle = await self._step_fetch_data()
+        ctx.fetch_bundle = fetch_bundle
+        ctx.ohlcv = fetch_bundle.main_ohlcv
+        self._complete_step(PIPELINE_STEPS[0])
+
+        if not ctx.ohlcv:
+            self.fail("Brak danych rynkowych dla podanego symbolu")
+            return None
+
+        daily_ohlcv = fetch_bundle.get(DataTimeframe.D1)
+        pivot_source = daily_ohlcv or ctx.ohlcv
+        ctx.pivot_candle = get_pivot_candle(pivot_source)
+        return ctx
+
+    async def _run_analysis_phase(self, ctx: PipelineContext) -> PipelineContext:
+        """Steps 2-4: technical analysis, pattern recognition and fundamentals."""
+        # Step 2: Technical Analysis (offload to thread — CPU-intensive)
+        self._update_status(1, PIPELINE_STEPS[1])
+        fetch_bundle = ctx.fetch_bundle
+        if fetch_bundle is None:
+            # Guaranteed by _run_fetch_phase, but guard against misuse when
+            # calling the phase in isolation.
+            self.fail("Brak danych rynkowych dla podanego symbolu")
+            return ctx
+        (
+            ctx.indicators,
+            ctx.moving_averages,
+            ctx.pivot_points,
+            ctx.signal_summary,
+        ) = await asyncio.to_thread(self._step_technical_analysis, ctx.ohlcv, ctx.pivot_candle)
+        ctx.long_term_trend = await asyncio.to_thread(
+            self._step_long_term_trend,
+            fetch_bundle.get(DataTimeframe.W1),
+        )
+        self._complete_step(PIPELINE_STEPS[1])
+
+        # Step 3: Pattern Recognition (offload to thread — CPU-intensive)
+        self._update_status(2, PIPELINE_STEPS[2])
+        patterns = await asyncio.to_thread(self._step_pattern_recognition, ctx.ohlcv, self.timeframe)
+        scanner_patterns = await asyncio.to_thread(
+            self._step_multi_timeframe_pattern_recognition,
+            fetch_bundle,
+            patterns,
+        )
+        ctx.patterns = patterns
+        ctx.pattern_scanner_results = await asyncio.to_thread(consolidate_patterns, scanner_patterns)
+        self._complete_step(PIPELINE_STEPS[2])
+
+        # Step 4: Fundamental Analysis (graceful degradation)
+        self._update_status(3, PIPELINE_STEPS[3])
+        ctx.fundamental = await self._step_fundamental_analysis(ctx.instrument_type)
+        self._complete_step(PIPELINE_STEPS[3])
+        return ctx
+
+    async def _run_aggregation_phase(self, ctx: PipelineContext) -> PipelineContext:
+        """Step 5: aggregate signals into a weighted score and direction."""
+        self._update_status(4, PIPELINE_STEPS[4])
+        aggregator = SignalAggregator(
+            indicators=ctx.indicators,
+            moving_averages=ctx.moving_averages,
+            signal_summary=ctx.signal_summary,
+            patterns=ctx.patterns,
+            fundamental=ctx.fundamental,
+        )
+        ctx.score = calculate_weighted_score(aggregator)
+        ctx.direction = determine_direction(ctx.score)
+        self._complete_step(PIPELINE_STEPS[4])
+        return ctx
+
+    async def _run_report_phase(self, ctx: PipelineContext) -> AnalysisReport:
+        """Step 6: build the report and persist the result."""
+        self._update_status(5, PIPELINE_STEPS[5])
+        report = build_report(
+            symbol=ctx.symbol,
+            timeframe=ctx.timeframe,
+            ohlcv=ctx.ohlcv,
+            indicators=ctx.indicators,
+            moving_averages=ctx.moving_averages,
+            pivot_points=ctx.pivot_points,
+            patterns=ctx.patterns,
+            timeframe_context=self._build_timeframe_context(),
+            pattern_scanner_results=ctx.pattern_scanner_results,
+            long_term_trend=ctx.long_term_trend,
+            signal_summary=ctx.signal_summary,
+            fundamental=ctx.fundamental,
+            direction=ctx.direction,
+            instrument_type=ctx.instrument_type,
+        )
+        self._complete_step(PIPELINE_STEPS[5])
+        await self._persist_result(report)
+        return report
 
     async def _step_fetch_data(self) -> MultiTimeframeFetchBundle:
         try:
@@ -377,8 +441,6 @@ class AnalysisPipeline:
     async def _persist_result(self, report: AnalysisReport) -> None:
         """Save the analysis result to the database."""
         try:
-            from app.core.database import AnalysisResult
-
             session_factory = get_session_factory()
             async with session_factory() as session:
                 result = AnalysisResult(
