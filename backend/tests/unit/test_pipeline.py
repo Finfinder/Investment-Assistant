@@ -7,8 +7,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pytest import approx
 
-from app.core.models import AnalysisStatusType, InstrumentType, OHLCVData, Timeframe
-from app.modules.pipeline import AnalysisPipeline, analysis_tasks
+from app.core.models import (
+    AnalysisStatusType,
+    Direction,
+    InstrumentType,
+    OHLCVData,
+    Timeframe,
+)
+from app.modules.pipeline import PIPELINE_STEPS, AnalysisPipeline, PipelineContext, analysis_tasks
 
 
 def _make_ohlcv(n: int = 20) -> list[OHLCVData]:
@@ -420,3 +426,160 @@ async def test_pipeline_run_outer_exception():
 
     assert report is None
     assert pipeline.status.status == AnalysisStatusType.FAILED
+
+
+# ---------------------------------------------------------------------------
+# PipelineContext — typed value object
+# ---------------------------------------------------------------------------
+class TestPipelineContext:
+    def test_defaults_are_empty_collections(self):
+        ctx = PipelineContext(symbol="EURUSD", timeframe=Timeframe.H1, instrument_type=InstrumentType.FOREX)
+        assert ctx.ohlcv == []
+        assert ctx.indicators == []
+        assert ctx.moving_averages == []
+        assert ctx.pivot_points == []
+        assert ctx.patterns == []
+        assert ctx.pattern_scanner_results == []
+        assert ctx.score == 0.0
+        assert ctx.direction is None
+        assert ctx.fetch_bundle is None
+        assert ctx.pivot_candle is None
+        assert ctx.signal_summary is None
+        assert ctx.long_term_trend is None
+        assert ctx.timeframe_context is None
+        assert ctx.fundamental is None
+
+    def test_carries_intermediate_results(self):
+        ctx = PipelineContext(
+            symbol="EURUSD",
+            timeframe=Timeframe.H1,
+            instrument_type=InstrumentType.FOREX,
+            ohlcv=_make_ohlcv(10),
+            score=0.42,
+            direction=Direction.LONG,
+        )
+        assert len(ctx.ohlcv) == 10
+        assert ctx.score == approx(0.42)
+        assert ctx.direction == Direction.LONG
+
+
+# ---------------------------------------------------------------------------
+# _run_fetch_phase — Step 1
+# ---------------------------------------------------------------------------
+class TestRunFetchPhase:
+    @pytest.mark.asyncio
+    async def test_populates_context_and_returns_ctx(self):
+        mock_chain = MagicMock()
+        mock_chain.fetch_ohlcv = AsyncMock(return_value=_make_ohlcv(30))
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=mock_chain)
+        ctx = PipelineContext(symbol="EURUSD", timeframe=Timeframe.H1, instrument_type=InstrumentType.FOREX)
+
+        result = await pipeline._run_fetch_phase(ctx)
+
+        assert result is ctx
+        assert len(ctx.ohlcv) == 30
+        assert ctx.pivot_candle is not None
+        assert pipeline.status.steps_completed == [PIPELINE_STEPS[0]]
+
+    @pytest.mark.asyncio
+    async def test_empty_data_fails_and_returns_none(self):
+        mock_chain = MagicMock()
+        mock_chain.fetch_ohlcv = AsyncMock(return_value=[])
+        pipeline = AnalysisPipeline(symbol="INVALID", timeframe=Timeframe.H1, chain=mock_chain)
+        ctx = PipelineContext(symbol="INVALID", timeframe=Timeframe.H1, instrument_type=None)
+
+        result = await pipeline._run_fetch_phase(ctx)
+
+        assert result is None
+        assert pipeline.status.status == AnalysisStatusType.FAILED
+        assert pipeline.status.error_message is not None
+
+
+# ---------------------------------------------------------------------------
+# _run_analysis_phase — Steps 2-4
+# ---------------------------------------------------------------------------
+class TestRunAnalysisPhase:
+    @pytest.mark.asyncio
+    async def test_populates_technical_pattern_fundamental(self):
+        mock_chain = MagicMock()
+        mock_chain.fetch_ohlcv = AsyncMock(return_value=_make_ohlcv(30))
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=mock_chain)
+        ctx = PipelineContext(symbol="EURUSD", timeframe=Timeframe.H1, instrument_type=InstrumentType.FOREX)
+        ctx.ohlcv = _make_ohlcv(30)
+        ctx.pivot_candle = ctx.ohlcv[-1]
+        ctx.fetch_bundle = MagicMock()
+        ctx.fetch_bundle.get.return_value = []
+
+        with patch(
+            "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await pipeline._run_analysis_phase(ctx)
+
+        assert result is ctx
+        assert len(ctx.indicators) > 0
+        assert len(ctx.moving_averages) > 0
+        assert len(ctx.pivot_points) > 0
+        assert ctx.signal_summary is not None
+        assert ctx.patterns is not None
+        assert ctx.pattern_scanner_results is not None
+        assert ctx.timeframe_context is not None
+        assert ctx.fundamental is None
+        assert pipeline.status.steps_completed == [PIPELINE_STEPS[1], PIPELINE_STEPS[2], PIPELINE_STEPS[3]]
+
+
+# ---------------------------------------------------------------------------
+# _run_aggregation_phase — Step 5
+# ---------------------------------------------------------------------------
+class TestRunAggregationPhase:
+    @pytest.mark.asyncio
+    async def test_computes_score_and_direction(self):
+        mock_chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=mock_chain)
+        ctx = PipelineContext(symbol="EURUSD", timeframe=Timeframe.H1, instrument_type=InstrumentType.FOREX)
+        ctx.indicators = []
+        ctx.moving_averages = []
+        ctx.signal_summary = None
+        ctx.patterns = []
+        ctx.fundamental = None
+
+        result = await pipeline._run_aggregation_phase(ctx)
+
+        assert result is ctx
+        # All-empty signals => neutral score => direction None
+        assert ctx.score == approx(0.0)
+        assert ctx.direction is None
+        assert pipeline.status.steps_completed == [PIPELINE_STEPS[4]]
+
+
+# ---------------------------------------------------------------------------
+# _run_report_phase — Step 6
+# ---------------------------------------------------------------------------
+class TestRunReportPhase:
+    @pytest.mark.asyncio
+    async def test_builds_report_and_persists(self):
+        mock_chain = MagicMock()
+        pipeline = AnalysisPipeline(symbol="EURUSD", timeframe=Timeframe.H1, chain=mock_chain)
+        ctx = PipelineContext(symbol="EURUSD", timeframe=Timeframe.H1, instrument_type=InstrumentType.FOREX)
+        ctx.ohlcv = _make_ohlcv(30)
+        ctx.indicators = []
+        ctx.moving_averages = []
+        ctx.pivot_points = []
+        ctx.patterns = []
+        ctx.pattern_scanner_results = []
+        ctx.signal_summary = None
+        ctx.fundamental = None
+        ctx.direction = None
+
+        with patch(
+            "app.modules.pipeline.AnalysisPipeline._persist_result",
+            new_callable=AsyncMock,
+        ) as mock_persist:
+            report = await pipeline._run_report_phase(ctx)
+
+        assert report is not None
+        assert report.symbol == "EURUSD"
+        assert report.timeframe == Timeframe.H1
+        mock_persist.assert_awaited_once_with(report)
+        assert pipeline.status.steps_completed == [PIPELINE_STEPS[5]]
