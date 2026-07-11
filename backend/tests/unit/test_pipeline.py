@@ -524,6 +524,7 @@ class TestRunAnalysisPhase:
         assert ctx.signal_summary is not None
         assert ctx.patterns is not None
         assert ctx.pattern_scanner_results is not None
+        assert ctx.timeframe_context is not None
         assert ctx.fundamental is None
         assert pipeline.status.steps_completed == [PIPELINE_STEPS[1], PIPELINE_STEPS[2], PIPELINE_STEPS[3]]
 

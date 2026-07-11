@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from cachetools import TTLCache
 
-from app.core.database import AnalysisResult, get_session_factory
+from app.core.database import get_session_factory
 from app.core.instrument_classifier import classify_instrument
 from app.core.models import (
     AnalysisReport,
@@ -231,6 +231,7 @@ class AnalysisPipeline:
         )
         ctx.patterns = patterns
         ctx.pattern_scanner_results = await asyncio.to_thread(consolidate_patterns, scanner_patterns)
+        ctx.timeframe_context = self._build_timeframe_context()
         self._complete_step(PIPELINE_STEPS[2])
 
         # Step 4: Fundamental Analysis (graceful degradation)
@@ -265,7 +266,7 @@ class AnalysisPipeline:
             moving_averages=ctx.moving_averages,
             pivot_points=ctx.pivot_points,
             patterns=ctx.patterns,
-            timeframe_context=self._build_timeframe_context(),
+            timeframe_context=ctx.timeframe_context,
             pattern_scanner_results=ctx.pattern_scanner_results,
             long_term_trend=ctx.long_term_trend,
             signal_summary=ctx.signal_summary,
@@ -441,6 +442,8 @@ class AnalysisPipeline:
     async def _persist_result(self, report: AnalysisReport) -> None:
         """Save the analysis result to the database."""
         try:
+            from app.core.database import AnalysisResult
+
             session_factory = get_session_factory()
             async with session_factory() as session:
                 result = AnalysisResult(
