@@ -96,6 +96,16 @@ def test_rate_signal_consolidated(signal_type, args, expected):
     assert rate_signal(signal_type, *args) == expected
 
 
+def test_rate_signal_unknown_type_raises_value_error():
+    with pytest.raises(ValueError, match="Unknown signal_type"):
+        rate_signal("does_not_exist", 1.0)
+
+
+def test_rate_signal_bands_rejects_extra_values():
+    with pytest.raises(TypeError, match="expects 1 value"):
+        rate_signal("rsi", 15.0, 30.0)
+
+
 # --- RSI ---
 
 
