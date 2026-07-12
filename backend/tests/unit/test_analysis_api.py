@@ -306,7 +306,7 @@ async def test_analysis_websocket_closes_on_idle_timeout():
     analysis_tasks.clear()
 
 
-async def test_analysis_websocket_closes_on_missing_pong():
+async def test_analysis_websocket_closes_on_heartbeat_send_failure():
     """analysis_websocket closes with 1008 when the heartbeat send fails (dead client)."""
     from app.api.v1 import analysis as analysis_module
     from app.api.v1.analysis import analysis_websocket
