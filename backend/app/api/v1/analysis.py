@@ -183,7 +183,6 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
         return
     await websocket.accept()
 
-    settings = get_settings()
     connection_start = time.monotonic()
     last_ping = connection_start
     try:
