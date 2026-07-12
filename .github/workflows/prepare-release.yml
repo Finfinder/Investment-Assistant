@@ -1,0 +1,68 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Target release version in X.Y.Z format (e.g. 0.5.0).
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Validate version format
+        id: validate
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          $match = [System.Text.RegularExpressions.Regex]::Match(
+            $env:INPUT_VERSION,
+            '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
+          )
+          if (-not $match.Success) {
+            throw "Version must be semver X.Y.Z (received: $($env:INPUT_VERSION))"
+          }
+          "version=$($env:INPUT_VERSION)" >> $env:GITHUB_OUTPUT
+
+      - name: Run prepare-release script
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.validate.outputs.version }}
+        run: |
+          pwsh ./scripts/prepare-release.ps1 -Version $env:VERSION -Apply
+
+      - name: Create pull request with release prep
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.validate.outputs.version }}
+          BRANCH: "release-prep/v${{ steps.validate.outputs.version }}"
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add CHANGELOG.md backend/pyproject.toml frontend/package.json README.md
+          if git diff --cached --quiet; then
+            echo "No changes detected; skipping PR."
+            exit 0
+          fi
+          git commit -m "Prepare release v$VERSION"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "Prepare release v$VERSION" \
+            --body "Automated release preparation: moves CHANGELOG Unreleased section to v$VERSION and bumps version targets." \
+            --base "${{ github.ref_name }}" \
+            --head "$BRANCH" || echo "PR already exists or creation skipped."

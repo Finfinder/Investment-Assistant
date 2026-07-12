@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Release automation: add `scripts/prepare-release.ps1` to move the `## [Unreleased]` CHANGELOG section under a versioned `## [X.Y.Z] - DATE` header and bump version targets (`backend/pyproject.toml`, `frontend/package.json`, `README.md` badge); add `prepare-release.yml` workflow (manual `workflow_dispatch`) that opens a prep pull request before tagging ([#129](https://github.com/Finfinder/Investment-Assistant/issues/129))
+
 ### Changed
 
 - Refactor `AnalysisPipeline.run()` in `app/modules/pipeline.py`: extract the long method into single-responsibility phases (`_run_fetch_phase`, `_run_analysis_phase`, `_run_aggregation_phase`, `_run_report_phase`) and introduce a typed `PipelineContext` value object to replace primitive parameter passing (Primitive Obsession); move `run()`-level lazy imports to module level ([#117](https://github.com/Finfinder/Investment-Assistant/issues/117))
