@@ -189,12 +189,15 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
     try:
         last_sent: str = ""
         while True:
-            # Idle timeout: close connections that stay open without the
-            # analysis finishing within the configured window (Issue #119).
+            # Max connection duration: close connections that stay open
+            # beyond the configured window without the analysis finishing
+            # (Issue #119). This is a duration limit, not an inactivity
+            # timeout, because the client never sends messages on this
+            # server-push endpoint.
             elapsed = time.monotonic() - connection_start
-            if elapsed >= settings.WS_IDLE_TIMEOUT_SECONDS:
+            if elapsed >= settings.WS_MAX_CONNECTION_DURATION_SECONDS:
                 logger.warning(
-                    "WebSocket idle timeout for analysis %s (client %s, duration %.1fs)",
+                    "WebSocket connection duration limit exceeded for analysis %s (client %s, duration %.1fs)",
                     analysis_id,
                     client_ip,
                     elapsed,
