@@ -1,0 +1,21 @@
+name: Frontend Build Cache Save
+description: Saves the Next.js build cache (.next/cache) when it was not restored from cache.
+
+inputs:
+  cache-hit:
+    description: Cache hit status from the frontend-setup action (steps.<setup>.outputs.cache-hit).
+    required: true
+  working-directory:
+    description: Working directory containing the frontend project (.next/cache).
+    required: false
+    default: "frontend"
+
+runs:
+  using: composite
+  steps:
+    - name: Save Next.js build cache
+      if: ${{ inputs.cache-hit != 'true' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ${{ inputs.working-directory }}/.next/cache
+        key: next-build-${{ runner.os }}-${{ hashFiles(format('{0}/package.json', inputs.working-directory), format('{0}/next.config.mjs', inputs.working-directory), format('{0}/tsconfig.json', inputs.working-directory)) }}

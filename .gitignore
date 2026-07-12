@@ -73,6 +73,7 @@ backend/alembic/versions/__pycache__/
 .github/*
 !.github/workflows/
 !.github/versioning/
+!.github/actions/
 !.github/actions-security/
 !.github/copilot-instructions.md
 !.github/PULL_REQUEST_TEMPLATE.md

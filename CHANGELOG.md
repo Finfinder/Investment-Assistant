@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Extract frontend cache logic (Node.js setup with npm cache, `npm ci`, Next.js build cache restore/save) into reusable composite actions `.github/actions/frontend-setup` and `.github/actions/frontend-build-cache-save`; refactor `ci.yml`, `release.yml` and `reusable-sonarcloud.yml` to consume them for consistency across pipelines ([#98](https://github.com/Finfinder/Investment-Assistant/issues/98))
+
 ## [0.5.0] - 2026-07-12
 
 ### Added

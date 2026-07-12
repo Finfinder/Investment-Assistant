@@ -1,0 +1,46 @@
+name: Frontend Setup
+description: Sets up Node.js with npm cache, installs dependencies via npm ci, and optionally restores the Next.js build cache.
+
+inputs:
+  node-version:
+    description: Node.js version to set up.
+    required: false
+    default: "20"
+  working-directory:
+    description: Working directory containing the frontend project (package-lock.json).
+    required: false
+    default: "frontend"
+  cache-next-build:
+    description: Whether to restore the Next.js build cache (.next/cache).
+    required: false
+    default: "false"
+
+outputs:
+  cache-hit:
+    description: Cache hit status for the Next.js build cache (empty when cache-next-build is false).
+    value: ${{ steps.cache-next-build.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: "npm"
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci
+
+    - name: Cache Next.js build
+      id: cache-next-build
+      if: ${{ inputs.cache-next-build == 'true' }}
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ${{ inputs.working-directory }}/.next/cache
+        key: next-build-${{ runner.os }}-${{ hashFiles(format('{0}/package.json', inputs.working-directory), format('{0}/next.config.mjs', inputs.working-directory), format('{0}/tsconfig.json', inputs.working-directory)) }}
+        restore-keys: |
+          next-build-${{ runner.os }}-
