@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # WebSocket per-IP connection limiter
     WS_MAX_CONNECTIONS_PER_IP: int = 5
     WS_CONNECTION_TTL_SECONDS: int = 300
+    # WebSocket max connection duration and keep-alive heartbeat (Issue #119)
+    WS_MAX_CONNECTION_DURATION_SECONDS: int = 60
+    WS_PING_INTERVAL_SECONDS: int = 30
 
     @field_validator("TRUSTED_PROXIES")
     @classmethod

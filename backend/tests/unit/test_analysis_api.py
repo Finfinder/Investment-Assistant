@@ -272,6 +272,105 @@ async def test_analysis_websocket_accepts_and_releases_on_disconnect():
     analysis_tasks.clear()
 
 
+async def test_analysis_websocket_closes_on_connection_duration_limit():
+    """analysis_websocket closes with 1008 when the connection duration limit is exceeded."""
+    from app.api.v1 import analysis as analysis_module
+    from app.api.v1.analysis import analysis_websocket
+    from app.core.config import Settings
+    from app.core.models import AnalysisStatus, AnalysisStatusType
+
+    analysis_tasks["00000000-0000-4000-8000-000000000002"] = AnalysisStatus(
+        id="00000000-0000-4000-8000-000000000002",
+        status=AnalysisStatusType.PENDING,
+    )
+    websocket = AsyncMock()
+    websocket.client = None
+    websocket.headers = {}
+    # Force a tiny connection duration limit and a monotonic clock that always exceeds it.
+    patched_settings = Settings(WS_MAX_CONNECTION_DURATION_SECONDS=0, WS_PING_INTERVAL_SECONDS=30)
+    with (
+        patch.object(analysis_module, "ws_connection_limiter") as mock_limiter,
+        patch.object(analysis_module, "ws_require_auth") as mock_auth,
+        patch.object(analysis_module, "resolve_client_ip") as mock_resolve,
+        patch.object(analysis_module, "get_settings", return_value=patched_settings),
+        patch.object(analysis_module, "time") as mock_time,
+    ):
+        mock_auth.return_value = "dev"
+        mock_resolve.return_value = ("127.0.0.1", False)
+        mock_limiter.acquire = AsyncMock(return_value=True)
+        mock_limiter.release = AsyncMock()
+        mock_time.monotonic.return_value = 1000.0
+        await analysis_websocket(websocket, "00000000-0000-4000-8000-000000000002")
+        websocket.close.assert_awaited_once_with(code=1008)
+        mock_limiter.release.assert_awaited_once()
+    analysis_tasks.clear()
+
+
+async def test_analysis_websocket_closes_on_heartbeat_send_failure():
+    """analysis_websocket closes with 1008 when the heartbeat send fails (dead client)."""
+    from app.api.v1 import analysis as analysis_module
+    from app.api.v1.analysis import analysis_websocket
+    from app.core.config import Settings
+    from app.core.models import AnalysisStatus, AnalysisStatusType
+
+    analysis_tasks["00000000-0000-4000-8000-000000000002"] = AnalysisStatus(
+        id="00000000-0000-4000-8000-000000000002",
+        status=AnalysisStatusType.PENDING,
+    )
+    websocket = AsyncMock()
+    websocket.client = None
+    websocket.headers = {}
+    websocket.send_json = AsyncMock(side_effect=analysis_module.WebSocketDisconnect())
+    patched_settings = Settings(WS_MAX_CONNECTION_DURATION_SECONDS=60, WS_PING_INTERVAL_SECONDS=0)
+    with (
+        patch.object(analysis_module, "ws_connection_limiter") as mock_limiter,
+        patch.object(analysis_module, "ws_require_auth") as mock_auth,
+        patch.object(analysis_module, "resolve_client_ip") as mock_resolve,
+        patch.object(analysis_module, "get_settings", return_value=patched_settings),
+    ):
+        mock_auth.return_value = "dev"
+        mock_resolve.return_value = ("127.0.0.1", False)
+        mock_limiter.acquire = AsyncMock(return_value=True)
+        mock_limiter.release = AsyncMock()
+        await analysis_websocket(websocket, "00000000-0000-4000-8000-000000000002")
+        websocket.send_json.assert_awaited()
+        websocket.close.assert_awaited_once_with(code=1008)
+        mock_limiter.release.assert_awaited_once()
+    analysis_tasks.clear()
+
+
+async def test_analysis_websocket_ping_skipped_when_completed():
+    """analysis_websocket does not ping when the analysis is already completed."""
+    from app.api.v1 import analysis as analysis_module
+    from app.api.v1.analysis import analysis_websocket
+    from app.core.config import Settings
+    from app.core.models import AnalysisStatus, AnalysisStatusType
+
+    analysis_tasks["00000000-0000-4000-8000-000000000002"] = AnalysisStatus(
+        id="00000000-0000-4000-8000-000000000002",
+        status=AnalysisStatusType.COMPLETED,
+    )
+    websocket = AsyncMock()
+    websocket.client = None
+    websocket.headers = {}
+    patched_settings = Settings(WS_MAX_CONNECTION_DURATION_SECONDS=60, WS_PING_INTERVAL_SECONDS=0)
+    with (
+        patch.object(analysis_module, "ws_connection_limiter") as mock_limiter,
+        patch.object(analysis_module, "ws_require_auth") as mock_auth,
+        patch.object(analysis_module, "resolve_client_ip") as mock_resolve,
+        patch.object(analysis_module, "get_settings", return_value=patched_settings),
+    ):
+        mock_auth.return_value = "dev"
+        mock_resolve.return_value = ("127.0.0.1", False)
+        mock_limiter.acquire = AsyncMock(return_value=True)
+        mock_limiter.release = AsyncMock()
+        await analysis_websocket(websocket, "00000000-0000-4000-8000-000000000002")
+        websocket.send_json.assert_not_awaited()
+        websocket.close.assert_not_awaited()
+        mock_limiter.release.assert_awaited_once()
+    analysis_tasks.clear()
+
+
 async def test_run_pipeline_sets_failed_status_on_exception(client):
     """_run_pipeline should set analysis_tasks status to FAILED when pipeline raises."""
     from app.api.v1.analysis import _background_tasks, _run_pipeline

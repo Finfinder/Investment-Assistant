@@ -16,10 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add WebSocket max connection duration limit (60s) and application-level heartbeat (30s) to `analysis_websocket` in `app/api/v1/analysis.py`; connections exceeding the duration limit or with a failed heartbeat (dead client) are closed with code 1008 and logged with client IP and duration, preventing resource exhaustion ([#119](https://github.com/Finfinder/Investment-Assistant/issues/119))
 - Consolidate 14 near-identical signal-rating functions in `app/modules/technical_analysis/signal_rating.py` into a single data-driven `rate_signal()` dispatcher backed by a Pydantic `SIGNAL_RATING_CONFIG` table and thin backward-compatible wrappers; add parametrized unit tests covering all signal types through the consolidated logic ([#118](https://github.com/Finfinder/Investment-Assistant/issues/118))
-
-### Changed
-
 - Extract frontend cache logic (Node.js setup with npm cache, `npm ci`, Next.js build cache restore/save) into reusable composite actions `.github/actions/frontend-setup` and `.github/actions/frontend-build-cache-save`; refactor `ci.yml`, `release.yml` and `reusable-sonarcloud.yml` to consume them for consistency across pipelines ([#98](https://github.com/Finfinder/Investment-Assistant/issues/98))
 
 ## [0.5.0] - 2026-07-12

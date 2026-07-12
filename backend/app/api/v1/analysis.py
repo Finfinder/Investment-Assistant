@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -182,9 +183,27 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
         return
     await websocket.accept()
 
+    connection_start = time.monotonic()
+    last_ping = connection_start
     try:
         last_sent: str = ""
         while True:
+            # Max connection duration: close connections that stay open
+            # beyond the configured window without the analysis finishing
+            # (Issue #119). This is a duration limit, not an inactivity
+            # timeout, because the client never sends messages on this
+            # server-push endpoint.
+            elapsed = time.monotonic() - connection_start
+            if elapsed >= settings.WS_MAX_CONNECTION_DURATION_SECONDS:
+                logger.warning(
+                    "WebSocket connection duration limit exceeded for analysis %s (client %s, duration %.1fs)",
+                    analysis_id,
+                    client_ip,
+                    elapsed,
+                )
+                await websocket.close(code=1008)
+                break
+
             status = analysis_tasks.get(analysis_id)
             if status is None:
                 await websocket.send_json({"error": _ANALYSIS_NOT_FOUND})
@@ -197,6 +216,24 @@ async def analysis_websocket(websocket: WebSocket, analysis_id: str, token: str 
 
             if status.status in (AnalysisStatusType.COMPLETED, AnalysisStatusType.FAILED):
                 break
+
+            # Keep-alive: detect dead connections via an application-level
+            # heartbeat. Starlette 1.x does not expose native ping/pong frames,
+            # so we send a lightweight JSON heartbeat and treat a failed send
+            # (WebSocketDisconnect) as a dead connection (Issue #119).
+            now = time.monotonic()
+            if now - last_ping >= settings.WS_PING_INTERVAL_SECONDS:
+                try:
+                    await websocket.send_json({"type": "heartbeat"})
+                except WebSocketDisconnect:
+                    logger.warning(
+                        "WebSocket dead connection (heartbeat failed) for analysis %s (client %s)",
+                        analysis_id,
+                        client_ip,
+                    )
+                    await websocket.close(code=1008)
+                    break
+                last_ping = time.monotonic()
 
             await asyncio.sleep(0.5)
     except WebSocketDisconnect:
