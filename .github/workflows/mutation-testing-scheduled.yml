@@ -1,0 +1,16 @@
+name: Scheduled Mutation Testing
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  mutation-testing:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-mutation-testing.yml
+    with:
+      min-score: 70
