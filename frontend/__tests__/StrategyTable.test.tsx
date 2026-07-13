@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import StrategyTable from "@/components/Strategy/StrategyTable";
+import { formatRiskReward } from "@/lib/format";
 import type { StrategyEntry } from "@/types";
 
 describe("StrategyTable", () => {
@@ -55,6 +56,7 @@ describe("StrategyTable", () => {
     const strategies: StrategyEntry[] = [
       {
         direction: "long",
+        entry_condition: "",
         entry_price: 1.1,
         stop_loss: 1.0,
         tp1: 1.2,
@@ -65,6 +67,7 @@ describe("StrategyTable", () => {
       },
       {
         direction: "short",
+        entry_condition: "",
         entry_price: 1.1,
         stop_loss: 1.2,
         tp1: 1.0,
@@ -88,6 +91,7 @@ describe("StrategyTable", () => {
     const strategies: StrategyEntry[] = [
       {
         direction: "long",
+        entry_condition: "",
         entry_price: 1.1,
         stop_loss: 1.0,
         tp1: 1.2,
@@ -105,70 +109,68 @@ describe("StrategyTable", () => {
     expect(percentageElements.length).toBeGreaterThan(0);
   });
 
-  it("ujemne R/R renderuje się z czerwoną klasą (TP1 i TP2)", () => {
-    const strategies: StrategyEntry[] = [
-      {
-        direction: "long",
-        entry_price: 1.1,
-        stop_loss: 1.0,
-        tp1: 1.2,
-        tp2: 1.3,
-        confidence_pct: 50,
-        risk_reward_ratio: -0.5,
-        risk_reward_ratio_tp2: -0.25,
-      },
-    ];
+  describe("riskRewardClass applied in StrategyTable", () => {
+    it.each([
+      ["null (brak danych)", null, "text-muted"],
+      ["ratio 0 (granica zielone)", 0, "text-green-400"],
+      ["ratio 0.3 (zielone)", 0.3, "text-green-400"],
+      ["ratio 0.5 (próg włącznie, zielone)", 0.5, "text-green-400"],
+      ["ratio 0.51 (tuż powyżej progu, żółte)", 0.51, "text-yellow-400"],
+      ["ratio 0.7 (żółte)", 0.7, "text-yellow-400"],
+      ["ratio 1 (żółte)", 1, "text-yellow-400"],
+      ["ratio 100 (duże, żółte)", 100, "text-yellow-400"],
+      ["ratio -0.5 (ujemne, czerwone)", -0.5, "text-red-400"],
+      ["ratio -1 (ujemne, czerwone)", -1, "text-red-400"],
+      ["ratio NaN (nie-finite, text-danger)", NaN, "text-danger"],
+      ["ratio Infinity (nie-finite, text-danger)", Infinity, "text-danger"],
+      ["ratio -Infinity (nie-finite, text-danger)", -Infinity, "text-danger"],
+    ] as const)("nakłada klasę %s dla R/R = %s", (_desc, ratio, expectedClass) => {
+      const strategies: StrategyEntry[] = [
+        {
+          direction: "long",
+          entry_condition: "",
+          entry_price: 1.1,
+          stop_loss: 1.0,
+          tp1: 1.2,
+          tp2: 1.3,
+          confidence_pct: 50,
+          risk_reward_ratio: ratio,
+          risk_reward_ratio_tp2: ratio,
+        },
+      ];
 
-    render(<StrategyTable strategies={strategies} />);
+      render(<StrategyTable strategies={strategies} />);
 
-    // formatRiskReward(-0.5) => "1:-2.00", formatRiskReward(-0.25) => "1:-4.00"
-    const rrTp1 = screen.getByText("1:-2.00");
-    expect(rrTp1).toHaveClass("text-red-400");
-    const rrTp2 = screen.getByText("1:-4.00");
-    expect(rrTp2).toHaveClass("text-red-400");
+      const rrCells = screen.getAllByText(formatRiskReward(ratio));
+      expect(rrCells).toHaveLength(2);
+      rrCells.forEach((cell) => expect(cell).toHaveClass(expectedClass));
+    });
+
+    it("rozróżnia TP1 i TP2 gdy mają różne wartości R/R", () => {
+      const strategies: StrategyEntry[] = [
+        {
+          direction: "long",
+          entry_condition: "",
+          entry_price: 1.1,
+          stop_loss: 1.0,
+          tp1: 1.2,
+          tp2: 1.3,
+          confidence_pct: 50,
+          risk_reward_ratio: 1.5,
+          risk_reward_ratio_tp2: 0.3,
+        },
+      ];
+
+      render(<StrategyTable strategies={strategies} />);
+
+      // TP1 (1.5 → żółte) i TP2 (0.3 → zielone) muszą być renderowane z osobnych
+      // właściwości. Gdyby komponent błędnie czytał obie komórki z tej samej
+      // właściwości, getByText poniżej zwróciłby 0 trafień i test przewali.
+      const tp1Cell = screen.getByText(formatRiskReward(1.5));
+      expect(tp1Cell).toHaveClass("text-yellow-400");
+      const tp2Cell = screen.getByText(formatRiskReward(0.3));
+      expect(tp2Cell).toHaveClass("text-green-400");
+    });
   });
 
-  it("NaN R/R renderuje się z klasą text-danger (TP1 i TP2)", () => {
-    const strategies: StrategyEntry[] = [
-      {
-        direction: "long",
-        entry_price: 1.1,
-        stop_loss: 1.0,
-        tp1: 1.2,
-        tp2: 1.3,
-        confidence_pct: 50,
-        risk_reward_ratio: NaN,
-        risk_reward_ratio_tp2: NaN,
-      },
-    ];
-
-    render(<StrategyTable strategies={strategies} />);
-
-    // formatRiskReward(NaN) => "∞", klasa pochodzi z riskRewardClass(NaN) => text-danger
-    const rrCells = screen.getAllByText("∞");
-    expect(rrCells.length).toBe(2);
-    rrCells.forEach((cell) => expect(cell).toHaveClass("text-danger"));
-  });
-
-  it("Infinity R/R renderuje się z klasą text-danger (TP1 i TP2)", () => {
-    const strategies: StrategyEntry[] = [
-      {
-        direction: "long",
-        entry_price: 1.1,
-        stop_loss: 1.0,
-        tp1: 1.2,
-        tp2: 1.3,
-        confidence_pct: 50,
-        risk_reward_ratio: Infinity,
-        risk_reward_ratio_tp2: -Infinity,
-      },
-    ];
-
-    render(<StrategyTable strategies={strategies} />);
-
-    // formatRiskReward(Infinity) => "∞", formatRiskReward(-Infinity) => "∞" (błędne dane)
-    const rrCells = screen.getAllByText("∞");
-    expect(rrCells.length).toBe(2);
-    rrCells.forEach((cell) => expect(cell).toHaveClass("text-danger"));
-  });
 });
