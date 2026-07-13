@@ -146,7 +146,6 @@ jobs:
     uses: ./.github/workflows/reusable-mutation-testing.yml
     with:
       min-score: 70
-    secrets: inherit
 
   frontend:
     needs: [version-consistency]
