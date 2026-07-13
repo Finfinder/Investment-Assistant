@@ -36,8 +36,19 @@ jobs:
     uses: ./.github/workflows/reusable-sonarcloud.yml
     secrets: inherit
 
-  release:
+  frontend:
     needs: [version-consistency, next-version-request]
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/reusable-frontend.yml
+    with:
+      node-version: "20"
+      working-directory: "frontend"
+    secrets: inherit
+
+  release:
+    needs: [version-consistency, next-version-request, frontend]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -127,33 +138,6 @@ jobs:
       - name: Audit backend dependencies
         working-directory: backend
         run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
-
-      - name: Set up frontend
-        id: frontend-setup
-        uses: ./.github/actions/frontend-setup
-        with:
-          cache-next-build: "true"
-
-      - name: Run frontend lint
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Run frontend unit tests (Vitest)
-        working-directory: frontend
-        run: npm run test
-
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: Run frontend E2E tests
-        working-directory: frontend
-        run: npm run test:e2e
-
-      - name: Save Next.js build cache
-        uses: ./.github/actions/frontend-build-cache-save
-        with:
-          cache-hit: ${{ steps.frontend-setup.outputs.cache-hit }}
 
       - name: Log in to GHCR
         env:
