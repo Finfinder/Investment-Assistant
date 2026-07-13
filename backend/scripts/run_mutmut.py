@@ -29,6 +29,10 @@ SKIPPED = "skipped"
 DEFAULT_MIN_SCORE = 70
 DEFAULT_MODULE = "app/modules/technical_analysis/signal_rating.py"
 
+# Known mutmut `run` exit codes (mutmut 2.x / 3.x). They are bit-OR combinable.
+# 0 = all killed (success); 1 = fatal error; 2 = survivors; 4 = timeouts; 8 = suspicious (2x test time).
+MUTMUT_KNOWN_EXIT_CODES = frozenset({0, 1, 2, 4, 8})
+
 
 def run_mutmut(module: str) -> int:
     """Run `mutmut run` on the given module. Returns mutmut's exit code."""
@@ -98,9 +102,19 @@ def main() -> int:
     print(f"Suspicious     : {suspicious}")
     print(f"Untested/Skip  : {untested}")
 
-    # mutmut returns code 1 on a fatal error; propagate it.
+    # mutmut returns code 1 only on a fatal error (bad config, no tests, etc.).
+    # Codes 2/4/8 (survivors/timeouts/suspicious) are expected outcomes and still
+    # require reading the cache to compute the score. Any other (unknown) code means
+    # mutmut aborted unexpectedly, so the cache may be stale -> fail hard before scoring.
     if run_returncode == 1:
         print("Mutmut fatal error (code 1).", file=sys.stderr)
+        return 1
+    if run_returncode not in MUTMUT_KNOWN_EXIT_CODES:
+        print(
+            f"Mutmut returned unexpected exit code {run_returncode}; "
+            f"the cache may be stale. Known codes: {sorted(MUTMUT_KNOWN_EXIT_CODES)}.",
+            file=sys.stderr,
+        )
         return 1
 
     if score < args.min_score:
