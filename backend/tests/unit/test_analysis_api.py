@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.core.models import AnalysisReport, AnalysisStatusType, Timeframe
-from app.modules.pipeline import analysis_tasks
+from app.orchestration.pipeline import analysis_tasks
 
 # Valid UUID4 constants for tests
 _UUID_NONEXISTENT = "00000000-0000-4000-8000-000000000001"
@@ -375,7 +375,7 @@ async def test_run_pipeline_sets_failed_status_on_exception(client):
     """_run_pipeline should set analysis_tasks status to FAILED when pipeline raises."""
     from app.api.v1.analysis import _background_tasks, _run_pipeline
     from app.core.models import AnalysisStatus, AnalysisStatusType
-    from app.modules.pipeline import analysis_tasks
+    from app.orchestration.pipeline import analysis_tasks
 
     analysis_tasks.clear()
     _background_tasks.clear()
@@ -413,7 +413,7 @@ async def test_run_pipeline_sets_failed_status_on_none_report(client):
     """_run_pipeline should set analysis_tasks status to FAILED when pipeline returns None."""
     from app.api.v1.analysis import _background_tasks, _run_pipeline
     from app.core.models import AnalysisStatus, AnalysisStatusType
-    from app.modules.pipeline import analysis_tasks
+    from app.orchestration.pipeline import analysis_tasks
 
     analysis_tasks.clear()
     _background_tasks.clear()
