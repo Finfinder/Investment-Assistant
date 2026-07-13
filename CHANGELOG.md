@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add "Deployment Architecture" section to README documenting the Docker Compose topology (nginx, backend, frontend, redis) with an ASCII diagram, port mappings, volumes and healthcheck strategies ([#122](https://github.com/Finfinder/Investment-Assistant/issues/122))
+- Add integration tests for `riskRewardClass` in `StrategyTable` rendering the component with a parametrized R/R matrix (positive, negative, zero, boundary, non-finite) and asserting the applied CSS class via React Testing Library; consolidate three redundant standalone tests into the matrix ([#124](https://github.com/Finfinder/Investment-Assistant/issues/124))
 
 ### Changed
 
