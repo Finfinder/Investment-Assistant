@@ -141,6 +141,31 @@ describe("StrategyTable", () => {
       expect(rrCells).toHaveLength(2);
       rrCells.forEach((cell) => expect(cell).toHaveClass(expectedClass));
     });
+
+    it("rozróżnia TP1 i TP2 gdy mają różne wartości R/R", () => {
+      const strategies: StrategyEntry[] = [
+        {
+          direction: "long",
+          entry_price: 1.1,
+          stop_loss: 1.0,
+          tp1: 1.2,
+          tp2: 1.3,
+          confidence_pct: 50,
+          risk_reward_ratio: 1.5,
+          risk_reward_ratio_tp2: 0.3,
+        },
+      ];
+
+      render(<StrategyTable strategies={strategies} />);
+
+      // TP1 (1.5 → żółte) i TP2 (0.3 → zielone) muszą być renderowane z osobnych
+      // właściwości. Gdyby komponent błędnie czytał obie komórki z tej samej
+      // właściwości, getByText poniżej zwróciłby 0 trafień i test przewali.
+      const tp1Cell = screen.getByText(formatRiskReward(1.5));
+      expect(tp1Cell).toHaveClass("text-yellow-400");
+      const tp2Cell = screen.getByText(formatRiskReward(0.3));
+      expect(tp2Cell).toHaveClass("text-green-400");
+    });
   });
 
 });
