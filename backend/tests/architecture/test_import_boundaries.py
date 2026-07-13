@@ -23,8 +23,8 @@ _MODULES_ROOT = _BACKEND_ROOT / "app" / "modules"
 _IGNORED_DIR_NAMES = {"__pycache__"}
 
 
-def _run_lint_imports() -> int:
-    """Run import-linter contracts and return the process exit code."""
+def _run_lint_imports() -> tuple[int, str]:
+    """Run import-linter contracts and return (exit_code, combined_output)."""
     result = subprocess.run(
         [sys.executable, "-c", "from importlinter.cli import lint_imports_command; lint_imports_command()"],
         capture_output=True,
@@ -32,7 +32,7 @@ def _run_lint_imports() -> int:
         errors="replace",
         cwd=str(_BACKEND_ROOT),
     )
-    return result.returncode
+    return result.returncode, result.stdout + result.stderr
 
 
 def _independence_contract_modules() -> list[str]:
@@ -63,7 +63,8 @@ def _discovered_domain_modules() -> list[str]:
 @pytest.mark.architecture
 def test_import_linter_contracts():
     """All import-linter contracts defined in pyproject.toml must pass."""
-    assert _run_lint_imports() == 0, "import-linter found violations"
+    code, output = _run_lint_imports()
+    assert code == 0, f"import-linter found violations:\n{output}"
 
 
 @pytest.mark.architecture
@@ -111,7 +112,8 @@ def test_registered_module_violation_detected():
                 '    "app.modules.strategy_generator",\n    "app.modules._contract_probe",\n',
             )
             _PYPROJECT.write_text(updated_text, encoding="utf-8")
-        assert _run_lint_imports() != 0, "Expected import-linter to detect the cross-module import in the probe module"
+        probe_code, _ = _run_lint_imports()
+        assert probe_code != 0, "Expected import-linter to detect the cross-module import in the probe module"
     finally:
         if probe_file.exists():
             probe_file.unlink()
