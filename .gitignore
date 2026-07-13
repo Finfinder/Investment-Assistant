@@ -48,6 +48,9 @@ coverage.xml
 # pytest
 .pytest_cache/
 
+# mutmut (mutation testing cache)
+.mutmut-cache
+
 # Node.js
 node_modules/
 .next/

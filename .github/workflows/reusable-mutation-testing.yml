@@ -1,0 +1,45 @@
+name: Reusable Mutation Testing
+
+on:
+  workflow_call:
+    inputs:
+      min-score:
+        description: Minimalny akceptowalny mutation score w procentach dla signal_rating.py.
+        required: false
+        default: 70
+        type: number
+
+permissions: {}
+
+jobs:
+  mutation-testing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Cache pip
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade pip
+        run: pip install --upgrade pip
+
+      - name: Install backend dependencies
+        run: pip install ".[dev]"
+
+      - name: Run mutation testing with mutmut
+        run: python scripts/run_mutmut.py --min-score ${{ inputs.min-score }}
