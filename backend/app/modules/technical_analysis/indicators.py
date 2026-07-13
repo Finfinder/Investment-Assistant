@@ -4,21 +4,25 @@ import pandas_ta as ta
 from app.core.models import IndicatorValue, OHLCVData
 from app.modules.technical_analysis._helpers import safe_last as _safe_last
 from app.modules.technical_analysis.presets import IndicatorParams
-from app.modules.technical_analysis.signal_rating import (
-    rate_adx,
-    rate_atr,
-    rate_awesome_oscillator,
-    rate_bull_bear_power,
-    rate_cci,
-    rate_macd_crossover,
-    rate_momentum,
-    rate_roc,
-    rate_rsi,
-    rate_stochastic,
-    rate_stochrsi,
-    rate_ultimate_oscillator,
-    rate_williams_r,
-)
+from app.modules.technical_analysis.signal_rating import rate_signal
+
+# Mapa prefiksu nazwy wskaźnika (IndicatorValue.name) na klucz konfiguracyjny rate_signal.
+# Jedyne źródło prawdy wiążące typ sygnału z kluczem SIGNAL_RATING_CONFIG — używana w calculate_indicators.
+_SIGNAL_KEYS: dict[str, str] = {
+    "RSI": "rsi",
+    "STOCH.K": "stochastic",
+    "CCI": "cci",
+    "ADX": "adx",
+    "AO": "awesome_oscillator",
+    "Momentum": "momentum",
+    "MACD": "macd_crossover",
+    "Williams %R": "williams_r",
+    "UO": "ultimate_oscillator",
+    "ATR": "atr",
+    "BBP": "bull_bear_power",
+    "STOCHRSI.K": "stochrsi",
+    "ROC": "roc",
+}
 
 
 def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> list[IndicatorValue]:
@@ -36,16 +40,28 @@ def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> lis
 
     # 1. RSI
     rsi_val = _safe_last(ta.rsi(close, length=params.rsi_length))
-    results.append(IndicatorValue(name=f"RSI({params.rsi_length})", value=rsi_val, signal=rate_rsi(rsi_val)))
+    results.append(
+        IndicatorValue(
+            name=f"RSI({params.rsi_length})", value=rsi_val, signal=rate_signal(_SIGNAL_KEYS["RSI"], rsi_val)
+        )
+    )
 
     # 2. Stochastic %K
     stoch_df = ta.stoch(high, low, close, k=params.stoch_k, d=params.stoch_d, smooth_k=params.stoch_smooth_k)
     stoch_k = _safe_last(stoch_df, col=0)
-    results.append(IndicatorValue(name=f"STOCH.K({params.stoch_k})", value=stoch_k, signal=rate_stochastic(stoch_k)))
+    results.append(
+        IndicatorValue(
+            name=f"STOCH.K({params.stoch_k})", value=stoch_k, signal=rate_signal(_SIGNAL_KEYS["STOCH.K"], stoch_k)
+        )
+    )
 
     # 3. CCI
     cci_val = _safe_last(ta.cci(high, low, close, length=params.cci_length))
-    results.append(IndicatorValue(name=f"CCI({params.cci_length})", value=cci_val, signal=rate_cci(cci_val)))
+    results.append(
+        IndicatorValue(
+            name=f"CCI({params.cci_length})", value=cci_val, signal=rate_signal(_SIGNAL_KEYS["CCI"], cci_val)
+        )
+    )
 
     # 4. ADX — signal depends on +DI / -DI direction
     adx_df = ta.adx(high, low, close, length=params.adx_length)
@@ -53,17 +69,25 @@ def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> lis
     plus_di = _safe_last(adx_df, col=1)
     minus_di = _safe_last(adx_df, col=2)
     results.append(
-        IndicatorValue(name=f"ADX({params.adx_length})", value=adx_val, signal=rate_adx(adx_val, plus_di, minus_di))
+        IndicatorValue(
+            name=f"ADX({params.adx_length})",
+            value=adx_val,
+            signal=rate_signal(_SIGNAL_KEYS["ADX"], adx_val, plus_di, minus_di),
+        )
     )
 
     # 5. Awesome Oscillator
     ao_val = _safe_last(ta.ao(high, low, fast=params.ao_fast, slow=params.ao_slow))
-    results.append(IndicatorValue(name="AO", value=ao_val, signal=rate_awesome_oscillator(ao_val)))
+    results.append(IndicatorValue(name="AO", value=ao_val, signal=rate_signal(_SIGNAL_KEYS["AO"], ao_val)))
 
     # 6. Momentum
     mom_val = _safe_last(ta.mom(close, length=params.momentum_length))
     results.append(
-        IndicatorValue(name=f"Momentum({params.momentum_length})", value=mom_val, signal=rate_momentum(mom_val))
+        IndicatorValue(
+            name=f"Momentum({params.momentum_length})",
+            value=mom_val,
+            signal=rate_signal(_SIGNAL_KEYS["Momentum"], mom_val),
+        )
     )
 
     # 7. MACD — value = MACD line, signal based on crossover (MACD vs Signal line)
@@ -74,14 +98,18 @@ def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> lis
         IndicatorValue(
             name=f"MACD({params.macd_fast},{params.macd_slow},{params.macd_signal})",
             value=macd_line,
-            signal=rate_macd_crossover(macd_line, signal_line),
+            signal=rate_signal(_SIGNAL_KEYS["MACD"], macd_line, signal_line),
         )
     )
 
     # 8. Williams %R
     willr_val = _safe_last(ta.willr(high, low, close, length=params.willr_length))
     results.append(
-        IndicatorValue(name=f"Williams %R({params.willr_length})", value=willr_val, signal=rate_williams_r(willr_val))
+        IndicatorValue(
+            name=f"Williams %R({params.willr_length})",
+            value=willr_val,
+            signal=rate_signal(_SIGNAL_KEYS["Williams %R"], willr_val),
+        )
     )
 
     # 9. Ultimate Oscillator
@@ -90,13 +118,17 @@ def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> lis
         IndicatorValue(
             name=f"UO({params.uo_fast},{params.uo_medium},{params.uo_slow})",
             value=uo_val,
-            signal=rate_ultimate_oscillator(uo_val),
+            signal=rate_signal(_SIGNAL_KEYS["UO"], uo_val),
         )
     )
 
     # 10. ATR (volatility — always NEUTRAL signal)
     atr_val = _safe_last(ta.atr(high, low, close, length=params.atr_length))
-    results.append(IndicatorValue(name=f"ATR({params.atr_length})", value=atr_val, signal=rate_atr(atr_val)))
+    results.append(
+        IndicatorValue(
+            name=f"ATR({params.atr_length})", value=atr_val, signal=rate_signal(_SIGNAL_KEYS["ATR"], atr_val)
+        )
+    )
 
     # 11. Bull Bear Power — bull = high - EMA, bear = low - EMA, bbp = bull + bear
     ema_for_bbp = ta.ema(close, length=params.bbp_length)
@@ -108,7 +140,9 @@ def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> lis
     else:
         bbp_val = None
     results.append(
-        IndicatorValue(name=f"BBP({params.bbp_length})", value=bbp_val, signal=rate_bull_bear_power(bbp_val))
+        IndicatorValue(
+            name=f"BBP({params.bbp_length})", value=bbp_val, signal=rate_signal(_SIGNAL_KEYS["BBP"], bbp_val)
+        )
     )
 
     # 12. Stochastic RSI
@@ -124,12 +158,16 @@ def calculate_indicators(ohlcv: list[OHLCVData], params: IndicatorParams) -> lis
         IndicatorValue(
             name=f"STOCHRSI.K({params.stochrsi_length})",
             value=stochrsi_k,
-            signal=rate_stochrsi(stochrsi_k),
+            signal=rate_signal(_SIGNAL_KEYS["STOCHRSI.K"], stochrsi_k),
         )
     )
 
     # 13. Rate of Change
     roc_val = _safe_last(ta.roc(close, length=params.roc_length))
-    results.append(IndicatorValue(name=f"ROC({params.roc_length})", value=roc_val, signal=rate_roc(roc_val)))
+    results.append(
+        IndicatorValue(
+            name=f"ROC({params.roc_length})", value=roc_val, signal=rate_signal(_SIGNAL_KEYS["ROC"], roc_val)
+        )
+    )
 
     return results
