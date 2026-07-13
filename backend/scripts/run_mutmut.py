@@ -34,7 +34,9 @@ def run_mutmut(module: str) -> int:
     """Run `mutmut run` on the given module. Returns mutmut's exit code."""
     env = dict(os.environ)
     env.setdefault("PYTHONIOENCODING", "utf-8")
-    command = [sys.executable, "-m", "mutmut", "run", module]
+    # Pass the module via --paths-to-mutate (valid CLI flag and config key in mutmut 2.x).
+    # Avoids relying on the positional argument, whose semantics differ across mutmut versions.
+    command = [sys.executable, "-m", "mutmut", "run", "--paths-to-mutate", module]
     # S603: input is controlled (sys.executable + constant "mutmut" + a fixed default module path or a CI-provided arg)
     result = subprocess.run(command, env=env)  # noqa: S603
     return result.returncode
