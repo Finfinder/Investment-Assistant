@@ -2,7 +2,7 @@
 
 [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-REST%20API-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 [![Version](https://img.shields.io/badge/version-0.5.1-green)]()
 [![SonarCloud](https://sonarcloud.io/api/project_badges/measure?project=Finfinder_Investment-Assistant&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Finfinder_Investment-Assistant)
@@ -30,7 +30,7 @@ CFD instrument technical and fundamental analysis application. Provides market d
 
 ### Frontend
 
-- **Next.js 14** (App Router) / TypeScript 5
+- **Next.js 15** (App Router) / TypeScript 5
 - **TailwindCSS 3.4** with CSS custom properties (dark theme)
 - **lightweight-charts v5** for interactive candlestick charts
 - **Docker Compose** for full-stack deployment
@@ -105,7 +105,7 @@ GitHub Release notes are generated from `CHANGELOG.md`. The supported release ar
 ```
 ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
 │   Frontend   │      │   Backend    │      │    Redis     │
-│  Next.js 14  │◄────►│  FastAPI     │◄────►│   Cache      │
+│  Next.js 15  │◄────►│  FastAPI     │◄────►│   Cache      │
 │  :3000       │      │  :8000       │      │   :6379      │
 └──────┬───────┘      └──────┬───────┘      └──────────────┘
        │                     │
@@ -133,6 +133,64 @@ backend/app/
 ```
 
 Import boundaries are enforced by `import-linter` contracts defined in `pyproject.toml`.
+
+---
+
+## Deployment Architecture
+
+The application is deployed as a single Docker Compose stack of four services. `nginx` is the only service publishing a port to the host; `backend`, `frontend` and `redis` communicate exclusively over the internal Compose network.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         Docker Compose Stack                         │
+│                                                                        │
+│   ┌──────────────┐    ┌──────────────┐    ┌──────────────────────┐    │
+│   │    nginx     │    │   backend    │    │        redis         │    │
+│   │ :80 (host)   │───►│   :8000      │───►│        :6379         │    │
+│   │ reverse proxy│    │   FastAPI    │    │        cache         │    │
+│   └──────┬───────┘    └──────┬───────┘    └──────────────────────┘    │
+│          │                   │                                         │
+│          │      ┌────────────▼────────────┐                           │
+│          └─────►│        frontend          │                           │
+│                 │        :3000             │                           │
+│                 │        Next.js 15        │                           │
+│                 └──────────────────────────┘                           │
+│                                                                        │
+│   Volumes:  redis-data  │  backend-data  │  nginx-logs                │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+`nginx` terminates all inbound traffic on `:80` and proxies `/api/` and `/api/v1/ws/` to `backend:8000`, while everything else is served by `frontend:3000`. `redis` is reached **only by the backend** (the `nginx → backend → redis` arrow in the diagram denotes the backend's cache dependency, not a direct proxy path from nginx). `backend` depends on `redis:6379` for caching (with in-memory fallback). Startup order is enforced by `depends_on` conditions: `redis` (healthy) → `backend` (healthy) → `frontend` (started) → `nginx`. Note that `nginx.depends_on.frontend` uses `condition: service_started` (not a health condition), while the other dependencies wait on `service_healthy`.
+
+> **Production note:** the stack terminates plain HTTP on `:80`. The HTTPS redirect in `nginx/nginx.conf` is commented out and must be enabled (with TLS certificates provisioned) before exposing the stack to production traffic. See the [Security](#security) section for the security headers applied at the proxy layer.
+
+### Port mappings
+
+| Service | Container port | Published to host | Notes |
+|---|---|---|---|
+| nginx | 80 | Yes (`:80`) | Only externally reachable entry point |
+| backend | 8000 | No | Internal only, behind nginx |
+| frontend | 3000 | No | Internal only, behind nginx |
+| redis | 6379 | No | Internal only, protected by `REDIS_PASSWORD` |
+
+### Volumes
+
+| Volume | Mount point | Purpose |
+|---|---|---|
+| `redis-data` | `/data` (redis) | Persistent Redis cache data |
+| `backend-data` | `/app/data` (backend) | Persistent backend data (SQLite DB, etc.) |
+| `nginx-logs` | `/var/log/nginx` (nginx) | Nginx access/error logs |
+
+### Healthchecks
+
+| Service | Check | Interval | Timeout | Retries | Start period |
+|---|---|---|---|---|---|
+| redis | `redis-cli ping` (with `REDISCLI_AUTH`) | 10s | 5s | 3 | — |
+| nginx | `wget -qO- http://127.0.0.1/api/v1/health` | 30s | 5s | 3 | 10s |
+| backend | `urllib.request.urlopen('http://localhost:8000/api/v1/health')` | 30s | 10s | 3 | 10s |
+| frontend | `wget -qO- http://127.0.0.1:3000` | 30s | 5s | 3 | — |
+
+All services use `restart: unless-stopped`.
 
 ---
 
