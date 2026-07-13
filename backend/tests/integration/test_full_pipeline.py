@@ -12,7 +12,7 @@ from app.core.models import (
     OHLCVData,
     Timeframe,
 )
-from app.modules.pipeline import AnalysisPipeline, analysis_tasks
+from app.orchestration.pipeline import AnalysisPipeline, analysis_tasks
 
 
 def _make_ohlcv(n: int = 50, base_price: float = 100.0) -> list[OHLCVData]:
@@ -54,7 +54,7 @@ class TestFullPipelineForex:
 
         with (
             patch(
-                "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+                "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
                 new_callable=AsyncMock,
                 return_value=FundamentalData(
                     instrument_type="forex",
@@ -63,7 +63,7 @@ class TestFullPipelineForex:
                 ),
             ),
             patch(
-                "app.modules.pipeline.AnalysisPipeline._persist_result",
+                "app.orchestration.pipeline.AnalysisPipeline._persist_result",
                 new_callable=AsyncMock,
             ),
         ):
@@ -106,7 +106,7 @@ class TestFullPipelineCommodity:
 
         with (
             patch(
-                "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+                "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
                 new_callable=AsyncMock,
                 return_value=FundamentalData(
                     instrument_type="commodity",
@@ -115,7 +115,7 @@ class TestFullPipelineCommodity:
                 ),
             ),
             patch(
-                "app.modules.pipeline.AnalysisPipeline._persist_result",
+                "app.orchestration.pipeline.AnalysisPipeline._persist_result",
                 new_callable=AsyncMock,
             ),
         ):
@@ -146,7 +146,7 @@ class TestFullPipelineIndex:
 
         with (
             patch(
-                "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+                "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
                 new_callable=AsyncMock,
                 return_value=FundamentalData(
                     instrument_type="index",
@@ -155,7 +155,7 @@ class TestFullPipelineIndex:
                 ),
             ),
             patch(
-                "app.modules.pipeline.AnalysisPipeline._persist_result",
+                "app.orchestration.pipeline.AnalysisPipeline._persist_result",
                 new_callable=AsyncMock,
             ),
         ):
@@ -184,12 +184,12 @@ class TestPipelineGracefulDegradation:
 
         with (
             patch(
-                "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+                "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
             patch(
-                "app.modules.pipeline.AnalysisPipeline._persist_result",
+                "app.orchestration.pipeline.AnalysisPipeline._persist_result",
                 new_callable=AsyncMock,
             ),
         ):
@@ -230,7 +230,7 @@ class TestFullPipelineForexCrossPair:
 
         with (
             patch(
-                "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+                "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
                 new_callable=AsyncMock,
                 return_value=FundamentalData(
                     instrument_type="forex",
@@ -239,7 +239,7 @@ class TestFullPipelineForexCrossPair:
                 ),
             ),
             patch(
-                "app.modules.pipeline.AnalysisPipeline._persist_result",
+                "app.orchestration.pipeline.AnalysisPipeline._persist_result",
                 new_callable=AsyncMock,
             ),
         ):

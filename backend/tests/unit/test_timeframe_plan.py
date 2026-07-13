@@ -1,6 +1,6 @@
 from app.core.models import Timeframe
 from app.modules.data_acquisition.timeframes import DataTimeframe, resolve_analysis_timeframes
-from app.modules.pipeline import AnalysisPipeline
+from app.orchestration.pipeline import AnalysisPipeline
 
 
 def test_public_timeframe_enum_does_not_expose_weekly() -> None:

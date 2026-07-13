@@ -17,7 +17,7 @@ from app.core.models import AnalysisReport, AnalysisStatus, AnalysisStatusType, 
 from app.core.rate_limit import limiter
 from app.core.ws_connection_limiter import ws_connection_limiter
 from app.modules.data_acquisition.redis_cache import create_redis_cache
-from app.modules.pipeline import AnalysisPipeline, analysis_tasks
+from app.orchestration.pipeline import AnalysisPipeline, analysis_tasks
 
 logger = logging.getLogger(__name__)
 
