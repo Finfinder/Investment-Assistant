@@ -2,10 +2,10 @@ name: Frontend Setup
 description: Sets up Node.js with npm cache, installs dependencies via npm ci, and optionally restores the Next.js build cache.
 
 inputs:
-  node-version:
-    description: Node.js version to set up.
+  node-version-file:
+    description: Path to the file containing the Node.js version (single source of truth, e.g. frontend/.nvmrc).
     required: false
-    default: "20"
+    default: "frontend/.nvmrc"
   working-directory:
     description: Working directory containing the frontend project (package-lock.json).
     required: false
@@ -26,7 +26,7 @@ runs:
     - name: Set up Node.js
       uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
       with:
-        node-version: ${{ inputs.node-version }}
+        node-version-file: ${{ inputs.node-version-file }}
         cache: "npm"
         cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
 
