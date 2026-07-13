@@ -138,6 +138,16 @@ jobs:
       - name: Audit dependencies for known vulnerabilities
         run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539
 
+  mutation-testing:
+    needs: [version-consistency]
+    if: github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-mutation-testing.yml
+    with:
+      min-score: 70
+    secrets: inherit
+
   frontend:
     needs: [version-consistency]
     if: github.actor != 'dependabot[bot]'

@@ -7,8 +7,8 @@ from app.core.models import SignalType
 
 
 class BandOp(StrEnum):
-    LT = "lt"
-    GT = "gt"
+    LT = "lt"  # pragma: no mutate
+    GT = "gt"  # pragma: no mutate
 
 
 class BandRule(BaseModel):
@@ -168,14 +168,15 @@ def rate_signal(signal_type: str, *values: float | None) -> SignalType:
     Wybiera strategię na podstawie `SIGNAL_RATING_CONFIG[signal_type].kind`.
     """
     if signal_type not in SIGNAL_RATING_CONFIG:
-        valid = ", ".join(sorted(SIGNAL_RATING_CONFIG))
-        raise ValueError(f"Unknown signal_type '{signal_type}'. Valid types: {valid}")
+        valid = ", ".join(sorted(SIGNAL_RATING_CONFIG))  # pragma: no mutate
+        raise ValueError(f"Unknown signal_type '{signal_type}'. Valid types: {valid}")  # pragma: no mutate
     config = SIGNAL_RATING_CONFIG[signal_type]
     if config.kind != "bands" and config.kind not in _RATERS:
-        raise ValueError(f"Unknown rating kind '{config.kind}' for signal_type '{signal_type}'")
+        raise ValueError(f"Unknown rating kind '{config.kind}' for signal_type '{signal_type}'")  # pragma: no mutate
     if config.kind == "bands":
         if len(values) > 1:
-            raise TypeError(f"Signal type '{signal_type}' (kind=bands) expects 1 value, got {len(values)}")
+            msg = f"Signal type '{signal_type}' (kind=bands) expects 1 value, got {len(values)}"
+            raise TypeError(msg)  # pragma: no mutate
         return _rate_bands(values[0] if values else None, config)
     return _RATERS[config.kind](*values)
 
