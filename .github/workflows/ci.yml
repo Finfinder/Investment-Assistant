@@ -146,7 +146,6 @@ jobs:
       actions: write
     uses: ./.github/workflows/reusable-frontend.yml
     with:
-      node-version: "20"
       working-directory: "frontend"
     secrets: inherit
 

@@ -3,10 +3,10 @@ name: Reusable Frontend
 on:
   workflow_call:
     inputs:
-      node-version:
-        description: Node.js version to set up for the frontend jobs.
+      node-version-file:
+        description: Path to the file containing the Node.js version for the frontend jobs (single source of truth, e.g. frontend/.nvmrc).
         required: false
-        default: "20"
+        default: "frontend/.nvmrc"
         type: string
       working-directory:
         description: Working directory containing the frontend project (package-lock.json).
@@ -30,7 +30,7 @@ jobs:
       - name: Set up frontend
         uses: ./.github/actions/frontend-setup
         with:
-          node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version-file }}
           working-directory: ${{ inputs.working-directory }}
 
       - name: Lint
@@ -49,7 +49,7 @@ jobs:
       - name: Set up frontend
         uses: ./.github/actions/frontend-setup
         with:
-          node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version-file }}
           working-directory: ${{ inputs.working-directory }}
 
       - name: Run unit tests (Vitest)
@@ -71,7 +71,7 @@ jobs:
         id: frontend-setup
         uses: ./.github/actions/frontend-setup
         with:
-          node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version-file }}
           working-directory: ${{ inputs.working-directory }}
           cache-next-build: "true"
 
