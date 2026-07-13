@@ -1,6 +1,7 @@
 from app.core.models import IndicatorPreset, OHLCVData, SignalType
-from app.modules.technical_analysis.indicators import calculate_indicators
+from app.modules.technical_analysis.indicators import _SIGNAL_KEYS, calculate_indicators
 from app.modules.technical_analysis.presets import IndicatorParams, get_preset_params
+from app.modules.technical_analysis.signal_rating import SIGNAL_RATING_CONFIG
 
 # Default params match TradingView preset (all defaults)
 DEFAULT_PARAMS = IndicatorParams()
@@ -127,6 +128,18 @@ def test_atr_positive(sample_ohlcv_data_long):
     assert atr.value is not None
     assert atr.value >= 0.0
     assert atr.signal == SignalType.NEUTRAL
+
+
+def test_signal_keys_cover_all_indicators_and_config(sample_ohlcv_data_long):
+    """_SIGNAL_KEYS must map every produced indicator name and only valid config keys."""
+    result = calculate_indicators(sample_ohlcv_data_long, DEFAULT_PARAMS)
+    produced_names = {r.name.split("(")[0] for r in result}
+    # Every produced indicator name prefix has a mapping
+    assert produced_names <= set(_SIGNAL_KEYS), f"Unmapped indicators: {produced_names - set(_SIGNAL_KEYS)}"
+    # Every mapped key exists in SIGNAL_RATING_CONFIG
+    assert set(_SIGNAL_KEYS.values()) <= set(SIGNAL_RATING_CONFIG), (
+        f"Unknown keys: {set(_SIGNAL_KEYS.values()) - set(SIGNAL_RATING_CONFIG)}"
+    )
 
 
 def test_stochrsi_in_range(sample_ohlcv_data_long):
