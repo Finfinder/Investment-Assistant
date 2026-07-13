@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add "Deployment Architecture" section to README documenting the Docker Compose topology (nginx, backend, frontend, redis) with an ASCII diagram, port mappings, volumes and healthcheck strategies ([#122](https://github.com/Finfinder/Investment-Assistant/issues/122))
+
 ### Changed
 
 - Add WebSocket max connection duration limit (60s) and application-level heartbeat (30s) to `analysis_websocket` in `app/api/v1/analysis.py`; connections exceeding the duration limit or with a failed heartbeat (dead client) are closed with code 1008 and logged with client IP and duration, preventing resource exhaustion ([#119](https://github.com/Finfinder/Investment-Assistant/issues/119))
