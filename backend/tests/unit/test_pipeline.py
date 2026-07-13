@@ -14,7 +14,7 @@ from app.core.models import (
     OHLCVData,
     Timeframe,
 )
-from app.modules.pipeline import PIPELINE_STEPS, AnalysisPipeline, PipelineContext, analysis_tasks
+from app.orchestration.pipeline import PIPELINE_STEPS, AnalysisPipeline, PipelineContext, analysis_tasks
 
 
 def _make_ohlcv(n: int = 20) -> list[OHLCVData]:
@@ -53,12 +53,12 @@ async def test_pipeline_success():
 
     with (
         patch(
-            "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+            "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
             new_callable=AsyncMock,
             return_value=None,
         ),
         patch(
-            "app.modules.pipeline.AnalysisPipeline._persist_result",
+            "app.orchestration.pipeline.AnalysisPipeline._persist_result",
             new_callable=AsyncMock,
         ),
     ):
@@ -82,12 +82,12 @@ async def test_pipeline_partial_failure():
 
     with (
         patch(
-            "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+            "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
             new_callable=AsyncMock,
             return_value=None,
         ),
         patch(
-            "app.modules.pipeline.AnalysisPipeline._persist_result",
+            "app.orchestration.pipeline.AnalysisPipeline._persist_result",
             new_callable=AsyncMock,
         ),
     ):
@@ -127,12 +127,12 @@ async def test_pipeline_status_tracking():
 
     with (
         patch(
-            "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+            "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
             new_callable=AsyncMock,
             return_value=None,
         ),
         patch(
-            "app.modules.pipeline.AnalysisPipeline._persist_result",
+            "app.orchestration.pipeline.AnalysisPipeline._persist_result",
             new_callable=AsyncMock,
         ),
     ):
@@ -160,12 +160,12 @@ async def test_pipeline_d1_timeframe_uses_existing_ohlcv():
 
     with (
         patch(
-            "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+            "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
             new_callable=AsyncMock,
             return_value=None,
         ),
         patch(
-            "app.modules.pipeline.AnalysisPipeline._persist_result",
+            "app.orchestration.pipeline.AnalysisPipeline._persist_result",
             new_callable=AsyncMock,
         ),
     ):
@@ -391,7 +391,7 @@ class TestPersistResult:
         mock_report = MagicMock()
         mock_report.model_dump_json.return_value = "{}"
 
-        with patch("app.modules.pipeline.get_session_factory", return_value=mock_factory):
+        with patch("app.orchestration.pipeline.get_session_factory", return_value=mock_factory):
             await pipeline._persist_result(mock_report)
 
         mock_session.add.assert_called_once()
@@ -405,7 +405,7 @@ class TestPersistResult:
         mock_report = MagicMock()
         mock_report.model_dump_json.return_value = "{}"
 
-        with patch("app.modules.pipeline.get_session_factory", side_effect=RuntimeError("no db")):
+        with patch("app.orchestration.pipeline.get_session_factory", side_effect=RuntimeError("no db")):
             # Should not raise — exception is caught and logged
             await pipeline._persist_result(mock_report)
 
@@ -511,7 +511,7 @@ class TestRunAnalysisPhase:
         ctx.fetch_bundle.get.return_value = []
 
         with patch(
-            "app.modules.pipeline.AnalysisPipeline._step_fundamental_analysis",
+            "app.orchestration.pipeline.AnalysisPipeline._step_fundamental_analysis",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -573,7 +573,7 @@ class TestRunReportPhase:
         ctx.direction = None
 
         with patch(
-            "app.modules.pipeline.AnalysisPipeline._persist_result",
+            "app.orchestration.pipeline.AnalysisPipeline._persist_result",
             new_callable=AsyncMock,
         ) as mock_persist:
             report = await pipeline._run_report_phase(ctx)
