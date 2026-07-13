@@ -56,6 +56,7 @@ describe("StrategyTable", () => {
     const strategies: StrategyEntry[] = [
       {
         direction: "long",
+        entry_condition: "",
         entry_price: 1.1,
         stop_loss: 1.0,
         tp1: 1.2,
@@ -66,6 +67,7 @@ describe("StrategyTable", () => {
       },
       {
         direction: "short",
+        entry_condition: "",
         entry_price: 1.1,
         stop_loss: 1.2,
         tp1: 1.0,
@@ -89,6 +91,7 @@ describe("StrategyTable", () => {
     const strategies: StrategyEntry[] = [
       {
         direction: "long",
+        entry_condition: "",
         entry_price: 1.1,
         stop_loss: 1.0,
         tp1: 1.2,
@@ -125,6 +128,7 @@ describe("StrategyTable", () => {
       const strategies: StrategyEntry[] = [
         {
           direction: "long",
+          entry_condition: "",
           entry_price: 1.1,
           stop_loss: 1.0,
           tp1: 1.2,
@@ -146,6 +150,7 @@ describe("StrategyTable", () => {
       const strategies: StrategyEntry[] = [
         {
           direction: "long",
+          entry_condition: "",
           entry_price: 1.1,
           stop_loss: 1.0,
           tp1: 1.2,
