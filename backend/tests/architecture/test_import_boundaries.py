@@ -14,7 +14,8 @@ from pathlib import Path
 
 import pytest
 
-# tests/architecture is three levels below the backend root: tests/ -> backend/ -> repo root.
+# test_import_boundaries.py lives two levels below the backend root:
+# backend/tests/architecture/ -> backend/tests/ -> backend/
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _PYPROJECT = _BACKEND_ROOT / "pyproject.toml"
 _MODULES_ROOT = _BACKEND_ROOT / "app" / "modules"
