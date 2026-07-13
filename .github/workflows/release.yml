@@ -46,8 +46,16 @@ jobs:
       working-directory: "frontend"
     secrets: inherit
 
+  mutation-testing:
+    needs: [version-consistency]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-mutation-testing.yml
+    with:
+      min-score: 70
+
   release:
-    needs: [version-consistency, next-version-request, frontend]
+    needs: [version-consistency, next-version-request, frontend, mutation-testing]
     runs-on: ubuntu-latest
     permissions:
       contents: write
