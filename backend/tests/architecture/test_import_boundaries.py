@@ -6,6 +6,7 @@ under app/modules is registered in the independence contract, so that
 future modules cannot silently bypass the boundary (see issue #194 / #120).
 """
 
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -115,9 +116,8 @@ def test_registered_module_violation_detected():
         probe_code, _ = _run_lint_imports()
         assert probe_code != 0, "Expected import-linter to detect the cross-module import in the probe module"
     finally:
-        if probe_file.exists():
-            probe_file.unlink()
-        if probe_dir.exists():
-            probe_dir.rmdir()
+        # Remove the probe package tree (incl. any __pycache__ created by grimp
+        # importing the module) so teardown never masks the real assertion.
+        shutil.rmtree(probe_dir, ignore_errors=True)
         # Always restore the original pyproject.toml configuration.
         _PYPROJECT.write_text(original_text, encoding="utf-8")
