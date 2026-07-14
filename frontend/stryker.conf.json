@@ -6,10 +6,11 @@
   },
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
-  "mutate": ["src/lib/format.ts:30-40"],
+  "mutate": ["src/lib/riskReward.ts"],
   "testFiles": ["__tests__/riskRewardClass.test.ts"],
   "reporters": ["clear-text", "progress", "html"],
   "thresholds": {
     "break": 70
   }
 }
+>>>>>>> 0.5.1
