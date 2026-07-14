@@ -214,11 +214,12 @@ jobs:
             ./backend
 
           # Validate the frontend Node version source before build (defense-in-depth, IA-152 F-1)
-          node_version="$(tr -d '\r' < frontend/.nvmrc 2>/dev/null || echo '')"
-          if [[ -z "$node_version" ]] || ! grep -Eq '^[0-9]+(\.[0-9]+)?$' <<< "$node_version"; then
-            echo "::error::frontend/.nvmrc must contain a bare major or major.minor Node version (e.g. 20), got: '${node_version}'" >&2
+          node_version="$(head -1 frontend/.nvmrc 2>/dev/null | tr -d '\r\n ')"
+          if [[ -z "$node_version" ]] || ! grep -Eq '^v?[0-9]+(\.[0-9]+){0,2}$' <<< "$node_version"; then
+            echo "::error::frontend/.nvmrc must contain a Node version (e.g. 20, 20.16, 20.16.0, v20.16.0), got: '${node_version}'" >&2
             exit 1
           fi
+          node_version="${node_version#v}"  # strip optional leading 'v'
 
           publish_image \
             frontend \
