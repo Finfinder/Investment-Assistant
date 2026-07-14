@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "checkers": ["typescript"],
+  "tsconfigFile": "tsconfig.json",
+  "mutate": ["src/lib/format.ts:30-40"],
+  "testFiles": ["__tests__/riskRewardClass.test.ts"],
+  "reporters": ["clear-text", "progress", "html"],
+  "thresholds": {
+    "break": 70
+  }
+}
