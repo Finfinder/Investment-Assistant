@@ -13,5 +13,8 @@ const DEFAULT_STRATEGY_ENTRY: StrategyEntry = {
 };
 
 export function makeStrategyEntry(overrides: Partial<StrategyEntry> = {}): StrategyEntry {
-  return { ...DEFAULT_STRATEGY_ENTRY, ...overrides };
+  const definedOverrides = Object.fromEntries(
+    Object.entries(overrides).filter(([, value]) => value !== undefined),
+  ) as Partial<StrategyEntry>;
+  return { ...DEFAULT_STRATEGY_ENTRY, ...definedOverrides };
 }
