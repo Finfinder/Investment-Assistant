@@ -60,6 +60,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        NODE_VERSION: ${NODE_VERSION:-20}
         NEXT_PUBLIC_API_URL: /api/v1
         NEXT_PUBLIC_WS_URL: /api/v1
     expose:

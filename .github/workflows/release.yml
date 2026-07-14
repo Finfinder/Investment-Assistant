@@ -213,11 +213,19 @@ jobs:
             "Backend API image for Investment Assistant." \
             ./backend
 
+          # Validate the frontend Node version source before build (defense-in-depth, IA-152 F-1)
+          node_version="$(tr -d '\r' < frontend/.nvmrc 2>/dev/null || echo '')"
+          if [[ -z "$node_version" ]] || ! grep -Eq '^[0-9]+(\.[0-9]+)?$' <<< "$node_version"; then
+            echo "::error::frontend/.nvmrc must contain a bare major or major.minor Node version (e.g. 20), got: '${node_version}'" >&2
+            exit 1
+          fi
+
           publish_image \
             frontend \
             "Investment Assistant frontend" \
             "Next.js frontend image for Investment Assistant." \
             ./frontend \
+            --build-arg NODE_VERSION="$node_version" \
             --build-arg NEXT_PUBLIC_API_URL=/api/v1 \
             --build-arg NEXT_PUBLIC_WS_URL=/api/v1
 
