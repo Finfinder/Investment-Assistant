@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import StrategyTable from "@/components/Strategy/StrategyTable";
 import { formatRiskReward } from "@/lib/format";
-import type { StrategyEntry } from "@/types";
+import { makeStrategyEntry } from "./factories";
 
 describe("StrategyTable", () => {
   it("z pustą listą wyświetla komunikat domyślny", () => {
@@ -18,29 +18,29 @@ describe("StrategyTable", () => {
   });
 
   it("z danymi wyświetla wiersze z kierunkiem, wejściem, SL, TP", () => {
-    const strategies: StrategyEntry[] = [
-      {
+    const strategies = [
+      makeStrategyEntry({
         direction: "long",
         entry_condition: "Price above EMA",
-        entry_price: 1.1000,
-        stop_loss: 1.0900,
-        tp1: 1.1100,
-        tp2: 1.1200,
+        entry_price: 1.1,
+        stop_loss: 1.09,
+        tp1: 1.11,
+        tp2: 1.12,
         confidence_pct: 75,
         risk_reward_ratio: 0.5,
         risk_reward_ratio_tp2: 0.25,
-      },
-      {
+      }),
+      makeStrategyEntry({
         direction: "short",
         entry_condition: "Price below EMA",
-        entry_price: 1.1000,
-        stop_loss: 1.1100,
-        tp1: 1.0900,
-        tp2: 1.0800,
+        entry_price: 1.1,
+        stop_loss: 1.11,
+        tp1: 1.09,
+        tp2: 1.08,
         confidence_pct: 60,
         risk_reward_ratio: 0.75,
         risk_reward_ratio_tp2: 0.4,
-      },
+      }),
     ];
 
     render(<StrategyTable strategies={strategies} />);
@@ -53,29 +53,9 @@ describe("StrategyTable", () => {
   });
 
   it("kierunek long ma zielony kolor, short — czerwony", () => {
-    const strategies: StrategyEntry[] = [
-      {
-        direction: "long",
-        entry_condition: "",
-        entry_price: 1.1,
-        stop_loss: 1.0,
-        tp1: 1.2,
-        tp2: 1.3,
-        confidence_pct: 50,
-        risk_reward_ratio: 1,
-        risk_reward_ratio_tp2: 1,
-      },
-      {
-        direction: "short",
-        entry_condition: "",
-        entry_price: 1.1,
-        stop_loss: 1.2,
-        tp1: 1.0,
-        tp2: 0.9,
-        confidence_pct: 50,
-        risk_reward_ratio: 1,
-        risk_reward_ratio_tp2: 1,
-      },
+    const strategies = [
+      makeStrategyEntry({ direction: "long", stop_loss: 1.0, tp1: 1.2, tp2: 1.3 }),
+      makeStrategyEntry({ direction: "short", stop_loss: 1.2, tp1: 1.0, tp2: 0.9 }),
     ];
 
     render(<StrategyTable strategies={strategies} />);
@@ -88,19 +68,7 @@ describe("StrategyTable", () => {
   });
 
   it("pasek pewności renderuje się z odpowiednią szerokością", () => {
-    const strategies: StrategyEntry[] = [
-      {
-        direction: "long",
-        entry_condition: "",
-        entry_price: 1.1,
-        stop_loss: 1.0,
-        tp1: 1.2,
-        tp2: 1.3,
-        confidence_pct: 75,
-        risk_reward_ratio: 1,
-        risk_reward_ratio_tp2: 1,
-      },
-    ];
+    const strategies = [makeStrategyEntry({ confidence_pct: 75 })];
 
     render(<StrategyTable strategies={strategies} />);
 
@@ -125,19 +93,7 @@ describe("StrategyTable", () => {
       ["ratio Infinity (nie-finite, text-danger)", Infinity, "text-danger"],
       ["ratio -Infinity (nie-finite, text-danger)", -Infinity, "text-danger"],
     ] as const)("nakłada klasę %s dla R/R = %s", (_desc, ratio, expectedClass) => {
-      const strategies: StrategyEntry[] = [
-        {
-          direction: "long",
-          entry_condition: "",
-          entry_price: 1.1,
-          stop_loss: 1.0,
-          tp1: 1.2,
-          tp2: 1.3,
-          confidence_pct: 50,
-          risk_reward_ratio: ratio,
-          risk_reward_ratio_tp2: ratio,
-        },
-      ];
+      const strategies = [makeStrategyEntry({ risk_reward_ratio: ratio, risk_reward_ratio_tp2: ratio })];
 
       render(<StrategyTable strategies={strategies} />);
 
@@ -147,19 +103,7 @@ describe("StrategyTable", () => {
     });
 
     it("rozróżnia TP1 i TP2 gdy mają różne wartości R/R", () => {
-      const strategies: StrategyEntry[] = [
-        {
-          direction: "long",
-          entry_condition: "",
-          entry_price: 1.1,
-          stop_loss: 1.0,
-          tp1: 1.2,
-          tp2: 1.3,
-          confidence_pct: 50,
-          risk_reward_ratio: 1.5,
-          risk_reward_ratio_tp2: 0.3,
-        },
-      ];
+      const strategies = [makeStrategyEntry({ risk_reward_ratio: 1.5, risk_reward_ratio_tp2: 0.3 })];
 
       render(<StrategyTable strategies={strategies} />);
 
