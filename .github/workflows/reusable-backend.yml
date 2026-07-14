@@ -1,0 +1,136 @@
+name: Reusable Backend
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version for the backend jobs (single source of truth, e.g. "3.12").
+        required: false
+        default: "3.12"
+        type: string
+      working-directory:
+        description: Working directory containing the backend project (pyproject.toml).
+        required: false
+        default: "backend"
+        type: string
+
+permissions: {}
+
+jobs:
+  backend-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: pip install ruff
+
+      - name: Ruff check
+        run: ruff check app/ tests/
+
+      - name: Ruff format check
+        run: ruff format --check app/ tests/
+
+  backend-architecture-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Lint import boundaries
+        run: lint-imports
+
+  backend-type-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Mypy
+        run: mypy app/
+
+  backend-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Run tests with coverage
+        run: pytest --cov=app --cov-branch --cov-report=xml --cov-report=term-missing
+
+      - name: Check coverage threshold
+        run: coverage report --fail-under=80
+
+  backend-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ".[dev]" pip-audit
+
+      # CVE-2026-4539 and CVE-2026-3219 are ignored after review: both are
+      # transitive dev-only dependencies with no viable fixed release at audit
+      # time and no reachable production code path. Tracked for periodic
+      # re-evaluation (issue #200); remove the ignore once a patched version
+      # is available or the dependency is dropped.
+      - name: Audit dependencies for known vulnerabilities
+        run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219

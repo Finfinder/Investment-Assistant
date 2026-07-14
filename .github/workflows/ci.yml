@@ -25,118 +25,15 @@ jobs:
       repository-ref: ${{ github.sha }}
     secrets: inherit
 
-  lint:
+  backend:
     needs: [version-consistency]
     if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install ruff
-
-      - name: Ruff check
-        run: ruff check app/ tests/
-
-      - name: Ruff format check
-        run: ruff format --check app/ tests/
-
-  architecture-lint:
-    needs: [version-consistency]
-    if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install ".[dev]"
-
-      - name: Lint import boundaries
-        run: lint-imports
-
-  type-check:
-    needs: [version-consistency]
-    if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install ".[dev]"
-
-      - name: Mypy
-        run: mypy app/
-
-  test:
-    needs: [version-consistency]
-    if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install ".[dev]"
-
-      - name: Run tests with coverage
-        run: pytest --cov=app --cov-branch --cov-report=xml --cov-report=term-missing
-
-      - name: Check coverage threshold
-        run: coverage report --fail-under=80
-
-  security:
-    needs: [version-consistency]
-    if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install ".[dev]" pip-audit
-
-      - name: Audit dependencies for known vulnerabilities
-        run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-backend.yml
+    with:
+      python-version: "3.12"
+      working-directory: "backend"
 
   frontend:
     needs: [version-consistency]
@@ -150,7 +47,7 @@ jobs:
     secrets: inherit
 
   sonarcloud:
-    needs: [test, frontend]
+    needs: [backend, frontend]
     if: github.actor != 'dependabot[bot]'
     permissions:
       contents: read

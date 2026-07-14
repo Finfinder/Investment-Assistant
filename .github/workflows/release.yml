@@ -60,8 +60,17 @@ jobs:
       contents: read
     uses: ./.github/workflows/reusable-frontend-mutation-testing.yml
 
+  backend:
+    needs: [version-consistency]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-backend.yml
+    with:
+      python-version: "3.12"
+      working-directory: "backend"
+
   release:
-    needs: [version-consistency, next-version-request, frontend, mutation-testing, frontend-mutation-testing]
+    needs: [version-consistency, next-version-request, frontend, mutation-testing, frontend-mutation-testing, backend]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -123,34 +132,6 @@ jobs:
               handle.write(f'release_title=Investment Assistant {version}\n')
               handle.write(f'notes_path={notes_path.as_posix()}\n')
           PY
-
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install ".[dev]" pip-audit
-
-      - name: Run backend Ruff checks
-        working-directory: backend
-        run: |
-          ruff format --check app/ tests/
-          ruff check app/ tests/
-
-      - name: Run backend type-check and tests
-        working-directory: backend
-        run: |
-          mypy app/
-          pytest --cov=app --cov-branch --cov-report=xml --cov-report=term-missing
-          coverage report --fail-under=80
-
-      - name: Audit backend dependencies
-        working-directory: backend
-        run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
       - name: Log in to GHCR
         env:
