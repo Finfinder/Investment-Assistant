@@ -1,0 +1,32 @@
+name: Reusable Frontend Mutation Testing
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Working directory containing the frontend project (package-lock.json).
+        required: false
+        default: "frontend"
+        type: string
+
+permissions: {}
+
+jobs:
+  frontend-mutation-testing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up frontend
+        uses: ./.github/actions/frontend-setup
+        with:
+          node-version-file: ${{ inputs.working-directory }}/.nvmrc
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Run mutation testing with Stryker
+        run: npx stryker run

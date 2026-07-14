@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { riskRewardClass } from "@/lib/format";
+import { riskRewardClass } from "@/lib/riskReward";
 
 describe("riskRewardClass", () => {
   // Ujemne R/R jest poprawnie klasyfikowane jako niekorzystne (czerwone) — poprawka Issue #126.
