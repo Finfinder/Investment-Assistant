@@ -14,7 +14,7 @@ describe("formatValue", () => {
     [-0, "0", "zwraca '0' dla -0"],
     [NaN, "NaN", "zwraca 'NaN' dla NaN (aktualne zachowanie)"],
     [Infinity, "Infinity", "zwraca 'Infinity' dla Infinity (aktualne zachowanie)"],
-  ] as const)("zwraca %s dla %s", (value, expected) => {
+  ] as const)("zwraca %s dla %s", (value, expected, _desc) => {
     expect(formatValue(value)).toBe(expected);
   });
 });
