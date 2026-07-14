@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Pin the base Node image in `frontend/Dockerfile` by its `@sha256` digest (`NODE_IMAGE_DIGEST` build argument, default value in the Dockerfile) for both the `builder` and `runner` stages, replacing the mutable `node:${NODE_VERSION}-alpine` tag to guard against supply-chain attacks and ensure reproducible production builds; the `NODE_VERSION` centralization from [#202](https://github.com/Finfinder/Investment-Assistant/issues/202) is preserved ([#220](https://github.com/Finfinder/Investment-Assistant/issues/220))
+
 ### Added
 
 - Add Stryker mutation testing as a quality gate for `riskRewardClass` in `frontend/src/lib/format.ts` with a mutation score threshold of >= 70%; configure `frontend/stryker.conf.json` (mutating only `riskRewardClass`), add `@stryker-mutator/*` dev-dependencies and `test:mutation` script, and wire a `frontend-mutation-testing` job via `reusable-frontend-mutation-testing.yml` into `release.yml` and the daily `mutation-testing-scheduled.yml` (consistent with the backend mutmut gate, never in `ci.yml`) ([#198](https://github.com/Finfinder/Investment-Assistant/issues/198))

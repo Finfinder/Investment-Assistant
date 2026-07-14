@@ -92,7 +92,16 @@ Unit tests are in `__tests__/`, E2E tests in `e2e/`.
 
 ## Docker
 
-Production image based on `node:${NODE_VERSION}-alpine` (default `20`) with Next.js standalone output. The Node version is controlled by the `NODE_VERSION` build argument, which in CI is read from `frontend/.nvmrc` (the single source of truth for the frontend Node version) so the runtime image stays consistent with the pipelines. Locally you can override it, e.g. `NODE_VERSION=$(cat frontend/.nvmrc) docker compose build frontend`. The Dockerfile uses BuildKit features (e.g. `RUN --mount=type=cache`), so a BuildKit-enabled builder is required — this is the default for Docker 23.0+ (`docker build` uses BuildKit automatically). On older Docker set `DOCKER_BUILDKIT=1` or use `docker buildx build`.
+Production image based on `node:${NODE_VERSION}-alpine@sha256:...` (default `NODE_VERSION=20`) with Next.js standalone output. The base image is pinned by its `@sha256` digest (build argument `NODE_IMAGE_DIGEST`, default value in `frontend/Dockerfile`) to guard against supply-chain attacks and ensure reproducible builds (IA-163 / [#220](https://github.com/Finfinder/Investment-Assistant/issues/220)). The Node version is controlled by the `NODE_VERSION` build argument, which in CI is read from `frontend/.nvmrc` (the single source of truth for the frontend Node version) so the runtime image stays consistent with the pipelines. Locally you can override it, e.g. `NODE_VERSION=$(cat frontend/.nvmrc) docker compose build frontend`. The Dockerfile uses BuildKit features (e.g. `RUN --mount=type=cache`), so a BuildKit-enabled builder is required — this is the default for Docker 23.0+ (`docker build` uses BuildKit automatically). On older Docker set `DOCKER_BUILDKIT=1` or use `docker buildx build`.
+
+> **Rotating the base image digest:** when `frontend/.nvmrc` changes or `node:${NODE_VERSION}-alpine` is rebuilt upstream, resolve the new index digest and update the default `NODE_IMAGE_DIGEST` in `frontend/Dockerfile`:
+>
+> ```bash
+> docker buildx imagetools inspect node:$(cat frontend/.nvmrc)-alpine
+> # use the value from the "Digest:" line (manifest list / index digest)
+> ```
+>
+> The `@sha256` digest is authoritative (content-addressed): Docker resolves the digest before the tag, so the tag `node:${NODE_VERSION}-alpine` is only a human-readable hint. If you bump `.nvmrc` without updating the digest, the build does **not** fail — it silently keeps using the Node version pinned by the digest. Always rotate the digest together with `.nvmrc` to avoid a stale base image.
 
 ```bash
 docker build \
