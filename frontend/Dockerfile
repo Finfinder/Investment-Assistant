@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
-FROM node:20-alpine AS builder
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine AS builder
 
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
@@ -13,7 +14,7 @@ ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:${NODE_VERSION}-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
