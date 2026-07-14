@@ -14,3 +14,8 @@ jobs:
     uses: ./.github/workflows/reusable-mutation-testing.yml
     with:
       min-score: 70
+
+  frontend-mutation-testing:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-frontend-mutation-testing.yml

@@ -28,7 +28,7 @@ const RISK_REWARD_FAVORABLE_THRESHOLD = 0.5;
  * Semantyka kolorów: zielony = korzystne (0 <= R/R <= próg), czerwony = niekorzystne (R/R < 0),
  * żółty = umiarkowane (R/R > próg), muted = brak danych (null).
  */
-export function riskRewardClass(ratio: number | null): string {
+export function riskRewardClass(ratio: number | null | undefined): string {
   // ratio == null przechwytuje zarówno null, jak i undefined (dane z API bez walidacji runtime).
   if (ratio == null) return "text-muted";
   // NaN, Infinity i -Infinity to błędne dane — sygnalizujemy text-danger (czerwony).

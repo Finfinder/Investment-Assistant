@@ -54,8 +54,14 @@ jobs:
     with:
       min-score: 70
 
+  frontend-mutation-testing:
+    needs: [version-consistency]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-frontend-mutation-testing.yml
+
   release:
-    needs: [version-consistency, next-version-request, frontend, mutation-testing]
+    needs: [version-consistency, next-version-request, frontend, mutation-testing, frontend-mutation-testing]
     runs-on: ubuntu-latest
     permissions:
       contents: write
