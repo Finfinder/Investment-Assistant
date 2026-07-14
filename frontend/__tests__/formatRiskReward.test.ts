@@ -15,7 +15,7 @@ describe("formatRiskReward", () => {
     [0.5, "1:2.00", "formatuje poprawnie ratio < 1"],
     [0.01, "1:100.00", "formatuje bardzo małą wartość"],
     [-2, "1:-0.50", "formatuje wartość ujemną"],
-  ])("zwraca %s dla ratio = %s", (ratio, expected) => {
+  ])("zwraca %s dla ratio = %s", (ratio, expected, _desc) => {
     expect(formatRiskReward(ratio)).toBe(expected);
   });
 });
