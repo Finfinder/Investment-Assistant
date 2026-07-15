@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Pin the base Node image in `frontend/Dockerfile` by its `@sha256` digest (`NODE_IMAGE_DIGEST` build argument, default value in the Dockerfile) for both the `builder` and `runner` stages, replacing the mutable `node:${NODE_VERSION}-alpine` tag to guard against supply-chain attacks and ensure reproducible production builds; the `NODE_VERSION` centralization from [#202](https://github.com/Finfinder/Investment-Assistant/issues/202) is preserved ([#220](https://github.com/Finfinder/Investment-Assistant/issues/220))
+- Pin the base `nginx:1.27-alpine` image in `nginx/Dockerfile` by its `@sha256` digest (`NGINX_IMAGE_DIGEST` build argument, default value in the Dockerfile) and the base `python:3.12-slim` image in `backend/Dockerfile` by its `@sha256` digest (`PYTHON_IMAGE_DIGEST` build argument, default value in the Dockerfile) for both the `builder` and runtime stages, replacing the mutable tags to guard against supply-chain attacks and ensure reproducible production builds; all three repository images are now digest-pinned (3/3) ([#222](https://github.com/Finfinder/Investment-Assistant/issues/222))
 
 ### Added
 
