@@ -1,5 +1,8 @@
 # Build stage
-FROM python:3.12-slim AS builder
+ARG PYTHON_IMAGE_DIGEST="sha256:c3d81d25b3154142b0b42eb1e61300024426268edeb5b5a26dd7ddf64d9daf28"
+# IA-164: digest listy manifestów oficjalnego python:3.12-slim.
+# Rotacja: docker buildx imagetools inspect python:3.12-slim (pole "Digest:").
+FROM python:3.12-slim@${PYTHON_IMAGE_DIGEST} AS builder
 
 WORKDIR /build
 
@@ -11,7 +14,7 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir --prefix=/install .
 
 # Runtime stage
-FROM python:3.12-slim
+FROM python:3.12-slim@${PYTHON_IMAGE_DIGEST}
 
 WORKDIR /app
 

@@ -96,6 +96,15 @@ Tagged releases publish three container images to GHCR:
 
 Each image is published with a semver tag matching the release, an immutable `sha-<commit>` tag, and `latest` only for stable tags without a prerelease suffix.
 
+All three base images are pinned by their `@sha256` digest (build arguments `NODE_IMAGE_DIGEST` in `frontend/Dockerfile`, `PYTHON_IMAGE_DIGEST` in `backend/Dockerfile`, and `NGINX_IMAGE_DIGEST` in `nginx/Dockerfile`) to guard against supply-chain attacks and ensure reproducible builds (IA-163 / #220, IA-164 / #222). The digests are the single source of truth, so `release.yml` and `docker-compose.yml` inherit them without passing build arguments. Rotate a digest when its upstream image is rebuilt with a security fix:
+
+```bash
+docker buildx imagetools inspect node:$(cat frontend/.nvmrc)-alpine   # frontend
+docker buildx imagetools inspect python:3.12-slim                              # backend
+docker buildx imagetools inspect nginx:1.27-alpine                              # nginx
+# use the value from the "Digest:" line (manifest list / index digest)
+```
+
 GitHub Release notes are generated from `CHANGELOG.md`. The supported release artifacts are container images only; this repository does not publish a frontend npm package or a backend PyPI package.
 
 ---
