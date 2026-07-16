@@ -153,3 +153,34 @@ def test_determine_direction_boundary_with_custom_thresholds():
     assert determine_direction(0.25, bullish_threshold=0.26) is None
     assert determine_direction(-0.25, bearish_threshold=-0.25) == Direction.SHORT
     assert determine_direction(-0.25, bearish_threshold=-0.26) is None
+
+
+def test_exact_zero_total_weight_returns_zero():
+    """Exact zero sum of weights → guard returns 0.0 (regression)."""
+    agg = _make_aggregator(ta_signal=SignalType.BUY, pattern_bullish=True, fund_score=50)
+    score = calculate_weighted_score(agg, weights={"technical_analysis": 0.0, "patterns": 0.0, "fundamental": 0.0})
+    assert score == pytest.approx(0.0)
+    assert determine_direction(score) is None
+
+
+def test_near_zero_total_weight_returns_zero():
+    """Float rounding makes weights sum to a tiny non-zero value (e.g. 0.3 - 0.1 - 0.2).
+
+    The epsilon guard must still treat the accumulated weight as effectively zero
+    and return 0.0 instead of dividing by a near-zero denominator (IA-165 / python:S1244).
+    """
+    near_zero_sum = 0.3 - 0.1 - 0.2  # ≈ -2.78e-17, not exactly 0.0
+    assert near_zero_sum != 0.0  # sanity: confirms the float bug would trigger without epsilon
+
+    agg = _make_aggregator(ta_signal=SignalType.BUY, pattern_bullish=True, fund_score=50)
+    score = calculate_weighted_score(agg, weights={"technical_analysis": 0.3, "patterns": -0.1, "fundamental": -0.2})
+    assert score == pytest.approx(0.0)
+    assert determine_direction(score) is None
+
+
+def test_nonzero_total_weight_performs_division():
+    """Clearly non-zero weight sum still divides and clamps to [-1.0, 1.0]."""
+    agg = _make_aggregator(ta_signal=SignalType.STRONG_BUY, pattern_bullish=True, fund_score=100)
+    score = calculate_weighted_score(agg, weights={"technical_analysis": 0.5, "patterns": 0.3, "fundamental": 0.2})
+    assert -1.0 <= score <= 1.0
+    assert score > 0.0
