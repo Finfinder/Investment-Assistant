@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 - Fix `riskRewardClass` returning a misleading "positive" yellow class for NaN/Infinity: non-finite ratios now map to `text-danger` to signal invalid data ([#125](https://github.com/Finfinder/Investment-Assistant/issues/125))
+- Replace floating-point equality check in `calculate_weighted_score` with an epsilon tolerance guard (`abs(total_weight) < _FLOAT_ZERO_EPSILON`) to robustly prevent divide-by-zero on accumulated weights that sum to a near-zero float; resolves SonarCloud python:S1244 ([#225](https://github.com/Finfinder/Investment-Assistant/issues/225))
 ## [0.4.0] - 2026-07-08
 
 
