@@ -13,6 +13,11 @@ DEFAULT_WEIGHTS: dict[str, float] = {
 BULLISH_THRESHOLD = 0.15
 BEARISH_THRESHOLD = -0.15
 
+# Tolerance for treating an accumulated float weight as effectively zero.
+# Floating-point cancellation (e.g. 0.3 - 0.1 - 0.2) may not equal exactly 0.0, so the
+# zero-weight guard must detect "near zero" rather than an exact literal.
+_FLOAT_ZERO_EPSILON = 1e-9
+
 
 def calculate_weighted_score(
     aggregator: SignalAggregator,
@@ -32,7 +37,7 @@ def calculate_weighted_score(
         weighted_sum += score * source_weight
         total_weight += source_weight
 
-    if total_weight == 0.0:
+    if abs(total_weight) < _FLOAT_ZERO_EPSILON:
         return 0.0
     return max(-1.0, min(1.0, weighted_sum / total_weight))
 
