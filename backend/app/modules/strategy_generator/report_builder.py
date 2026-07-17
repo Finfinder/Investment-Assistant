@@ -22,6 +22,8 @@ from app.modules.strategy_generator.confidence_scorer import calculate_confidenc
 from app.modules.strategy_generator.entry_calculator import calculate_entry_points
 from app.modules.strategy_generator.sl_tp_calculator import calculate_sl_tp
 
+_FLOAT_ZERO_EPSILON = 1e-9
+
 
 def build_report(
     symbol: str,
@@ -101,7 +103,7 @@ def _calculate_risk_reward(
         return None
     risk = abs(entry_price - stop_loss)
     reward = abs(tp1 - entry_price)
-    if reward == 0:
+    if abs(reward) < _FLOAT_ZERO_EPSILON:
         return None
     return round(risk / reward, 2)
 

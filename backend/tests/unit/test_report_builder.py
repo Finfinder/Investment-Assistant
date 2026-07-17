@@ -253,6 +253,12 @@ def test_calculate_risk_reward_none_when_zero_reward():
     assert _calculate_risk_reward(100.0, 98.0, 100.0) is None
 
 
+def test_calculate_risk_reward_none_when_near_zero_reward():
+    """R/R returns None when tp1 is within float epsilon of entry_price (python:S1244)."""
+    # reward = 1e-12 < _FLOAT_ZERO_EPSILON (1e-9) -> treated as zero
+    assert _calculate_risk_reward(100.0, 98.0, 100.0 + 1e-12) is None
+
+
 def test_risk_reward_favorable_kept():
     """Strategy with favorable R/R (< 1.0) is kept in the report."""
     ohlcv = _make_ohlcv(20)
