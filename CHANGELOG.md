@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Remove 14 redundant named `rate_*` wrapper functions from `app/modules/technical_analysis/signal_rating.py` and their duplicated `test_rate_*` unit tests, leaving only the consolidated `rate_signal()` dispatcher and `SIGNAL_RATING_CONFIG`; reduces maintenance surface without changing behavior ([#204](https://github.com/Finfinder/Investment-Assistant/issues/204))
+
 - Register `SecurityHeadersMiddleware` before `CORSMiddleware` in `create_app()` so that `CORSMiddleware` becomes the outermost (last-registered) middleware, acting as the entry/exit boundary for every request including preflight OPTIONS handling; resolves SonarCloud rule python:S8414 ([#238](https://github.com/Finfinder/Investment-Assistant/issues/238))
 
 ## [0.5.1] - 2026-07-17
