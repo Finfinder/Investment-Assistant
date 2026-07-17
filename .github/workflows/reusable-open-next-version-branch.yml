@@ -163,7 +163,7 @@ jobs:
           }
 
       - name: Push next version branch
-        if: ${{ steps.open.outputs.status == 'updated' && steps.open.outputs.commit-created == 'true' }}
+        if: ${{ steps.open.outputs.status == 'updated' && steps.open.outputs['commit-created'] == 'true' }}
         working-directory: repository
         run: git push origin HEAD:${{ steps.open.outputs.branch-name }}
 
