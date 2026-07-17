@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-17
+
 ### Security
 
 - Remediate CVE-2026-8723 / GHSA-q8mj-m7cp-5q26 (Moderate, remotely triggerable DoS in `qs.stringify`) by adding an `overrides` entry `"qs": "^6.15.2"` to `frontend/package.json`, forcing the transitive `qs` (pulled via `@stryker-mutator/core` 9.6.1, a dev dependency) to a patched release; `npm audit` now reports 0 vulnerabilities ([#226](https://github.com/Finfinder/Investment-Assistant/issues/226))
@@ -41,7 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralize the Node.js version in `frontend/Dockerfile` via a `NODE_VERSION` build argument (default `20`) applied to both the `builder` and `runner` stages; `release.yml` passes `--build-arg NODE_VERSION=$(cat frontend/.nvmrc)` and `docker-compose.yml` exposes `NODE_VERSION: ${NODE_VERSION:-20}`, so the runtime image stays consistent with the pipelines and the single source of truth `frontend/.nvmrc` ([#202](https://github.com/Finfinder/Investment-Assistant/issues/202))
 - Add architecture tests that guard the import-linter `independence` contract for domain modules under `app/modules/`: `test_all_domain_modules_registered_in_contract` auto-discovers every domain module and asserts it is registered in the contract (so a newly added module cannot silently bypass the boundary — the #120-class regression), and `test_registered_module_violation_detected` temporarily registers a probe module, asserts import-linter detects a cross-module import, then restores `pyproject.toml`. Keep the explicit `independence` contract in `backend/pyproject.toml` because a `forbidden` contract with `source_modules == forbidden_modules == ["app.modules"]` is rejected by import-linter 2.11 with "Modules have shared descendants" ([#194](https://github.com/Finfinder/Investment-Assistant/issues/194))
 - Extract a shared `makeStrategyEntry(overrides)` test factory in `frontend/__tests__/factories.ts` and refactor `StrategyTable.test.tsx` to build `StrategyEntry` fixtures through it instead of inline literals, reducing test boilerplate and the risk of omitting a field ([#197](https://github.com/Finfinder/Investment-Assistant/issues/197))
-
 ## [0.5.0] - 2026-07-12
 
 ### Added
