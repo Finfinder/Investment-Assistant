@@ -1,8 +1,11 @@
 """Shared test helpers."""
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
+from app.core.config import get_settings
 from app.core.models import OHLCVData
+from app.main import create_app
 
 
 def make_ohlcv(
@@ -22,3 +25,16 @@ def make_ohlcv(
         close=round(close, 4),
         volume=volume,
     )
+
+
+def make_app(debug: bool):
+    """Build a fresh FastAPI app with ``DEBUG`` overridden via patched settings.
+
+    Uses pydantic ``model_copy`` instead of copying instance attributes through
+    ``setattr``/``dir()``, which avoids the ``PydanticDeprecatedSince211`` warnings
+    emitted when mirroring a ``BaseSettings`` instance field-by-field.
+    """
+    get_settings.cache_clear()
+    settings = get_settings().model_copy(update={"DEBUG": debug})
+    with patch("app.main.get_settings", return_value=settings):
+        return create_app()

@@ -55,6 +55,15 @@ def create_app() -> FastAPI:
     # Correlation ID + centralized, sanitized error responses.
     register_exception_handlers(app)
 
+    # Security headers (HSTS, CSP, X-Frame-Options, etc.) only in production.
+    # In local development (DEBUG=True) they are skipped to avoid breaking hot reload.
+    # Registered BEFORE CORSMiddleware so that CORSMiddleware becomes the outermost
+    # layer (Starlette wraps the last-registered middleware outermost). See python:S8414.
+    if not settings.DEBUG:
+        app.add_middleware(SecurityHeadersMiddleware)
+
+    # CORSMiddleware MUST be the last-registered (outermost) middleware so it acts as
+    # the entry/exit boundary for every request, including preflight OPTIONS handling.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -62,11 +71,6 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],
     )
-
-    # Security headers (HSTS, CSP, X-Frame-Options, etc.) only in production.
-    # In local development (DEBUG=True) they are skipped to avoid breaking hot reload.
-    if not settings.DEBUG:
-        app.add_middleware(SecurityHeadersMiddleware)
 
     # Log count of configured API keys (never names or values)
     configured_keys = [
