@@ -52,7 +52,7 @@ def calculate_confidence(
     weighted_sum = sum(s * w for s, w in scores)
     total_weight = sum(w for _, w in scores)
 
-    if total_weight == 0:
+    if abs(total_weight) < _FLOAT_ZERO_EPSILON:
         return 0.0
     return round(min(100.0, max(0.0, (weighted_sum / total_weight) * 100)), 1)
 
