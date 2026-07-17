@@ -3,30 +3,23 @@
 from collections.abc import AsyncGenerator
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
 from app.core.security_headers import SECURITY_HEADERS, SecurityHeadersMiddleware
-from tests.helpers import make_app
-
-
-def _make_client(debug: bool) -> AsyncClient:
-    """Create a fresh app with DEBUG overridden and return an AsyncClient."""
-    test_app = make_app(debug=debug)
-    transport = ASGITransport(app=test_app)
-    return AsyncClient(transport=transport, base_url="http://test")
+from tests.helpers import make_client
 
 
 @pytest.fixture
-async def prod_client() -> AsyncGenerator[AsyncClient]:
+async def prod_client() -> AsyncGenerator:
     """AsyncClient with DEBUG=False so security headers are active."""
-    async with _make_client(debug=False) as client:
+    async with make_client(debug=False) as client:
         yield client
 
 
 @pytest.fixture
-async def dev_client() -> AsyncGenerator[AsyncClient]:
+async def dev_client() -> AsyncGenerator:
     """AsyncClient with DEBUG=True so security headers are skipped."""
-    async with _make_client(debug=True) as client:
+    async with make_client(debug=True) as client:
         yield client
 
 

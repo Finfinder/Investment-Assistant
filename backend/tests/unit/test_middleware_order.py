@@ -15,13 +15,15 @@ from tests.helpers import make_app
 @pytest.fixture
 def prod_app():
     """App with DEBUG=False so security headers middleware is registered."""
-    return make_app(debug=False)
+    with make_app(debug=False) as app:
+        yield app
 
 
 @pytest.fixture
 def dev_app():
     """App with DEBUG=True so security headers middleware is skipped."""
-    return make_app(debug=True)
+    with make_app(debug=True) as app:
+        yield app
 
 
 class TestMiddlewareOrderProduction:
