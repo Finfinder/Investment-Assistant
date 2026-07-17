@@ -1,5 +1,7 @@
 """Tests for strategy_generator/confidence_scorer.py"""
 
+import pytest
+
 from app.core.models import (
     Direction,
     FundamentalData,
@@ -252,3 +254,50 @@ def test_reliability_amplifies_at_equal_relevance_score():
     assert confidence_bull_high > confidence_bear_high, (
         f"Higher reliability bullish should win with equal relevance: {confidence_bull_high} vs {confidence_bear_high}"
     )
+
+
+def test_no_data_confidence_is_deterministic():
+    """No input data → fixed, deterministic baseline confidence (regression for python:S1244 fix).
+
+    The scorer must return a stable, known value (17.5) when given no signals,
+    not a 'neutral' midpoint — the baseline reflects the scorer's default
+    weighting in the absence of evidence. The weights in calculate_confidence
+    are fixed (0.40/0.25/0.15/0.20), so total_weight is always 1.0
+    and the epsilon guard is defensive. This test anchors the pre-change
+    behaviour so any future change to the guard or the weights is caught. The
+    fix replaced `total_weight == 0` with
+    `abs(total_weight) < _FLOAT_ZERO_EPSILON` to clear the SonarCloud
+    python:S1244 finding without altering runtime behaviour.
+    """
+    confidence = calculate_confidence(direction=Direction.LONG)
+    assert confidence == pytest.approx(17.5)
+
+
+def test_confidence_within_range_for_edge_inputs():
+    """Edge inputs (all neutral) → confidence stays within [0, 100] and is stable.
+
+    Exercises the public API with neutral signals/patterns/fundamentals to ensure
+    the epsilon-guarded division never produces an out-of-range or unstable value.
+    """
+    indicators = [
+        IndicatorValue(name="RSI(14)", value=50, signal=SignalType.NEUTRAL),
+    ]
+    patterns = [
+        PatternDetection(pattern_type="Doji", confidence=0.0, bullish=True, relevance_score=0.0),
+    ]
+    fundamental = FundamentalData(instrument_type=InstrumentType.FOREX, score=0)
+
+    confidence = calculate_confidence(
+        direction=Direction.LONG,
+        indicators=indicators,
+        signal_summary=SignalSummary(
+            overall_summary=SignalType.NEUTRAL,
+            overall_buy_count=0,
+            overall_sell_count=0,
+            overall_neutral_count=1,
+        ),
+        patterns=patterns,
+        fundamental=fundamental,
+    )
+
+    assert 0.0 <= confidence <= 100.0
