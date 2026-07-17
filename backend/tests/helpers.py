@@ -61,7 +61,5 @@ async def make_client(debug: bool = True) -> AsyncClient:
     settings = get_settings().model_copy(update={"DEBUG": debug})
     with patch("app.main.get_settings", return_value=settings):
         app = create_app()
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
