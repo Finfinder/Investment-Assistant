@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Register `SecurityHeadersMiddleware` before `CORSMiddleware` in `create_app()` so that `CORSMiddleware` becomes the outermost (last-registered) middleware, acting as the entry/exit boundary for every request including preflight OPTIONS handling; resolves SonarCloud rule python:S8414 ([#238](https://github.com/Finfinder/Investment-Assistant/issues/238))
+
 ## [0.5.1] - 2026-07-17
 
 ### Security

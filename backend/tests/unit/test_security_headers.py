@@ -1,52 +1,25 @@
 """Tests for security response headers middleware."""
 
 from collections.abc import AsyncGenerator
-from unittest.mock import MagicMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
-from app.core.config import get_settings
 from app.core.security_headers import SECURITY_HEADERS, SecurityHeadersMiddleware
-
-
-def _mock_settings(debug: bool):
-    """Build a MagicMock Settings mirroring real settings with DEBUG overridden."""
-    import contextlib
-
-    real = get_settings()
-    mock = MagicMock()
-    for attr in dir(real):
-        if not attr.startswith("_"):
-            with contextlib.suppress(Exception):
-                setattr(mock, attr, getattr(real, attr))
-    mock.DEBUG = debug
-    return mock
-
-
-def _make_client(debug: bool) -> AsyncClient:
-    """Create a fresh app with DEBUG overridden and return an AsyncClient."""
-    get_settings.cache_clear()
-    settings = _mock_settings(debug=debug)
-    with patch("app.main.get_settings", return_value=settings):
-        from app.main import create_app
-
-        test_app = create_app()
-    transport = ASGITransport(app=test_app)
-    return AsyncClient(transport=transport, base_url="http://test")
+from tests.helpers import make_client
 
 
 @pytest.fixture
-async def prod_client() -> AsyncGenerator[AsyncClient]:
+async def prod_client() -> AsyncGenerator:
     """AsyncClient with DEBUG=False so security headers are active."""
-    async with _make_client(debug=False) as client:
+    async with make_client(debug=False) as client:
         yield client
 
 
 @pytest.fixture
-async def dev_client() -> AsyncGenerator[AsyncClient]:
+async def dev_client() -> AsyncGenerator:
     """AsyncClient with DEBUG=True so security headers are skipped."""
-    async with _make_client(debug=True) as client:
+    async with make_client(debug=True) as client:
         yield client
 
 
