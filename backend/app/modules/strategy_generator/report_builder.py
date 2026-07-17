@@ -98,12 +98,12 @@ def _calculate_risk_reward(
     stop_loss: float | None,
     tp1: float | None,
 ) -> float | None:
-    """Return risk/reward ratio or None when data is missing or reward is zero."""
+    """Return risk/reward ratio or None when data is missing or reward is zero/near-zero (epsilon tolerance)."""
     if entry_price is None or stop_loss is None or tp1 is None:
         return None
     risk = abs(entry_price - stop_loss)
     reward = abs(tp1 - entry_price)
-    if abs(reward) < _FLOAT_ZERO_EPSILON:
+    if reward < _FLOAT_ZERO_EPSILON:
         return None
     return round(risk / reward, 2)
 
