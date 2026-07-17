@@ -18,7 +18,11 @@ from app.core.models import (
     StrategyEntry,
     Timeframe,
 )
-from app.modules.strategy_generator.report_builder import _calculate_risk_reward, build_report
+from app.modules.strategy_generator.report_builder import (
+    _FLOAT_ZERO_EPSILON,
+    _calculate_risk_reward,
+    build_report,
+)
 
 
 def _make_ohlcv(n: int = 20, base_price: float = 100.0) -> list[OHLCVData]:
@@ -251,6 +255,12 @@ def test_calculate_risk_reward_none_when_missing_values():
 def test_calculate_risk_reward_none_when_zero_reward():
     """R/R returns None when tp1 == entry_price (zero reward)."""
     assert _calculate_risk_reward(100.0, 98.0, 100.0) is None
+
+
+def test_calculate_risk_reward_none_when_near_zero_reward():
+    """R/R returns None when reward is below the float-zero threshold (python:S1244)."""
+    sub_epsilon = _FLOAT_ZERO_EPSILON / 10  # clearly below the threshold
+    assert _calculate_risk_reward(100.0, 98.0, 100.0 + sub_epsilon) is None
 
 
 def test_risk_reward_favorable_kept():
