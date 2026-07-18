@@ -163,8 +163,8 @@ def test_short_conservative_entry_at_resistance():
     assert conservative[0]["price"] == 1.12000
 
 
-def test_short_conservative_entry_at_support():
-    """SHORT entry should find nearest support below current price (kills direction-flip mutants)."""
+def test_short_conservative_entry_at_resistance_above():
+    """SHORT conservative entry should pick nearest resistance above current price (kills direction-flip mutants)."""
     ohlcv = _make_ohlcv(1.1000)
     sr = [
         _make_sr(1.0800, bullish=True),
@@ -173,6 +173,7 @@ def test_short_conservative_entry_at_support():
     entries = calculate_entry_points(ohlcv, Direction.SHORT, support_resistance=sr)
 
     conservative = [e for e in entries if e["type"] == "conservative"]
+    assert len(conservative) == 1
     assert conservative[0]["price"] == 1.12000
 
 
