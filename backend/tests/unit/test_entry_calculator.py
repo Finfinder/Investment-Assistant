@@ -178,7 +178,7 @@ def test_short_conservative_entry_at_resistance_above():
 
 
 def test_short_conservative_entry_at_fibonacci():
-    """SHORT entry should find Fibonacci level below current price."""
+    """SHORT entry should find Fibonacci level above current price."""
     ohlcv = _make_ohlcv(1.1000)
     fib = [_make_fib(1.1150, bullish=False)]
     entries = calculate_entry_points(ohlcv, Direction.SHORT, fibonacci_levels=fib)
