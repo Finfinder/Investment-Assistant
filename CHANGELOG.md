@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Register `SecurityHeadersMiddleware` before `CORSMiddleware` in `create_app()` so that `CORSMiddleware` becomes the outermost (last-registered) middleware, acting as the entry/exit boundary for every request including preflight OPTIONS handling; resolves SonarCloud rule python:S8414 ([#238](https://github.com/Finfinder/Investment-Assistant/issues/238))
 
+- Share the `makeStrategyEntry` test factory from `frontend/__tests__/factories.ts` into `frontend/e2e/fixtures.ts` and replace the inline `StrategyEntry` literal in `mockReport()` with a factory call, unifying the `StrategyEntry` shape across unit and E2E test layers and reducing fixture duplication ([#211](https://github.com/Finfinder/Investment-Assistant/issues/211))
+
 ## [0.5.1] - 2026-07-17
 
 ### Security

@@ -1,4 +1,5 @@
 import { test as base, type Page } from "@playwright/test";
+import { makeStrategyEntry } from "../__tests__/factories";
 
 const MOCK_ANALYSIS_ID = "mock-analysis-id";
 
@@ -168,7 +169,7 @@ function mockReport(symbol: string, timeframe: string) {
       overall_neutral_count: 9,
     },
     strategies: [
-      {
+      makeStrategyEntry({
         direction: "long",
         entry_condition: "Przebicie oporu",
         entry_price: 1.108,
@@ -177,7 +178,7 @@ function mockReport(symbol: string, timeframe: string) {
         tp2: 1.125,
         confidence_pct: 72,
         risk_reward_ratio: 0.4,
-      },
+      }),
     ],
     strategy_skip_reason: null,
   };
