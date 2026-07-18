@@ -4,9 +4,8 @@ on:
   workflow_call:
     inputs:
       min-score:
-        description: Minimum acceptable mutation score in percent, enforced independently for each module in the run_mutmut.py scope list.
+        description: Optional override of the minimum acceptable mutation score in percent, enforced independently for each module in the run_mutmut.py scope list. When omitted, the value is read from mutation-threshold.json at the repository root (shared with the frontend Stryker gate).
         required: false
-        default: 70
         type: number
 
 permissions: {}
@@ -41,5 +40,17 @@ jobs:
       - name: Install backend dependencies
         run: pip install ".[dev]"
 
+      - name: Resolve mutation score threshold
+        id: threshold
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.min-score }}" ]; then
+            echo "min-score=${{ inputs.min-score }}" >> "$GITHUB_OUTPUT"
+          else
+            value=$(python -c "import json,sys; print(json.load(open('mutation-threshold.json'))['mutationScoreThreshold'])")
+            echo "min-score=${value}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run mutation testing with mutmut
-        run: python scripts/run_mutmut.py --min-score ${{ inputs.min-score }}
+        run: python scripts/run_mutmut.py --min-score ${{ steps.threshold.outputs.min-score }}

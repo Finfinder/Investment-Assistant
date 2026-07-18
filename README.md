@@ -145,6 +145,21 @@ Import boundaries are enforced by `import-linter` contracts defined in [`backend
 
 ---
 
+## Mutation Score Threshold
+
+The mutation testing quality gate enforces a single, shared mutation score threshold for both the backend (mutmut) and the frontend (Stryker). The threshold is the **single source of truth** in [`mutation-threshold.json`](mutation-threshold.json) at the repository root:
+
+```json
+{ "mutationScoreThreshold": 70 }
+```
+
+- **Backend (mutmut):** [`backend/scripts/run_mutmut.py`](backend/scripts/run_mutmut.py) resolves the threshold via `load_default_min_score()`, which reads `mutationScoreThreshold` from the shared file. It can be overridden locally by the `MUTATION_SCORE_THRESHOLD` environment variable (see [`backend/.env.example`](backend/.env.example)) or the `--min-score` CLI argument (highest priority).
+- **Frontend (Stryker):** [`frontend/stryker.conf.js`](frontend/stryker.conf.js) reads the same `mutationScoreThreshold` value for its `thresholds.break` setting.
+
+To change the gate, edit the single value in `mutation-threshold.json` — both gates pick it up automatically. The reusable mutation-testing workflow ([`reusable-mutation-testing.yml`](.github/workflows/reusable-mutation-testing.yml)) reads the file when no `min-score` input is provided, so no literal `70` remains hardcoded in CI.
+
+---
+
 ## Deployment Architecture
 
 The application is deployed as a single Docker Compose stack of four services. `nginx` is the only service publishing a port to the host; `backend`, `frontend` and `redis` communicate exclusively over the internal Compose network.
