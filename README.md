@@ -141,7 +141,7 @@ backend/app/
     └── strategy_generator/    # Entry/exit scenarios with SL/TP levels
 ```
 
-Import boundaries are enforced by `import-linter` contracts defined in `pyproject.toml`.
+Import boundaries are enforced by `import-linter` contracts defined in [`backend/pyproject.toml`](backend/pyproject.toml) (`[tool.importlinter]`). The formal domain contract documenting bounded contexts, responsibilities, public APIs and the dependency direction of these modules lives in [`backend/domain.md`](backend/domain.md) — it is the single source of truth for module boundaries and review.
 
 ---
 

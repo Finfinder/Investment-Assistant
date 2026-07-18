@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `backend/domain.md` documenting bounded contexts and domain contracts of `app/modules/` (single source of truth for module boundaries, enforced by import-linter); closes [#209](https://github.com/Finfinder/Investment-Assistant/issues/209)
+
 ### Changed
 
 - Change the scheduled mutation-testing workflow (`mutation-testing-scheduled.yml`) from a daily `cron` (`0 5 * * *`) to twice weekly on Monday and Thursday at 05:00 UTC (`0 5 * * 1,4`), reducing CI load while keeping the gate on `release.yml` unchanged
