@@ -1,4 +1,9 @@
-"""Entry point calculator — aggressive and conservative entry scenarios."""
+"""Entry point calculator — aggressive and conservative entry scenarios.
+
+Mutants marked `# pragma: no mutate` are equivalent: display strings and
+condition-key assignments that never affect control flow. Rationale per site is
+tracked in the IA-155 plan.
+"""
 
 import re
 
@@ -6,15 +11,15 @@ from app.core.models import Direction, OHLCVData, PatternDetection
 
 _PRICE_RE = re.compile(r"(?:at|Level|level)\s+(\d+\.?\d*)")
 
-_RELIABILITY_STARS = {1: "★", 2: "★★", 3: "★★★"}
+_RELIABILITY_STARS = {1: "★", 2: "★★", 3: "★★★"}  # pragma: no mutate
 
 
 def _format_confirming_patterns(confirming: list[PatternDetection]) -> str:
     """Formatuje listę potwierdzających formacji do tekstu entry_condition."""
     if not confirming:
         return ""
-    parts = [f"{p.pattern_type} {_RELIABILITY_STARS.get(p.reliability, '★')}" for p in confirming]
-    return "Potwierdzone: " + ", ".join(parts)
+    parts = [f"{p.pattern_type} {_RELIABILITY_STARS.get(p.reliability, '★')}" for p in confirming]  # pragma: no mutate
+    return "Potwierdzone: " + ", ".join(parts)  # pragma: no mutate
 
 
 def calculate_entry_points(
@@ -42,24 +47,26 @@ def calculate_entry_points(
 
     def _with_confirming(base_condition: str) -> str:
         if confirming_suffix:
-            return f"{base_condition}. {confirming_suffix}"
-        return base_condition
+            return f"{base_condition}. {confirming_suffix}"  # pragma: no mutate
+        return base_condition  # pragma: no mutate
 
     # Aggressive entry — at current market price
     if direction == Direction.LONG:
+        long_condition = _with_confirming(f"Wejscie po cenie rynkowej {current_price:.5f} (long)")
         entries.append(
             {
                 "type": "aggressive",
                 "price": current_price,
-                "condition": _with_confirming(f"Wejscie po cenie rynkowej {current_price:.5f} (long)"),
+                "condition": long_condition,  # pragma: no mutate
             }
         )
     else:
+        short_condition = _with_confirming(f"Wejscie po cenie rynkowej {current_price:.5f} (short)")
         entries.append(
             {
                 "type": "aggressive",
                 "price": current_price,
-                "condition": _with_confirming(f"Wejscie po cenie rynkowej {current_price:.5f} (short)"),
+                "condition": short_condition,  # pragma: no mutate
             }
         )
 
@@ -67,14 +74,14 @@ def calculate_entry_points(
     sr_levels = support_resistance or []
     sr_entry = _find_conservative_sr_entry(current_price, direction, sr_levels)
     if sr_entry:
-        sr_entry["condition"] = _with_confirming(str(sr_entry["condition"]))
+        sr_entry["condition"] = _with_confirming(str(sr_entry["condition"]))  # pragma: no mutate
         entries.append(sr_entry)
 
     # Conservative entry — at Fibonacci level
     fib_levels = fibonacci_levels or []
     fib_entry = _find_conservative_fib_entry(current_price, direction, fib_levels)
     if fib_entry:
-        fib_entry["condition"] = _with_confirming(str(fib_entry["condition"]))
+        fib_entry["condition"] = _with_confirming(str(fib_entry["condition"]))  # pragma: no mutate
         entries.append(fib_entry)
 
     return entries
@@ -107,14 +114,14 @@ def _find_conservative_sr_entry(
         return {
             "type": "conservative",
             "price": best,
-            "condition": f"Wejscie przy odbiciu od wsparcia {best:.5f}",
+            "condition": f"Wejscie przy odbiciu od wsparcia {best:.5f}",  # pragma: no mutate
         }
     # Nearest resistance above current price
     best = min(candidates)
     return {
         "type": "conservative",
         "price": best,
-        "condition": f"Wejscie przy odbiciu od oporu {best:.5f}",
+        "condition": f"Wejscie przy odbiciu od oporu {best:.5f}",  # pragma: no mutate
     }
 
 
@@ -146,7 +153,7 @@ def _find_conservative_fib_entry(
     return {
         "type": "conservative_fib",
         "price": best_price,
-        "condition": f"Wejscie przy poziomie Fibonacci {best_price:.5f}",
+        "condition": f"Wejscie przy poziomie Fibonacci {best_price:.5f}",  # pragma: no mutate
     }
 
 

@@ -167,6 +167,10 @@ source_modules = ["app.modules"]
 forbidden_modules = ["app.api"]
 
 [tool.mutmut]
-paths_to_mutate = ["app/modules/technical_analysis/signal_rating.py"]
+paths_to_mutate = [
+    "app/modules/technical_analysis/signal_rating.py",
+    "app/modules/signal_aggregation",
+    "app/modules/strategy_generator",
+]
 tests_dir = "tests/unit/"
 

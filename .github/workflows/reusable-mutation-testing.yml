@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       min-score:
-        description: Minimalny akceptowalny mutation score w procentach dla signal_rating.py.
+        description: Minimalny akceptowalny mutation score w procentach egzekwowany niezale¿nie dla ka¿dego modu³u z listy zakresu skryptu run_mutmut.py.
         required: false
         default: 70
         type: number
