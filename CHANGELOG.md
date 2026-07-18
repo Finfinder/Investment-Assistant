@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Regenerate `frontend/package-lock.json` and remove duplicate `@stryker-mutator/*` entries from `frontend/package.json` `devDependencies`, confirming the transitive `qs` (pulled via `@stryker-mutator/core`, a dev dependency) stays pinned to the patched 6.15.3 through the existing `overrides.qs: "^6.15.2"`; `npm audit` reports 0 vulnerabilities and clears advisory GHSA-q8mj-m7cp-5q26 ([#255](https://github.com/Finfinder/Investment-Assistant/issues/255))
+- Regenerate `frontend/package-lock.json` and remove duplicate `@stryker-mutator/*` entries from `frontend/package.json` `devDependencies`, confirming the transitive `qs` (pulled via `@stryker-mutator/core`, a dev dependency) is forced to `>=6.15.2` (currently resolved to the patched 6.15.3) by the existing `overrides.qs: "^6.15.2"`; `npm audit` reports 0 vulnerabilities and clears advisory GHSA-q8mj-m7cp-5q26 ([#255](https://github.com/Finfinder/Investment-Assistant/issues/255))
 - Remove the 9 `AnalysisReport` fields duplicated inline in `frontend/e2e/fixtures.ts` `mockReport()` that already match `DEFAULT_ANALYSIS_REPORT` (including `timestamp` and `timeframe_context`), add a unit test covering `undefined`-override filtering in `makeAnalysisReport`, and include `frontend/__tests__/factories.{ts,tsx}` in Vitest `coverage.include` (narrowed from the whole `__tests__` tree to avoid inflating coverage metrics and future surprises from unused helpers) so factory branch coverage is measurable (100% after the change) ([#212](https://github.com/Finfinder/Investment-Assistant/issues/212))
 
 ## [0.5.1] - 2026-07-17
