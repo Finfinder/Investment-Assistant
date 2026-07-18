@@ -1,131 +1,131 @@
-# Investment Assistant — Kontrakt Domenowy (Backend)
+# Investment Assistant — Domain Contract (Backend)
 
-## Szczegóły Analizy
+## Analysis Details
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| System | Investment Assistant (backend FastAPI) |
-| Data analizy | 2026-07-18 |
-| Cel modularyzacji | refinement (udokumentowanie istniejących granic modułów) |
-| Powiązany Research | Brak — wymagania z Issue #209 (backlog IA-156) |
-| Źródło prawdy o granicach | `backend/pyproject.toml` → `[tool.importlinter]` (kontrakty egzekwowane przez `import-linter`) |
+| System | Investment Assistant (FastAPI backend) |
+| Analysis date | 2026-07-18 |
+| Modularization goal | refinement (documenting existing module boundaries) |
+| Related Research | None — requirements from Issue #209 (backlog IA-156) |
+| Boundary source of truth | `backend/pyproject.toml` → `[tool.importlinter]` (contracts enforced by `import-linter`) |
 
-## Mapa Subdomen
+## Subdomain Map
 
-| Subdomena | Typ | Opis | Odpowiedzialność |
+| Subdomain | Type | Description | Responsibility |
 |---|---|---|---|
-| data_acquisition | Core | Pozyskiwanie i cache'owanie danych rynkowych (OHLCV) z wielu providerów | Pobieranie świec OHLCV z fallback chain (YFinance → Twelve Data → FMP), cache Redis z fallbackiem in-memory, planowanie timeframe'ów |
-| technical_analysis | Core | Obliczanie wskaźników technicznych i ocena sygnałów | 9 oscylatorów/momentum, 12 średnich kroczących, 5 typów pivot points, długoterminowy trend, rating sygnałów |
-| pattern_recognition | Core | Wykrywanie formacji świecowych i geometrycznych | Formacje świecowe, wsparcie/opór, Fibonacci, detektor IKI, konsolidacja formacji wielotimeframe |
-| fundamental_analysis | Supporting | Analiza makro/fundamentalna instrumentu | CPI (FRED, OECD SDMX, BLS, StatCan, BFS), dane FMP, analiza forex/commodities/indices |
-| signal_aggregation | Core | Agregacja i ważenie sygnałów z TA, formacji i fundamentów | Normalizacja sygnałów do skali -1..+1, ważony scoring, określanie kierunku, kalibracja progów |
-| strategy_generator | Core | Generowanie rekomendacji wejścia/wyjścia | Confidence scorer, kalkulator punktów wejścia, SL/TP, budowa raportu `AnalysisReport` |
+| data_acquisition | Core | Acquisition and caching of market data (OHLCV) from multiple providers | Fetching OHLCV candles via fallback chain (YFinance → Twelve Data → FMP), Redis cache with in-memory fallback, timeframe scheduling |
+| technical_analysis | Core | Computing technical indicators and assessing signal strength | 9 oscillators/momentum, 12 moving averages, 5 pivot point types, long-term trend, signal rating |
+| pattern_recognition | Core | Detecting candlestick and geometric patterns | Candlestick patterns, support/resistance, Fibonacci, IKI detector, multi-timeframe pattern consolidation |
+| fundamental_analysis | Supporting | Macro/fundamental analysis of the instrument | CPI (FRED, OECD SDMX, BLS, StatCan, BFS), FMP data, forex/commodities/indices analysis |
+| signal_aggregation | Core | Aggregation and weighting of signals from TA, patterns and fundamentals | Normalizing signals to scale -1..+1, weighted scoring, direction determination, threshold calibration |
+| strategy_generator | Core | Generating entry/exit recommendations | Confidence scorer, entry point calculator, SL/TP, building the `AnalysisReport` |
 
 ## Bounded Contexts
 
 ### data_acquisition
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ subdomeny | Core |
-| Odpowiedzialność | Pozyskiwanie i cache'owanie danych rynkowych (OHLCV) z wielu providerów zewnętrznych |
-| Zespół właściciel | TBD |
-| Strategia integracji | OHS+PL (własne publiczne API: `RedisCache`, `create_redis_cache` w `__init__.py`) |
+| Subdomain type | Core |
+| Responsibility | Acquisition and caching of market data (OHLCV) from multiple external providers |
+| Owner team | TBD |
+| Integration strategy | OHS+PL (own public API: `RedisCache`, `create_redis_cache` in `__init__.py`) |
 
 **Ubiquitous Language**:
-| Termin | Definicja |
+| Term | Definition |
 |---|---|
-| DataProvider | Runtime-checkable Protocol kontraktu dostawcy danych (`interfaces.py`) |
-| FallbackChain | Łańcuch providerów (YFinance → Twelve Data → FMP) z przełączaniem przy błędzie |
-| MultiTimeframeFetcher | Pobieranie OHLCV dla wielu timeframe'ów jednocześnie |
-| OHLCVCache | Warstwa cache (Redis z fallbackiem in-memory) dla świec |
+| DataProvider | Runtime-checkable Protocol of the data provider contract (`interfaces.py`) |
+| FallbackChain | Chain of providers (YFinance → Twelve Data → FMP) with failover on error |
+| MultiTimeframeFetcher | Fetching OHLCV for multiple timeframes simultaneously |
+| OHLCVCache | Cache layer (Redis with in-memory fallback) for candles |
 
 ### technical_analysis
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ subdomeny | Core |
-| Odpowiedzialność | Obliczanie wskaźników technicznych i ocena siły sygnałów |
-| Zespół właściciel | TBD |
-| Strategia integracji | OHS+PL (brak publicznego API w `__init__.py`; konsumuje/produkuje modele z `core/models.py`) |
+| Subdomain type | Core |
+| Responsibility | Computing technical indicators and assessing signal strength |
+| Owner team | TBD |
+| Integration strategy | OHS+PL (no public API in `__init__.py`; consumes/produces models from `core/models.py`) |
 
 **Ubiquitous Language**:
-| Termin | Definicja |
+| Term | Definition |
 |---|---|
-| IndicatorValue | Wartość wskaźnika + przypisany sygnał (`SignalType`) |
-| SignalRating | Ocena siły sygnału przez `rate_signal()` i `SIGNAL_RATING_CONFIG` |
-| IndicatorPreset | Preset parametrów (INVESTING / TRADINGVIEW) |
+| IndicatorValue | Indicator value + assigned signal (`SignalType`) |
+| SignalRating | Signal strength assessment via `rate_signal()` and `SIGNAL_RATING_CONFIG` |
+| IndicatorPreset | Parameter preset (INVESTING / TRADINGVIEW) |
 
 ### pattern_recognition
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ subdomeny | Core |
-| Odpowiedzialność | Wykrywanie formacji świecowych i geometrycznych oraz ich konsolidacja |
-| Zespół właściciel | TBD |
-| Strategia integracji | OHS+PL (brak publicznego API w `__init__.py`) |
+| Subdomain type | Core |
+| Responsibility | Detecting candlestick and geometric patterns and consolidating them |
+| Owner team | TBD |
+| Integration strategy | OHS+PL (no public API in `__init__.py`) |
 
 **Ubiquitous Language**:
-| Termin | Definicja |
+| Term | Definition |
 |---|---|
-| PatternDetection | Wykryta formacja (typ, kategoria, relevance_score, confidence) |
-| PatternScannerResult | Skonsolidowana forma wielotimeframe (`consolidator.py`) |
-| SupportResistance / Fibonacci / IKI | Konkretne detektory formacji |
+| PatternDetection | Detected pattern (type, category, relevance_score, confidence) |
+| PatternScannerResult | Consolidated multi-timeframe pattern (`consolidator.py`) |
+| SupportResistance / Fibonacci / IKI | Specific pattern detectors |
 
 ### fundamental_analysis
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ subdomeny | Supporting |
-| Odpowiedzialność | Analiza makroekonomiczna i fundamentalna instrumentu (CPI, FRED, FMP) |
-| Zespół właściciel | TBD |
-| Strategia integracji | OHS+PL (brak publicznego API w `__init__.py`) |
+| Subdomain type | Supporting |
+| Responsibility | Macroeconomic and fundamental analysis of the instrument (CPI, FRED, FMP) |
+| Owner team | TBD |
+| Integration strategy | OHS+PL (no public API in `__init__.py`) |
 
 **Ubiquitous Language**:
-| Termin | Definicja |
+| Term | Definition |
 |---|---|
-| MacroDataSource | Źródło wskaźników makro (FRED, OECD SDMX, BLS, StatCan, BFS) |
-| FundamentalData | Znormalizowany wynik analizy fundamentalnej (`core/models.py`) |
-| COT | Commitments of Traders — pozycjonowanie spekulacyjne (dla commodities) |
+| MacroDataSource | Source of macro indicators (FRED, OECD SDMX, BLS, StatCan, BFS) |
+| FundamentalData | Normalized result of fundamental analysis (`core/models.py`) |
+| COT | Commitments of Traders — speculative positioning (for commodities) |
 
 ### signal_aggregation
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ subdomeny | Core |
-| Odpowiedzialność | Normalizacja, ważenie i agregacja sygnałów z TA, formacji i fundamentów |
-| Zespół właściciel | TBD |
-| Strategia integracji | OHS+PL (brak publicznego API w `__init__.py`) |
+| Subdomain type | Core |
+| Responsibility | Normalization, weighting and aggregation of signals from TA, patterns and fundamentals |
+| Owner team | TBD |
+| Integration strategy | OHS+PL (no public API in `__init__.py`) |
 
 **Ubiquitous Language**:
-| Termin | Definicja |
+| Term | Definition |
 |---|---|
-| SignalAggregator | Agreguje `IndicatorValue`, `MovingAverage`, `SignalSummary`, `PatternDetection`, `FundamentalData` |
-| SIGNAL_SCORE | Znormalizowana skala sygnału: -1.0 (strong sell) .. +1.0 (strong buy) |
-| WeightedScore | Ważony wynik agregacji + określony kierunek (`Direction`) |
+| SignalAggregator | Aggregates `IndicatorValue`, `MovingAverage`, `SignalSummary`, `PatternDetection`, `FundamentalData` |
+| SIGNAL_SCORE | Normalized signal scale: -1.0 (strong sell) .. +1.0 (strong buy) |
+| WeightedScore | Weighted aggregation result + determined direction (`Direction`) |
 
 ### strategy_generator
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ subdomeny | Core |
-| Odpowiedzialność | Generowanie rekomendacji wejścia/wyjścia (SL/TP, confidence, raport) |
-| Zespół właściciel | TBD |
-| Strategia integracji | OHS+PL (brak publicznego API w `__init__.py`) |
+| Subdomain type | Core |
+| Responsibility | Generating entry/exit recommendations (SL/TP, confidence, report) |
+| Owner team | TBD |
+| Integration strategy | OHS+PL (no public API in `__init__.py`) |
 
 **Ubiquitous Language**:
-| Termin | Definicja |
+| Term | Definition |
 |---|---|
-| StrategyEntry | Pojedynczy scenariusz wejścia/wyjścia |
-| AnalysisReport | Końcowy raport analizy agregujący wyniki wszystkich modułów |
-| ConfidenceScore | Ocena pewności rekomendacji |
+| StrategyEntry | Single entry/exit scenario |
+| AnalysisReport | Final analysis report aggregating results from all modules |
+| ConfidenceScore | Confidence assessment of the recommendation |
 
-## Diagram Modułów (UML Package)
+## Module Diagram (UML Package)
 
 ```mermaid
-%% Diagram pakietów UML — moduły domenowe i ich zależności od core/models
+%% UML package diagram — domain modules and their dependencies on core/models
 graph TD
-    subgraph modules["app/modules (niezależne — brak importów między sobą)"]
+    subgraph modules["app/modules (independent — no imports between them)"]
         da["data_acquisition"]
         ta["technical_analysis"]
         pr["pattern_recognition"]
@@ -133,8 +133,8 @@ graph TD
         sa["signal_aggregation"]
         sg["strategy_generator"]
     end
-    core["app/core (core/models.py — wspólne API Pydantic)"]
-    api["app/api/v1 (routery per domena)"]
+    core["app/core (core/models.py — shared Pydantic API)"]
+    api["app/api/v1 (router per domain)"]
     orch["app/orchestration (AnalysisPipeline)"]
 
     da --> core
@@ -149,266 +149,266 @@ graph TD
     orch --> modules
     orch --> core
 
-    core -.->|forbidden: core nie importuje| modules
-    modules -.->|forbidden: modules nie importują| api
+    core -.->|forbidden: core does not import| modules
+    modules -.->|forbidden: modules do not import| api
 ```
 
-## Diagram C4 Container
+## C4 Container Diagram
 
 ```mermaid
 C4Container
-    title Investment Assistant — Backend Containers (moduły domenowe)
-    Person(trader, "Trader", "Użytkownik frontendu")
+    title Investment Assistant — Backend Containers (domain modules)
+    Person(trader, "Trader", "Frontend user")
     Container(fe, "Frontend", "Next.js 15", "UI + lightweight-charts")
-    Container(api, "API Layer", "FastAPI / app/api/v1", "Routery per domena, WebSocket")
-    Container(orch, "Orchestration", "AnalysisPipeline", "6-etapowa orkiestracja modułów")
-    Container(da, "data_acquisition", "Python", "Pobieranie + cache OHLCV")
-    Container(ta, "technical_analysis", "Python", "Wskaźniki + rating")
-    Container(pr, "pattern_recognition", "Python", "Formacje + konsolidacja")
-    Container(fa, "fundamental_analysis", "Python", "Analiza makro/fund.")
-    Container(sa, "signal_aggregation", "Python", "Ważony scoring")
-    Container(sg, "strategy_generator", "Python", "SL/TP + raport")
-    Container(core, "Core Models", "Pydantic", "Wspólne API między modułami")
-    ContainerDb(redis, "Redis", "Cache", "Cache OHLCV (fallback in-memory)")
-    ContainerDb(db, "SQLite", "AIOSQLite", "AnalysisReport, statusy")
+    Container(api, "API Layer", "FastAPI / app/api/v1", "Router per domain, WebSocket")
+    Container(orch, "Orchestration", "AnalysisPipeline", "6-step module orchestration")
+    Container(da, "data_acquisition", "Python", "Fetch + cache OHLCV")
+    Container(ta, "technical_analysis", "Python", "Indicators + rating")
+    Container(pr, "pattern_recognition", "Python", "Patterns + consolidation")
+    Container(fa, "fundamental_analysis", "Python", "Macro/fund. analysis")
+    Container(sa, "signal_aggregation", "Python", "Weighted scoring")
+    Container(sg, "strategy_generator", "Python", "SL/TP + report")
+    Container(core, "Core Models", "Pydantic", "Shared API between modules")
+    ContainerDb(redis, "Redis", "Cache", "OHLCV cache (in-memory fallback)")
+    ContainerDb(db, "SQLite", "AIOSQLite", "AnalysisReport, statuses")
 
-    Rel(trader, fe, "Używa", "HTTPS")
-    Rel(fe, api, "Wywołuje", "REST / WS")
-    Rel(api, orch, "Trigger analizy", "async")
-    Rel(orch, da, "Krok 1: dane")
-    Rel(orch, ta, "Krok 2: TA")
-    Rel(orch, pr, "Krok 3: formacje")
-    Rel(orch, fa, "Krok 4: fundamentalne")
-    Rel(orch, sa, "Krok 5: agregacja")
-    Rel(orch, sg, "Krok 6: strategia")
+    Rel(trader, fe, "Uses", "HTTPS")
+    Rel(fe, api, "Calls", "REST / WS")
+    Rel(api, orch, "Triggers analysis", "async")
+    Rel(orch, da, "Step 1: data")
+    Rel(orch, ta, "Step 2: TA")
+    Rel(orch, pr, "Step 3: patterns")
+    Rel(orch, fa, "Step 4: fundamentals")
+    Rel(orch, sa, "Step 5: aggregation")
+    Rel(orch, sg, "Step 6: strategy")
     Rel(da, redis, "Cache", "get/set OHLCV")
-    Rel(da, core, "Produkuje/Konsumuje", "OHLCVData")
-    Rel(ta, core, "Produkuje/Konsumuje", "IndicatorValue, SignalSummary")
-    Rel(pr, core, "Produkuje/Konsumuje", "PatternDetection")
-    Rel(fa, core, "Produkuje/Konsumuje", "FundamentalData")
-    Rel(sa, core, "Produkuje/Konsumuje", "SignalSummary, Direction")
-    Rel(sg, core, "Produkuje", "AnalysisReport")
+    Rel(da, core, "Produces/Consumes", "OHLCVData")
+    Rel(ta, core, "Produces/Consumes", "IndicatorValue, SignalSummary")
+    Rel(pr, core, "Produces/Consumes", "PatternDetection")
+    Rel(fa, core, "Produces/Consumes", "FundamentalData")
+    Rel(sa, core, "Produces/Consumes", "SignalSummary, Direction")
+    Rel(sg, core, "Produces", "AnalysisReport")
 ```
 
-## Macierz Odpowiedzialności Modułów
+## Module Responsibility Matrix
 
-| Moduł | Zdolności Biznesowe | Agregaty | Zdarzenia Publikowane | Zdarzenia Konsumowane |
+| Module | Business Capabilities | Aggregates | Events Published | Events Consumed |
 |---|---|---|---|---|
-| data_acquisition | Pobieranie OHLCV, cache, fallback chain, planowanie timeframe | OHLCVCache, FallbackChain, MultiTimeframeFetchBundle | (brak — synchroniczne API) | (brak) |
-| technical_analysis | Obliczanie wskaźników, rating sygnałów, trend długoterminowy | IndicatorValue, MovingAverage, PivotPoints, LongTermTrend, SignalSummary | IndicatorValue, SignalSummary | OHLCVData |
-| pattern_recognition | Detekcja formacji, konsolidacja wielotimeframe | PatternDetection, PatternScannerResult | PatternDetection, PatternScannerResult | OHLCVData |
-| fundamental_analysis | Analiza CPI/makro, scoring COT | FundamentalData | FundamentalData | (symbol, instrument_type) |
-| signal_aggregation | Ważony scoring, określanie kierunku | SignalAggregator, WeightedScore | SignalSummary (zaktualizowane), Direction | IndicatorValue, MovingAverage, SignalSummary, PatternDetection, FundamentalData |
-| strategy_generator | Punkty wejścia, SL/TP, confidence, raport | StrategyEntry, AnalysisReport | AnalysisReport | wszystkie powyższe modele |
+| data_acquisition | OHLCV fetch, cache, fallback chain, timeframe scheduling | OHLCVCache, FallbackChain, MultiTimeframeFetchBundle | (none — synchronous API) | (none) |
+| technical_analysis | Indicator computation, signal rating, long-term trend | IndicatorValue, MovingAverage, PivotPoints, LongTermTrend, SignalSummary | IndicatorValue, SignalSummary | OHLCVData |
+| pattern_recognition | Pattern detection, multi-timeframe consolidation | PatternDetection, PatternScannerResult | PatternDetection, PatternScannerResult | OHLCVData |
+| fundamental_analysis | CPI/macro analysis, COT scoring | FundamentalData | FundamentalData | (symbol, instrument_type) |
+| signal_aggregation | Weighted scoring, direction determination | SignalAggregator, WeightedScore | SignalSummary (updated), Direction | IndicatorValue, MovingAverage, SignalSummary, PatternDetection, FundamentalData |
+| strategy_generator | Entry points, SL/TP, confidence, report | StrategyEntry, AnalysisReport | AnalysisReport | all of the above models |
 
-## Model Domenowy — Szczegóły Modułów
+## Domain Model — Module Details
 
-### Moduł: data_acquisition
+### Module: data_acquisition
 
-**Agregaty**:
-| Agregat (Root) | Encje | Value Objects | Invarianty |
+**Aggregates**:
+| Aggregate (Root) | Entities | Value Objects | Invariants |
 |---|---|---|---|
-| OHLCVCache | (brak osobnych encji) | OHLCVData, DataTimeframe | Cache traktuje OHLCV jako immutable; TTL i maxsize chronią przed wyciekiem pamięci |
-| FallbackChain | YFinanceProvider, TwelveDataProvider, FMPProvider | DataProviderPriority | Kolejność providerów: PRIMARY → SECONDARY → TERTIARY → FALLBACK; błąd jednego nie przerywa łańcucha |
+| OHLCVCache | (no separate entities) | OHLCVData, DataTimeframe | Cache treats OHLCV as immutable; TTL and maxsize protect against memory leaks |
+| FallbackChain | YFinanceProvider, TwelveDataProvider, FMPProvider | DataProviderPriority | Provider order: PRIMARY → SECONDARY → TERTIARY → FALLBACK; one provider's error does not break the chain |
 
-**Zdarzenia Domenowe**: brak (integracja synchroniczna przez modele).
-**Polityki / Reguły Biznesowe**:
-| Polityka | Wyzwalacz | Akcja | Opis |
+**Domain Events**: none (synchronous integration via models).
+**Policies / Business Rules**:
+| Policy | Trigger | Action | Description |
 |---|---|---|---|
-| Cache-first | Żądanie OHLCV | Najpierw Redis, potem in-memory, na końcu provider | Redukcja obciążenia zewnętrznych API i quota |
-**Usługi Domenowe**: `FallbackChainManager.build_fallback_chain()`, `MultiTimeframeFetcher`.
-**Archetypy Biznesowe**: `OHLCVData` — Thing; `DataProvider` — Role (Protocol).
+| Cache-first | OHLCV request | Redis first, then in-memory, provider last | Reduces load on external APIs and quota |
+**Domain Services**: `FallbackChainManager.build_fallback_chain()`, `MultiTimeframeFetcher`.
+**Business Archetypes**: `OHLCVData` — Thing; `DataProvider` — Role (Protocol).
 
-### Moduł: technical_analysis
+### Module: technical_analysis
 
-**Agregaty**:
-| Agregat (Root) | Encje | Value Objects | Invarianty |
+**Aggregates**:
+| Aggregate (Root) | Entities | Value Objects | Invariants |
 |---|---|---|---|
-| SignalSummary | IndicatorValue, MovingAverage, PivotPoints, LongTermTrend | IndicatorPreset | `rate_signal()` wiąże nazwę wskaźnika z kluczem `SIGNAL_RATING_CONFIG` (jedyna mapa) |
+| SignalSummary | IndicatorValue, MovingAverage, PivotPoints, LongTermTrend | IndicatorPreset | `rate_signal()` binds indicator name to `SIGNAL_RATING_CONFIG` key (single map) |
 
-**Zdarzenia Domenowe**: brak.
-**Polityki / Reguły Biznesowe**:
-| Polityka | Wyzwalacz | Akcja | Opis |
+**Domain Events**: none.
+**Policies / Business Rules**:
+| Policy | Trigger | Action | Description |
 |---|---|---|---|
-| Preset selection | Wybór analizy | INVESTING lub TRADINGVIEW | Parametry wskaźników z presets |
-**Usługi Domenowe**: `calculate_indicators()`, `calculate_moving_averages()`, `calculate_pivot_points()`, `build_long_term_trend()`, `rate_signal()`.
-**Archetypy Biznesowe**: `IndicatorValue` — Description; `SignalSummary` — Moment-Interval (wynik analizy).
+| Preset selection | Analysis choice | INVESTING or TRADINGVIEW | Indicator parameters from presets |
+**Domain Services**: `calculate_indicators()`, `calculate_moving_averages()`, `calculate_pivot_points()`, `build_long_term_trend()`, `rate_signal()`.
+**Business Archetypes**: `IndicatorValue` — Description; `SignalSummary` — Moment-Interval (analysis result).
 
-### Moduł: pattern_recognition
+### Module: pattern_recognition
 
-**Agregaty**:
-| Agregat (Root) | Encje | Value Objects | Invarianty |
+**Aggregates**:
+| Aggregate (Root) | Entities | Value Objects | Invariants |
 |---|---|---|---|
-| PatternScannerResult | PatternDetection | PatternCategory, Timeframe | Konsolidacja grupuje po (pattern_type, category, bullish); reprezentant = max(relevance_score, confidence, reliability) |
+| PatternScannerResult | PatternDetection | PatternCategory, Timeframe | Consolidation groups by (pattern_type, category, bullish); representative = max(relevance_score, confidence, reliability) |
 
-**Zdarzenia Domenowe**: brak.
-**Usługi Domenowe**: `consolidate_patterns()`, detektory (`candlestick`, `support_resistance`, `fibonacci`, `iki_detector`, `chart_patterns`).
-**Archetypy Biznesowe**: `PatternDetection` — Moment-Interval.
+**Domain Events**: none.
+**Domain Services**: `consolidate_patterns()`, detectors (`candlestick`, `support_resistance`, `fibonacci`, `iki_detector`, `chart_patterns`).
+**Business Archetypes**: `PatternDetection` — Moment-Interval.
 
-### Moduł: fundamental_analysis
+### Module: fundamental_analysis
 
-**Agregaty**:
-| Agregat (Root) | Encje | Value Objects | Invarianty |
+**Aggregates**:
+| Aggregate (Root) | Entities | Value Objects | Invariants |
 |---|---|---|---|
-| FundamentalData | (agregowane z wielu źródeł) | InstrumentType | Wybór źródła zależy od typu instrumentu (forex/commodity/index) |
+| FundamentalData | (aggregated from multiple sources) | InstrumentType | Source selection depends on instrument type (forex/commodity/index) |
 
-**Zdarzenia Domenowe**: brak.
-**Usługi Domenowe**: `MacroDataSource`, `FmpEconomicSource`, `CpiFallbackSource`, analizatory (`commodities`, `forex`, `indices`).
-**Archetypy Biznesowe**: `FundamentalData` — Description.
+**Domain Events**: none.
+**Domain Services**: `MacroDataSource`, `FmpEconomicSource`, `CpiFallbackSource`, analyzers (`commodities`, `forex`, `indices`).
+**Business Archetypes**: `FundamentalData` — Description.
 
-### Moduł: signal_aggregation
+### Module: signal_aggregation
 
-**Agregaty**:
-| Agregat (Root) | Encje | Value Objects | Invarianty |
+**Aggregates**:
+| Aggregate (Root) | Entities | Value Objects | Invariants |
 |---|---|---|---|
-| SignalAggregator | (kompozycja sygnałów) | SignalType, Direction | Sygnał znormalizowany do SIGNAL_SCORE ∈ [-1.0, +1.0]; relevance_score > 0 nadpisuje confidence |
+| SignalAggregator | (signal composition) | SignalType, Direction | Signal normalized to SIGNAL_SCORE ∈ [-1.0, +1.0]; relevance_score > 0 overrides confidence |
 
-**Zdarzenia Domenowe**: brak.
-**Usługi Domenowe**: `SignalAggregator`, `calculate_weighted_score()`, `determine_direction()`.
-**Archetypy Biznesowe**: `SignalSummary` — Moment-Interval.
+**Domain Events**: none.
+**Domain Services**: `SignalAggregator`, `calculate_weighted_score()`, `determine_direction()`.
+**Business Archetypes**: `SignalSummary` — Moment-Interval.
 
-### Moduł: strategy_generator
+### Module: strategy_generator
 
-**Agregaty**:
-| Agregat (Root) | Encje | Value Objects | Invarianty |
+**Aggregates**:
+| Aggregate (Root) | Entities | Value Objects | Invariants |
 |---|---|---|---|
-| AnalysisReport | StrategyEntry | Direction, Timeframe | `build_report()` komponuje raport wyłącznie z modeli z `core/models.py` |
+| AnalysisReport | StrategyEntry | Direction, Timeframe | `build_report()` composes the report solely from `core/models.py` models |
 
-**Zdarzenia Domenowe**: brak.
-**Usługi Domenowe**: `build_report()`, `calculate_confidence()`, `calculate_entry_points()`, `calculate_sl_tp()`.
-**Archetypy Biznesowe**: `AnalysisReport` — Moment-Interval (końcowy wynik analizy).
+**Domain Events**: none.
+**Domain Services**: `build_report()`, `calculate_confidence()`, `calculate_entry_points()`, `calculate_sl_tp()`.
+**Business Archetypes**: `AnalysisReport` — Moment-Interval (final analysis result).
 
-## Analiza Autonomii
+## Autonomy Analysis
 
-| Moduł | Autonomia Zmian | Autonomia Decyzji | Autonomia Deploymentu | Wynik |
+| Module | Change Autonomy | Decision Autonomy | Deployment Autonomy | Result |
 |---|---|---|---|---|
-| data_acquisition | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | Wysoka — własne publiczne API, brak zależności od innych modułów |
-| technical_analysis | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | Wysoka — zależy tylko od `core/models.py` |
-| pattern_recognition | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | Wysoka — zależy tylko od `core/models.py` |
-| fundamental_analysis | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | Wysoka — zależy tylko od `core/models.py` |
-| signal_aggregation | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | Wysoka — konsumuje modele, nie kod innych modułów |
-| strategy_generator | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | Wysoka — komponuje raport z modeli |
+| data_acquisition | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | High — own public API, no dependency on other modules |
+| technical_analysis | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | High — depends only on `core/models.py` |
+| pattern_recognition | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | High — depends only on `core/models.py` |
+| fundamental_analysis | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | High — depends only on `core/models.py` |
+| signal_aggregation | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | High — consumes models, not other modules' code |
+| strategy_generator | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | ⬤⬤⬤⬤○ | High — composes report from models |
 
-> Wszystkie moduły są w pełni niezależne (brak shared kernel, brak importów między modułami). Autonomia deploymentu jest teoretyczna — system to modularny monolit (jeden proces FastAPI), ale granice pozwalają na przyszłą ekstrakcję.
+> All modules are fully independent (no shared kernel, no imports between modules). Deployment autonomy is theoretical — the system is a modular monolith (single FastAPI process), but the boundaries allow future extraction.
 
-## Ocena Granic Modułów
+## Module Boundary Assessment
 
-### Uzasadnienie Wag Kryteriów
-System to modularny monolit analityczny. Najwyższa waga przypada **Dane** i **Zespół** (każdy moduł posiada własne dane wejściowe/wyjściowe przez `core/models.py`), średnia **Coupling/Cohesion** (wymuszane kontraktem `independence`), niska **Komunikacja** (synchroniczne wywołania przez orkiestrator, brak eventów).
+### Criterion Weight Rationale
+The system is an analytical modular monolith. The highest weight goes to **Data** and **Team** (each module has its own inputs/outputs via `core/models.py`), medium to **Coupling/Cohesion** (enforced by the `independence` contract), low to **Communication** (synchronous calls via orchestrator, no events).
 
-### Macierz Ocen
+### Assessment Matrix
 
-| Granica (A↔B) | Coupling (w:X) | Cohesion (w:X) | Zmiana (w:X) | Zespół (w:X) | Deploy (w:X) | Dane (w:X) | Komunikacja (w:X) | Wynik Ważony |
+| Boundary (A↔B) | Coupling (w:X) | Cohesion (w:X) | Change (w:X) | Team (w:X) | Deploy (w:X) | Data (w:X) | Communication (w:X) | Weighted Result |
 |---|---|---|---|---|---|---|---|---|
-| da ↔ ta | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 (brak zależności) |
+| da ↔ ta | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 (no dependency) |
 | ta ↔ pr | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | pr ↔ fa | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | fa ↔ sa | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | sa ↔ sg | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-> Wszystkie pary modułów mają coupling = 0 (brak bezpośrednich importów). Komunikacja odbywa się wyłącznie przez `core/models.py` i orkiestrator `AnalysisPipeline`.
+> All module pairs have coupling = 0 (no direct imports). Communication happens exclusively via `core/models.py` and the `AnalysisPipeline` orchestrator.
 
-### Najsłabsze Granice
-| Granica | Wynik | Problem | Rekomendacja |
+### Weakest Boundaries
+| Boundary | Result | Problem | Recommendation |
 |---|---|---|---|
-| (brak) | — | Brak słabych granic — kontrakty import-linter egzekwowane w CI | Brak akcji (utrzymać kontrakt `independence`) |
+| (none) | — | No weak boundaries — import-linter contracts enforced in CI | No action (maintain the `independence` contract) |
 
-## Testowanie Jakości Podziału
+## Division Quality Testing
 
-### Porównanie z Alternatywami
+### Comparison with Alternatives
 
-| Kryterium | Wybrany Podział (6 modułów + core) | Alternatywa: monolityczny pakiet `app/analysis` | Alternatywa: shared kernel (wspólne utilsy) |
+| Criterion | Chosen Division (6 modules + core) | Alternative: monolithic `app/analysis` package | Alternative: shared kernel (shared utils) |
 |---|---|---|---|
-| Opis | Niezależne moduły, wspólne API w `core/models.py` | Jeden pakiet, brak jawnych granic | Wspólne encje/serwisy dzielone bezpośrednio |
-| Zalety | Jasne granice, łatwy onboarding, egzekwowane w CI | Prostsze na start | Mniej duplikacji kodu |
-| Wady | Więcej plików, konieczność przekazywania modeli | Trudny refactor przy wzroście, ukryty coupling | Ukryty coupling, trudne zmiany niezależne |
-| Ryzyko | Niskie (granice wymuszane) | Wysokie (spaghetti) | Średnie (shared kernel rot) |
+| Description | Independent modules, shared API in `core/models.py` | Single package, no explicit boundaries | Shared entities/services used directly |
+| Pros | Clear boundaries, easy onboarding, enforced in CI | Simpler to start | Less code duplication |
+| Cons | More files, need to pass models | Hard refactor on growth, hidden coupling | Hidden coupling, hard independent changes |
+| Risk | Low (boundaries enforced) | High (spaghetti) | Medium (shared kernel rot) |
 
-**Uzasadnienie wyboru**: Podział na 6 niezależnych modułów z jedynym wspólnym punktem integracji w `core/models.py` minimalizuje coupling przy zachowaniu spójności domenowej. Granice są egzekwowane automatycznie przez `import-linter`, co eliminuje ryzyko regresji granic.
+**Choice rationale**: Dividing into 6 independent modules with the only integration point in `core/models.py` minimizes coupling while preserving domain coherence. Boundaries are enforced automatically by `import-linter`, eliminating the risk of boundary regressions.
 
-### Rejestr Ryzyk
+### Risk Register
 
-| # | Ryzyko | Dotkliwość | Prawdopodobieństwo | Mitygacja | Status |
+| # | Risk | Severity | Probability | Mitigation | Status |
 |---|---|---|---|---|---|
-| 1 | Nowy moduł ominie kontrakt `independence` | Średnie | Niskie | Test architektoniczny `tests/architecture/test_import_boundaries.py` auto-odkrywa moduły i wymusza rejestrację | Zmitigowane |
-| 2 | Bezpośredni import między modułami (obejście granicy) | Wysokie | Niskie | Kontrakt `independence` import-linter w CI (fails build) | Zmitigowane |
+| 1 | New module bypasses the `independence` contract | Medium | Low | Architecture test `tests/architecture/test_import_boundaries.py` auto-discovers modules and enforces registration | Mitigated |
+| 2 | Direct import between modules (boundary bypass) | High | Low | `independence` import-linter contract in CI (fails build) | Mitigated |
 
-### Scenariusze Ewolucji
+### Evolution Scenarios
 
-| Scenariusz | Wpływ na Moduły | Liczba Zmian | Ocena |
+| Scenario | Impact on Modules | Number of Changes | Assessment |
 |---|---|---|---|
-| Nowa zdolność biznesowa: dodanie modułu `risk_management` | Nowy moduł + rejestracja w `independence` + orkiestracja | 2 (moduł + pipeline) | ✅ OK |
-| Restrukturyzacja zespołu: podział TA na `indicators` i `signals` | Rozbicie modułu, aktualizacja kontraktu | 2 | ✅ OK |
-| Spike ruchu: cache'owanie tylko w `data_acquisition` | Izolowane w 1 module | 1 | ✅ OK |
-| Nowa integracja: dodanie providera danych (np. Alpha Vantage) | Tylko `data_acquisition/providers` | 1 | ✅ OK |
+| New business capability: adding `risk_management` module | New module + registration in `independence` + orchestration | 2 (module + pipeline) | ✅ OK |
+| Team restructure: splitting TA into `indicators` and `signals` | Module split, contract update | 2 | ✅ OK |
+| Traffic spike: caching only in `data_acquisition` | Isolated in 1 module | 1 | ✅ OK |
+| New integration: adding a data provider (e.g. Alpha Vantage) | Only `data_acquisition/providers` | 1 | ✅ OK |
 
-### Metryki Coupling/Cohesion
+### Coupling/Cohesion Metrics
 
-| Moduł | Ca (afferent) | Ce (efferent) | I (instability) | A (abstractness) | D (distance) |
+| Module | Ca (afferent) | Ce (efferent) | I (instability) | A (abstractness) | D (distance) |
 |---|---|---|---|---|---|
-| data_acquisition | 1 (orch) | 1 (core) | 0.5 | niska | ~średnia |
-| technical_analysis | 1 (orch) | 1 (core) | 0.5 | niska | ~średnia |
-| pattern_recognition | 1 (orch) | 1 (core) | 0.5 | niska | ~średnia |
-| fundamental_analysis | 1 (orch) | 1 (core) | 0.5 | niska | ~średnia |
-| signal_aggregation | 1 (orch) | 1 (core) | 0.5 | niska | ~średnia |
-| strategy_generator | 1 (orch) | 1 (core) | 0.5 | niska | ~średnia |
+| data_acquisition | 1 (orch) | 1 (core) | 0.5 | low | ~medium |
+| technical_analysis | 1 (orch) | 1 (core) | 0.5 | low | ~medium |
+| pattern_recognition | 1 (orch) | 1 (core) | 0.5 | low | ~medium |
+| fundamental_analysis | 1 (orch) | 1 (core) | 0.5 | low | ~medium |
+| signal_aggregation | 1 (orch) | 1 (core) | 0.5 | low | ~medium |
+| strategy_generator | 1 (orch) | 1 (core) | 0.5 | low | ~medium |
 
-**Walidacja zależności**:
-- [x] Brak zależności cyklicznych (moduły importują tylko `core`, nigdy siebie nawzajem)
-- [x] Stable Abstractions Principle: moduły są konkretne (niskie A), ale stabilne (niskie I dzięki brakowi zależności wychodzących do innych modułów)
-- [x] Kierunek zależności: `api`/`orchestration` → `modules` → `core`
+**Dependency validation**:
+- [x] No cyclic dependencies (modules import only `core`, never each other)
+- [x] Stable Abstractions Principle: modules are concrete (low A) but stable (low I thanks to no outgoing dependencies to other modules)
+- [x] Dependency direction: `api`/`orchestration` → `modules` → `core`
 
-## Kontrakty Między Modułami
+## Inter-Module Contracts
 
-### AnalysisPipeline → wszystkie moduły
+### AnalysisPipeline → all modules
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ integracji | Synchroniczna |
-| Protokół | Direct reference (wywołanie funkcji w orkiestratorze) |
-| Kontrakt | Modele Pydantic z `core/models.py` przekazywane jako argumenty/wyniki |
-| Strategia | OHS+PL (Open Host Service + Published Language = modele w `core/models.py`) |
-| Właściciel kontraktu | `core/models.py` (współdzielony, read-only dla modułów) |
+| Integration type | Synchronous |
+| Protocol | Direct reference (function call in orchestrator) |
+| Contract | Pydantic models from `core/models.py` passed as arguments/results |
+| Strategy | OHS+PL (Open Host Service + Published Language = models in `core/models.py`) |
+| Contract owner | `core/models.py` (shared, read-only for modules) |
 
-### Moduł A → Moduł B (bezpośrednio)
+### Module A → Module B (directly)
 
-| Pole | Wartość |
+| Field | Value |
 |---|---|
-| Typ integracji | Brak — zabronione przez kontrakt `independence` |
-| Protokół | N/A |
-| Kontrakt | N/A |
-| Strategia | N/A |
-| Właściciel kontraktu | N/A |
+| Integration type | None — forbidden by the `independence` contract |
+| Protocol | N/A |
+| Contract | N/A |
+| Strategy | N/A |
+| Contract owner | N/A |
 
-## Słownik Ubiquitous Language
+## Ubiquitous Language Dictionary
 
-| Termin | Bounded Context | Definicja |
+| Term | Bounded Context | Definition |
 |---|---|---|
-| OHLCVData | data_acquisition | Świeca (open/high/low/close/volume) — podstawowa jednostka danych rynkowych |
-| IndicatorValue | technical_analysis | Wartość wskaźnika z przypisanym sygnałem |
-| SignalSummary | technical_analysis / signal_aggregation | Podsumowanie sygnałów technicznych |
-| PatternDetection | pattern_recognition | Wykryta formacja świecowa/geometryczna |
-| FundamentalData | fundamental_analysis | Znormalizowany wynik analizy fundamentalnej |
-| SignalType | signal_aggregation | Typ sygnału (STRONG_SELL..STRONG_BUY) |
-| Direction | signal_aggregation | Kierunek rekomendacji (BUY/SELL/NEUTRAL) |
-| StrategyEntry | strategy_generator | Scenariusz wejścia/wyjścia z SL/TP |
-| AnalysisReport | strategy_generator | Końcowy raport analizy |
+| OHLCVData | data_acquisition | Candle (open/high/low/close/volume) — basic unit of market data |
+| IndicatorValue | technical_analysis | Indicator value with assigned signal |
+| SignalSummary | technical_analysis / signal_aggregation | Summary of technical signals |
+| PatternDetection | pattern_recognition | Detected candlestick/geometric pattern |
+| FundamentalData | fundamental_analysis | Normalized result of fundamental analysis |
+| SignalType | signal_aggregation | Signal type (STRONG_SELL..STRONG_BUY) |
+| Direction | signal_aggregation | Recommendation direction (BUY/SELL/NEUTRAL) |
+| StrategyEntry | strategy_generator | Entry/exit scenario with SL/TP |
+| AnalysisReport | strategy_generator | Final analysis report |
 
-## Otwarte Pytania
+## Open Questions
 
-| # | Pytanie | Odpowiedź | Status |
+| # | Question | Answer | Status |
 |---|---|---|---|
-| 1 | Czy `domain.md` powinien obejmować `api/` i `core/` jako konteksty? | Nie — Issue ogranicza zakres do `app/modules/`; `core`/`api` opisane jako ograniczenia zewnętrzne | ✅ Rozwiązane |
-| 2 | Czy wymagana jest pełna macierz oceny z wagami? | Nie — to dokumentacja istniejących granic; granice egzekwowane przez import-linter | ✅ Rozwiązane |
+| 1 | Should `domain.md` cover `api/` and `core/` as contexts? | No — Issue scope is limited to `app/modules/`; `core`/`api` described as external constraints | ✅ Resolved |
+| 2 | Is a full weighted assessment matrix required? | No — this documents existing boundaries; boundaries enforced by import-linter | ✅ Resolved |
 
-## Usprawnienia (Poza Zakresem)
+## Improvements (Out of Scope)
 
-- Auto-weryfikacja `domain.md` vs import-linter (test porównujący listę modułów z dokumentu z kontraktem `independence`).
-- Rozszerzenie `domain.md` o warstwy `api/` i `core/` jako pełne bounded contexts.
-- Diagram przepływu danych przez `AnalysisPipeline` (sekwencyjny flowchart modeli Pydantic).
+- Auto-verification of `domain.md` vs import-linter (test comparing the module list in the document with the `independence` contract).
+- Extending `domain.md` with `api/` and `core/` layers as full bounded contexts.
+- Data flow diagram through `AnalysisPipeline` (sequential Pydantic model flowchart).
 
 ## Changelog
 
-| Data | Opis Zmiany |
+| Date | Change Description |
 |------|-------------------|
-| 2026-07-18 | Utworzono kontrakt domenowy dokumentujący granice 6 modułów w `app/modules/` (Issue #209 / IA-156) |
+| 2026-07-18 | Created domain contract documenting the boundaries of the 6 modules in `app/modules/` (Issue #209 / IA-156) |
