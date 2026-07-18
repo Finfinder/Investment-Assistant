@@ -1,10 +1,11 @@
 import { test as base, type Page } from "@playwright/test";
+import type { InstrumentType, Timeframe } from "@/types";
 import { makeAnalysisReport, makeStrategyEntry } from "../__tests__/factories";
 
 const MOCK_ANALYSIS_ID = "mock-analysis-id";
 
-function mockReport(symbol: string, timeframe: string) {
-  const instrumentTypeMap: Record<string, string | null> = {
+function mockReport(symbol: string, timeframe: Timeframe) {
+  const instrumentTypeMap: Record<string, InstrumentType | null> = {
     EURUSD: "forex",
     GBPUSD: "forex",
     USDJPY: "forex",
@@ -135,7 +136,7 @@ function wsProgressMessages(id: string) {
 /** Set up API route interception (HTTP + WebSocket) for a given page. */
 export async function mockAnalysisApi(page: Page) {
   let requestedSymbol = "EURUSD";
-  let requestedTimeframe = "H1";
+  let requestedTimeframe: Timeframe = "H1";
 
   // Mock POST /api/v1/analysis
   await page.route("**/api/v1/analysis", async (route) => {
@@ -143,7 +144,7 @@ export async function mockAnalysisApi(page: Page) {
 
     const body = JSON.parse(route.request().postData() ?? "{}");
     requestedSymbol = body.symbol ?? "EURUSD";
-    requestedTimeframe = body.timeframe ?? "H1";
+    requestedTimeframe = (body.timeframe ?? "H1") as Timeframe;
 
     // Return 422 for obviously invalid symbols
     const validPattern = /^[A-Z0-9]{2,12}$/;
