@@ -9,6 +9,12 @@ mutmut 2.x stores every mutant in a single cache file without a module column,
 so results from different modules cannot be separated in one cache. To keep each
 module's mutation score independent we clear the cache before every `mutmut run`.
 
+The mutation score threshold is the single source of truth shared with the
+frontend Stryker gate. It lives in `mutation-threshold.json` at the repository
+root and is resolved by `load_default_min_score()`. The threshold can be
+overridden locally via the `MUTATION_SCORE_THRESHOLD` environment variable or
+the `--min-score` CLI argument (highest priority).
+
 Usage:
     python scripts/run_mutmut.py [--min-score 70] [--modules MODULE ...]
 """
@@ -16,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -31,12 +38,49 @@ OK_SUSPICIOUS = "ok_suspicious"
 UNTESTED = "untested"
 SKIPPED = "skipped"
 
-DEFAULT_MIN_SCORE = 70
+# Fallback used only when the shared threshold file is missing.
+FALLBACK_MIN_SCORE = 70
+
+# Repository-root threshold file, shared with the frontend Stryker gate.
+THRESHOLD_FILE = Path(__file__).resolve().parents[2] / "mutation-threshold.json"
+
 DEFAULT_MODULES = [
     "app/modules/technical_analysis/signal_rating.py",
     "app/modules/signal_aggregation",
     "app/modules/strategy_generator",
 ]
+
+
+def load_default_min_score() -> int:
+    """Resolve the default mutation score threshold.
+
+    Priority: ``--min-score`` (CLI) > ``MUTATION_SCORE_THRESHOLD`` (env) >
+    ``mutation-threshold.json`` (repo root) > ``FALLBACK_MIN_SCORE``.
+
+    Returns:
+        The minimum acceptable mutation score in percent.
+    """
+    env_value = os.environ.get("MUTATION_SCORE_THRESHOLD")
+    if env_value is not None:
+        try:
+            return int(env_value)
+        except ValueError:
+            print(
+                f"Invalid MUTATION_SCORE_THRESHOLD={env_value!r}; falling back to the shared threshold file.",
+                file=sys.stderr,
+            )
+
+    try:
+        with THRESHOLD_FILE.open(encoding="utf-8") as fh:
+            data = json.load(fh)
+        return int(data["mutationScoreThreshold"])
+    except (OSError, KeyError, ValueError, TypeError):
+        print(
+            f"Could not read mutation threshold from {THRESHOLD_FILE}; falling back to {FALLBACK_MIN_SCORE}%.",
+            file=sys.stderr,
+        )
+        return FALLBACK_MIN_SCORE
+
 
 # Known mutmut `run` exit codes (mutmut 2.x / 3.x). They are bit-OR combinable.
 # 0 = all killed (success); 1 = fatal error; 2 = survivors; 4 = timeouts; 8 = suspicious (2x test time).
@@ -170,8 +214,9 @@ def main() -> int:
     parser.add_argument(
         "--min-score",
         type=int,
-        default=DEFAULT_MIN_SCORE,
-        help="Minimum acceptable mutation score in percent for every module (default 70).",
+        default=load_default_min_score(),
+        help="Minimum acceptable mutation score in percent for every module "
+        "(default: value from mutation-threshold.json at the repo root).",
     )
     parser.add_argument(
         "--modules",
