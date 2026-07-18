@@ -256,6 +256,66 @@ def test_reliability_amplifies_at_equal_relevance_score():
     )
 
 
+def test_ta_agreement_short_with_indicators():
+    """SHORT + bearish indicators yields higher confidence than LONG (kills _BEARISH_SIGNALS mutants)."""
+    indicators = [
+        IndicatorValue(name="RSI(14)", value=25, signal=SignalType.SELL),
+        IndicatorValue(name="MACD(12,26,9)", value=-0.5, signal=SignalType.SELL),
+    ]
+    short_conf = calculate_confidence(direction=Direction.SHORT, indicators=indicators)
+    long_conf = calculate_confidence(direction=Direction.LONG, indicators=indicators)
+    # Bearish indicators agree with SHORT but oppose LONG
+    assert short_conf > long_conf
+    assert short_conf > 50
+
+
+def test_ta_agreement_short_with_signal_summary():
+    """SHORT + bearish signal_summary yields higher confidence than LONG (kills +/- and /total mutants)."""
+    summary = SignalSummary(
+        overall_summary=SignalType.STRONG_SELL,
+        overall_buy_count=1,
+        overall_sell_count=8,
+        overall_neutral_count=1,
+    )
+    short_conf = calculate_confidence(direction=Direction.SHORT, signal_summary=summary)
+    long_conf = calculate_confidence(direction=Direction.LONG, signal_summary=summary)
+    # SHORT uses sell_count/total = 8/10 = 0.8 → higher than LONG's 1/10
+    assert short_conf > long_conf
+    assert short_conf > 40
+
+
+def test_fundamental_alignment_long_positive():
+    """LONG + positive fundamental score → (score+100)/200 (kills fundamental branch mutants)."""
+    from app.modules.strategy_generator.confidence_scorer import _fundamental_alignment
+
+    result = _fundamental_alignment(Direction.LONG, FundamentalData(instrument_type=InstrumentType.FOREX, score=70))
+    assert abs(result - 0.85) < 1e-9
+
+
+def test_fundamental_alignment_short_positive():
+    """SHORT + positive fundamental score → (-score+100)/200 (kills fundamental branch mutants)."""
+    from app.modules.strategy_generator.confidence_scorer import _fundamental_alignment
+
+    result = _fundamental_alignment(Direction.SHORT, FundamentalData(instrument_type=InstrumentType.FOREX, score=70))
+    assert abs(result - 0.15) < 1e-9
+
+
+def test_adx_strength_detected():
+    """ADX indicator with value → trend strength = min(1, value/50) (kills startswith/is-None mutants)."""
+    from app.modules.strategy_generator.confidence_scorer import _adx_strength
+
+    indicators = [IndicatorValue(name="ADX(14)", value=40, signal=SignalType.BUY)]
+    assert abs(_adx_strength(indicators) - 0.8) < 1e-9
+
+
+def test_adx_strength_none_value():
+    """ADX indicator with None value → neutral 0.5 (kills is-None / and-or mutants)."""
+    from app.modules.strategy_generator.confidence_scorer import _adx_strength
+
+    indicators = [IndicatorValue(name="ADX(14)", value=None, signal=SignalType.BUY)]
+    assert _adx_strength(indicators) == 0.5
+
+
 def test_no_data_confidence_is_deterministic():
     """No input data → fixed, deterministic baseline confidence (regression for python:S1244 fix).
 

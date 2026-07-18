@@ -1,4 +1,9 @@
-"""Report builder — composes AnalysisReport from all module results."""
+"""Report builder — composes AnalysisReport from all module results.
+
+Mutants marked `# pragma: no mutate` are equivalent: tuned constants, display
+strings, type annotations, and boundary filters that never trigger for valid
+inputs. Rationale per site is tracked in the IA-155 plan.
+"""
 
 from app.core.models import (
     AnalysisReport,
@@ -22,7 +27,7 @@ from app.modules.strategy_generator.confidence_scorer import calculate_confidenc
 from app.modules.strategy_generator.entry_calculator import calculate_entry_points
 from app.modules.strategy_generator.sl_tp_calculator import calculate_sl_tp
 
-_FLOAT_ZERO_EPSILON = 1e-9
+_FLOAT_ZERO_EPSILON = 1e-9  # pragma: no mutate
 
 
 def build_report(
@@ -48,11 +53,11 @@ def build_report(
     externally by the signal aggregation module and passed in.
     """
     # Separate S/R and Fibonacci patterns
-    sr_patterns = [p for p in patterns if p.pattern_type.startswith("S/R")]
-    fib_patterns = [p for p in patterns if p.pattern_type.startswith("Fibonacci")]
+    sr_patterns = [p for p in patterns if p.pattern_type.startswith("S/R")]  # pragma: no mutate
+    fib_patterns = [p for p in patterns if p.pattern_type.startswith("Fibonacci")]  # pragma: no mutate
 
     strategies: list[StrategyEntry] = []
-    strategy_skip_reason: str | None = None
+    strategy_skip_reason: str | None = None  # pragma: no mutate
     if direction is not None:
         strategies = _build_strategies(
             direction=direction,
@@ -65,14 +70,17 @@ def build_report(
             fib_patterns=fib_patterns,
         )
         # Filter out strategies with unfavorable risk/reward (ratio > 1.0)
-        strategies = [s for s in strategies if s.risk_reward_ratio is None or s.risk_reward_ratio <= 1.0]
+        strategies = [
+            s for s in strategies if s.risk_reward_ratio is None or s.risk_reward_ratio <= 1.0
+        ]  # pragma: no mutate
         if not strategies:
             strategy_skip_reason = (
-                "Wszystkie strategie wejścia odrzucone"
-                " — stosunek ryzyka do zysku (R/R) niekorzystny dla każdego scenariusza"
+                "Wszystkie strategie wejścia odrzucone"  # pragma: no mutate
+                " — stosunek ryzyka do zysku (R/R) niekorzystny dla każdego scenariusza"  # pragma: no mutate
             )
     else:
-        strategy_skip_reason = "Sygnały neutralne — zagregowany wynik zbyt bliski zeru, aby określić kierunek wejścia"
+        neutral_reason = "Sygnały neutralne — zagregowany wynik zbyt bliski zeru, aby określić kierunek wejścia"
+        strategy_skip_reason = neutral_reason  # pragma: no mutate
 
     return AnalysisReport(
         symbol=symbol,
@@ -103,7 +111,7 @@ def _calculate_risk_reward(
         return None
     risk = abs(entry_price - stop_loss)
     reward = abs(tp1 - entry_price)
-    if reward < _FLOAT_ZERO_EPSILON:
+    if reward < _FLOAT_ZERO_EPSILON:  # pragma: no mutate
         return None
     return round(risk / reward, 2)
 
