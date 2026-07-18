@@ -168,7 +168,7 @@ C4Container
     Container(fa, "fundamental_analysis", "Python", "Analiza makro/fund.")
     Container(sa, "signal_aggregation", "Python", "Ważony scoring")
     Container(sg, "strategy_generator", "Python", "SL/TP + raport")
-    ContainerDb(core, "Core Models", "Pydantic", "Wspólne API między modułami")
+    Container(core, "Core Models", "Pydantic", "Wspólne API między modułami")
     ContainerDb(redis, "Redis", "Cache", "Cache OHLCV (fallback in-memory)")
     ContainerDb(db, "SQLite", "AIOSQLite", "AnalysisReport, statusy")
 
