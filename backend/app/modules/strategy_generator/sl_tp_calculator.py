@@ -69,13 +69,13 @@ def calculate_sl_tp(
     sr_levels = _extract_sr_prices(support_resistance or [])
 
     stop_loss = _calculate_sl(entry_price, direction, sr_levels, atr)
-    risk = abs(entry_price - stop_loss) if stop_loss else atr * ATR_MULTIPLIER_SL  # pragma: no mutate
+    risk = abs(entry_price - stop_loss) if stop_loss is not None else atr * ATR_MULTIPLIER_SL  # pragma: no mutate
     tp1, tp2 = _calculate_tp(entry_price, direction, sr_levels, risk, atr)
 
     return {
-        "stop_loss": round(stop_loss, 5) if stop_loss else None,  # pragma: no mutate
-        "tp1": round(tp1, 5) if tp1 else None,  # pragma: no mutate
-        "tp2": round(tp2, 5) if tp2 else None,  # pragma: no mutate
+        "stop_loss": round(stop_loss, 5) if stop_loss is not None else None,  # pragma: no mutate
+        "tp1": round(tp1, 5) if tp1 is not None else None,  # pragma: no mutate
+        "tp2": round(tp2, 5) if tp2 is not None else None,  # pragma: no mutate
     }
 
 
