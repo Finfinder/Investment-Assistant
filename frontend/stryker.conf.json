@@ -6,8 +6,12 @@
   },
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
-  "mutate": ["src/lib/riskReward.ts"],
-  "testFiles": ["__tests__/riskRewardClass.test.ts"],
+  "mutate": ["src/lib/riskReward.ts", "src/lib/format.ts"],
+  "testFiles": [
+    "__tests__/riskRewardClass.test.ts",
+    "__tests__/confidenceBarClass.test.ts",
+    "__tests__/formatRiskReward.test.ts"
+  ],
   "reporters": ["clear-text", "progress", "html"],
   "thresholds": {
     "break": 70
