@@ -101,4 +101,25 @@ describe("makeAnalysisReport", () => {
     expect(report.symbol).toBe("EURUSD");
     expect(report.timeframe).toBe("H1");
   });
+
+  it("zwraca niezależne kopie zagnieżdżonych obiektów i tablic (brak współdzielonych referencji)", () => {
+    const first = makeAnalysisReport();
+    const second = makeAnalysisReport();
+
+    // Mutacja zagnieżdżonej tablicy/obiektu w jednym raporcie nie przecieka do drugiego.
+    first.ohlcv_data.push({
+      timestamp: new Date().toISOString(),
+      open: 1.2,
+      high: 1.3,
+      low: 1.1,
+      close: 1.25,
+      volume: 999,
+    });
+    first.strategies.push(makeStrategyEntry({ direction: "short" }));
+    first.timeframe_context.long_term_trend_label = "daily";
+
+    expect(second.ohlcv_data).toHaveLength(30);
+    expect(second.strategies).toHaveLength(1);
+    expect(second.timeframe_context.long_term_trend_label).toBe("weekly");
+  });
 });

@@ -186,5 +186,5 @@ export function makeAnalysisReport(overrides: Partial<AnalysisReport> = {}): Ana
   const definedOverrides = Object.fromEntries(
     Object.entries(overrides).filter(([, value]) => value !== undefined),
   ) as Partial<AnalysisReport>;
-  return { ...DEFAULT_ANALYSIS_REPORT, ...definedOverrides };
+  return { ...structuredClone(DEFAULT_ANALYSIS_REPORT), ...definedOverrides };
 }
