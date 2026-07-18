@@ -16,7 +16,11 @@ overridden locally via the `MUTATION_SCORE_THRESHOLD` environment variable or
 the `--min-score` CLI argument (highest priority).
 
 Usage:
-    python scripts/run_mutmut.py [--min-score 70] [--modules MODULE ...]
+    python scripts/run_mutmut.py [--min-score THRESHOLD] [--modules MODULE ...]
+
+Defaults:
+    --min-score  Read from mutation-threshold.json when not provided.
+                 Override with MUTATION_SCORE_THRESHOLD env var or --min-score flag.
 """
 
 from __future__ import annotations
