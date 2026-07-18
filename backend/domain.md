@@ -215,7 +215,7 @@ C4Container
 **Polityki / Reguły Biznesowe**:
 | Polityka | Wyzwalacz | Akcja | Opis |
 |---|---|---|---|
-| Cache-first | Żądanie OHLCV | Najpierw Redis, potem in-memory, na końcu provider | Redukcja obciążenia zewnętrznych API i quot |
+| Cache-first | Żądanie OHLCV | Najpierw Redis, potem in-memory, na końcu provider | Redukcja obciążenia zewnętrznych API i quota |
 **Usługi Domenowe**: `FallbackChainManager.build_fallback_chain()`, `MultiTimeframeFetcher`.
 **Archetypy Biznesowe**: `OHLCVData` — Thing; `DataProvider` — Role (Protocol).
 
