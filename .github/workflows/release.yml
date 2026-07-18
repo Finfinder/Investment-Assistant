@@ -51,8 +51,6 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/reusable-mutation-testing.yml
-    with:
-      min-score: 70
 
   frontend-mutation-testing:
     needs: [version-consistency]
