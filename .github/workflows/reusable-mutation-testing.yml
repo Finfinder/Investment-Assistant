@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       min-score:
-        description: Minimalny akceptowalny mutation score w procentach egzekwowany niezale¿nie dla ka¿dego modu³u z listy zakresu skryptu run_mutmut.py.
+        description: Minimum acceptable mutation score in percent, enforced independently for each module in the run_mutmut.py scope list.
         required: false
         default: 70
         type: number
