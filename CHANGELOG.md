@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Register `SecurityHeadersMiddleware` before `CORSMiddleware` in `create_app()` so that `CORSMiddleware` becomes the outermost (last-registered) middleware, acting as the entry/exit boundary for every request including preflight OPTIONS handling; resolves SonarCloud rule python:S8414 ([#238](https://github.com/Finfinder/Investment-Assistant/issues/238))
 
 - Share the `makeStrategyEntry` test factory from `frontend/__tests__/factories.ts` into `frontend/e2e/fixtures.ts` and replace the inline `StrategyEntry` literal in `mockReport()` with a factory call, unifying the `StrategyEntry` shape across unit and E2E test layers and reducing fixture duplication ([#211](https://github.com/Finfinder/Investment-Assistant/issues/211))
+- Add a `makeAnalysisReport(overrides)` test factory to `frontend/__tests__/factories.ts` that aggregates the strategy list via `makeStrategyEntry`, and refactor `frontend/e2e/fixtures.ts` `mockReport()` to delegate to it, simplifying higher-order report-component tests ([#212](https://github.com/Finfinder/Investment-Assistant/issues/212))
+- Remove the 9 `AnalysisReport` fields duplicated inline in `frontend/e2e/fixtures.ts` `mockReport()` that already match `DEFAULT_ANALYSIS_REPORT` (including `timestamp` and `timeframe_context`), add a unit test covering `undefined`-override filtering in `makeAnalysisReport`, and include `frontend/__tests__/**` in Vitest `coverage.include` so factory branch coverage is measurable (100% after the change) ([#212](https://github.com/Finfinder/Investment-Assistant/issues/212))
 
 ## [0.5.1] - 2026-07-17
 
