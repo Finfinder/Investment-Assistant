@@ -1,9 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const repoRoot = resolve(__dirname, "..", "..");
 const thresholdFile = resolve(repoRoot, "mutation-threshold.json");
