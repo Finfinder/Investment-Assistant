@@ -1,10 +1,11 @@
 import { test as base, type Page } from "@playwright/test";
-import { makeStrategyEntry } from "../__tests__/factories";
+import type { InstrumentType, Timeframe } from "@/types";
+import { makeAnalysisReport, makeStrategyEntry } from "../__tests__/factories";
 
 const MOCK_ANALYSIS_ID = "mock-analysis-id";
 
-function mockReport(symbol: string, timeframe: string) {
-  const instrumentTypeMap: Record<string, string | null> = {
+function mockReport(symbol: string, timeframe: Timeframe) {
+  const instrumentTypeMap: Record<string, InstrumentType | null> = {
     EURUSD: "forex",
     GBPUSD: "forex",
     USDJPY: "forex",
@@ -13,47 +14,10 @@ function mockReport(symbol: string, timeframe: string) {
     US500: "index",
     SPX: "index",
   };
-  return {
+  return makeAnalysisReport({
     symbol,
     timeframe,
-    timestamp: new Date().toISOString(),
     instrument_type: instrumentTypeMap[symbol] ?? null,
-    timeframe_context: {
-      pivot_points_timeframe: "D1",
-      pattern_scanner_timeframes: ["D1", "H1", "M15"],
-      long_term_trend_label: "weekly",
-    },
-    ohlcv_data: Array.from({ length: 30 }, (_, i) => ({
-      timestamp: new Date(Date.now() - (30 - i) * 3600000).toISOString(),
-      open: 1.1 + i * 0.001,
-      high: 1.1 + i * 0.001 + 0.002,
-      low: 1.1 + i * 0.001 - 0.001,
-      close: 1.1 + i * 0.001 + 0.001,
-      volume: 1000 + i * 100,
-    })),
-    technical_indicators: [
-      { name: "RSI(14)", value: 55.3, signal: "neutral" },
-      { name: "STOCH.K(9)", value: 65, signal: "buy" },
-      { name: "CCI(14)", value: 45.2, signal: "neutral" },
-      { name: "ADX(14)", value: 28.5, signal: "neutral" },
-      { name: "AO", value: 0.0035, signal: "buy" },
-      { name: "Momentum(10)", value: 0.012, signal: "buy" },
-      { name: "MACD(12,26,9)", value: 0.0012, signal: "buy" },
-      { name: "Williams %R(14)", value: -35.2, signal: "neutral" },
-      { name: "UO(7,14,28)", value: 52.1, signal: "neutral" },
-      { name: "ATR(14)", value: 0.0045, signal: "neutral" },
-      { name: "BBP(13)", value: 0.0023, signal: "buy" },
-      { name: "STOCHRSI.K(14)", value: 72.5, signal: "neutral" },
-      { name: "ROC(15)", value: 1.25, signal: "buy" },
-    ],
-    moving_averages: [
-      { period: 10, sma_value: 1.105, sma_signal: "buy", ema_value: 1.106, ema_signal: "buy" },
-      { period: 20, sma_value: 1.1, sma_signal: "neutral", ema_value: 1.101, ema_signal: "neutral" },
-      { period: 50, sma_value: 1.095, sma_signal: "sell", ema_value: 1.096, ema_signal: "sell" },
-    ],
-    pivot_points: [
-      { type: "classic", pp: 1.105, s1: 1.1, s2: 1.095, s3: 1.09, r1: 1.11, r2: 1.115, r3: 1.12 },
-    ],
     patterns: [
       {
         pattern_type: "Hammer",
@@ -143,31 +107,6 @@ function mockReport(symbol: string, timeframe: string) {
         },
       },
     ],
-    long_term_trend: {
-      signal: "buy",
-      summary: "Trend wzrostowy",
-      source_label: "weekly",
-    },
-    fundamental: {
-      instrument_type: "forex",
-      indicators: { interest_rate_diff: 1.5 },
-      score: 6.5,
-      summary: "Umiarkowanie pozytywne dane fundamentalne",
-    },
-    signal_summary: {
-      ma_summary: "buy",
-      ma_buy_count: 5,
-      ma_sell_count: 2,
-      ma_neutral_count: 3,
-      indicators_summary: "buy",
-      indicators_buy_count: 5,
-      indicators_sell_count: 2,
-      indicators_neutral_count: 6,
-      overall_summary: "buy",
-      overall_buy_count: 10,
-      overall_sell_count: 4,
-      overall_neutral_count: 9,
-    },
     strategies: [
       makeStrategyEntry({
         direction: "long",
@@ -181,7 +120,7 @@ function mockReport(symbol: string, timeframe: string) {
       }),
     ],
     strategy_skip_reason: null,
-  };
+  });
 }
 
 function wsProgressMessages(id: string) {
@@ -197,7 +136,7 @@ function wsProgressMessages(id: string) {
 /** Set up API route interception (HTTP + WebSocket) for a given page. */
 export async function mockAnalysisApi(page: Page) {
   let requestedSymbol = "EURUSD";
-  let requestedTimeframe = "H1";
+  let requestedTimeframe: Timeframe = "H1";
 
   // Mock POST /api/v1/analysis
   await page.route("**/api/v1/analysis", async (route) => {
@@ -205,7 +144,7 @@ export async function mockAnalysisApi(page: Page) {
 
     const body = JSON.parse(route.request().postData() ?? "{}");
     requestedSymbol = body.symbol ?? "EURUSD";
-    requestedTimeframe = body.timeframe ?? "H1";
+    requestedTimeframe = (body.timeframe ?? "H1") as Timeframe;
 
     // Return 422 for obviously invalid symbols
     const validPattern = /^[A-Z0-9]{2,12}$/;
