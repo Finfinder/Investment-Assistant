@@ -109,7 +109,7 @@ jobs:
             exit 1
           fi
 
-          dockerfile_arg="$(grep -E '^ARG[[:space:]]+NODE_VERSION=' "$DOCKERFILE_PATH" | head -1 | sed -E 's/^ARG[[:space:]]+NODE_VERSION=//' | tr -d '\r\n ' | sed 's/^v//')"
+          dockerfile_arg="$(grep -E '^ARG[[:space:]]+NODE_VERSION=' "$DOCKERFILE_PATH" | head -1 | sed -E 's/^ARG[[:space:]]+NODE_VERSION=//' | tr -d '\r\n ' | sed 's/^v//')" || true
           if [[ -z "$dockerfile_arg" ]]; then
             echo "::error::${DOCKERFILE_PATH} must define a default NODE_VERSION via 'ARG NODE_VERSION=...'" >&2
             exit 1
