@@ -74,6 +74,54 @@ jobs:
       - name: Audit dependencies for known vulnerabilities
         run: npm audit --audit-level=moderate
 
+  frontend-node-version-consistency:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Verify NODE_VERSION in Dockerfile matches .nvmrc
+        shell: bash
+        env:
+          NODE_VERSION_FILE: ${{ inputs.node-version-file }}
+          DOCKERFILE_PATH: ${{ inputs.working-directory }}/Dockerfile
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f "$NODE_VERSION_FILE" ]]; then
+            echo "::error::Node version file not found at ${NODE_VERSION_FILE}" >&2
+            exit 1
+          fi
+
+          nvmrc_version="$(head -1 "$NODE_VERSION_FILE" | tr -d '\r\n ' | sed 's/^v//')"
+          if [[ -z "$nvmrc_version" ]]; then
+            echo "::error::${NODE_VERSION_FILE} must not be empty" >&2
+            exit 1
+          fi
+          if ! grep -Eq '^v?[0-9]+(\.[0-9]+){0,2}$' <<< "$nvmrc_version"; then
+            echo "::error::${NODE_VERSION_FILE} must contain a Node version (e.g. 20, 20.16, 20.16.0, v20.16.0), got: '${nvmrc_version}'" >&2
+            exit 1
+          fi
+
+          if [[ ! -f "$DOCKERFILE_PATH" ]]; then
+            echo "::error::Dockerfile not found at ${DOCKERFILE_PATH}" >&2
+            exit 1
+          fi
+
+          dockerfile_arg="$(grep -E '^ARG[[:space:]]+NODE_VERSION=' "$DOCKERFILE_PATH" | head -1 | sed -E 's/^ARG[[:space:]]+NODE_VERSION=//' | tr -d '\r\n ' | sed 's/^v//')" || true
+          if [[ -z "$dockerfile_arg" ]]; then
+            echo "::error::${DOCKERFILE_PATH} must define a default NODE_VERSION via 'ARG NODE_VERSION=...'" >&2
+            exit 1
+          fi
+
+          if [[ "$nvmrc_version" != "$dockerfile_arg" ]]; then
+            echo "::error::NODE_VERSION default in ${DOCKERFILE_PATH} (${dockerfile_arg}) does not match ${NODE_VERSION_FILE} (${nvmrc_version})" >&2
+            exit 1
+          fi
+
+          echo "NODE_VERSION consistency verified: ${nvmrc_version} (${NODE_VERSION_FILE} == ${DOCKERFILE_PATH})"
+
   frontend-e2e:
     runs-on: ubuntu-latest
     needs: [frontend-lint, frontend-security]

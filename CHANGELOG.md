@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `backend/domain.md` documenting bounded contexts and domain contracts of `app/modules/` (single source of truth for module boundaries, enforced by import-linter); closes [#209](https://github.com/Finfinder/Investment-Assistant/issues/209)
+- Add a `frontend-node-version-consistency` CI job to `reusable-frontend.yml` that fails when the default `NODE_VERSION` in `frontend/Dockerfile` (`ARG NODE_VERSION=…`) diverges from `frontend/.nvmrc`, plus a backend contract test `test_frontend_node_version_consistency.py` guarding against local drift; closes [#219](https://github.com/Finfinder/Investment-Assistant/issues/219)
 
 ### Changed
 
