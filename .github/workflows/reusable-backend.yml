@@ -3,10 +3,10 @@ name: Reusable Backend
 on:
   workflow_call:
     inputs:
-      python-version:
-        description: Python version for the backend jobs (single source of truth, e.g. "3.12").
+      python-version-file:
+        description: Path to the file containing the Python version for the backend jobs (single source of truth, e.g. backend/.python-version).
         required: false
-        default: "3.12"
+        default: "backend/.python-version"
         type: string
       working-directory:
         description: Working directory containing the backend project (pyproject.toml).
@@ -30,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version-file: ${{ inputs.python-version-file }}
 
       - name: Install dependencies
         run: pip install ruff
@@ -54,7 +54,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version-file: ${{ inputs.python-version-file }}
 
       - name: Install dependencies
         run: pip install ".[dev]"
@@ -75,7 +75,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version-file: ${{ inputs.python-version-file }}
 
       - name: Install dependencies
         run: pip install ".[dev]"
@@ -96,7 +96,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version-file: ${{ inputs.python-version-file }}
 
       - name: Install dependencies
         run: pip install ".[dev]"
@@ -120,7 +120,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version-file: ${{ inputs.python-version-file }}
 
       - name: Install dependencies
         run: |
