@@ -32,7 +32,6 @@ jobs:
       contents: read
     uses: ./.github/workflows/reusable-backend.yml
     with:
-      python-version: "3.12"
       working-directory: "backend"
 
   frontend:

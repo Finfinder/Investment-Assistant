@@ -8,6 +8,11 @@ on:
         required: false
         default: 0
         type: number
+      python-version-file:
+        description: Path to the file containing the Python version for the backend jobs (single source of truth, e.g. backend/.python-version).
+        required: false
+        default: "backend/.python-version"
+        type: string
     secrets:
       SONAR_TOKEN:
         description: SonarCloud authentication token for code analysis.
@@ -40,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.12"
+          python-version-file: ${{ inputs.python-version-file }}
 
       - name: Upgrade pip
         run: pip install --upgrade pip
