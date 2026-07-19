@@ -96,14 +96,16 @@ Tagged releases publish three container images to GHCR:
 
 Each image is published with a semver tag matching the release, an immutable `sha-<commit>` tag, and `latest` only for stable tags without a prerelease suffix.
 
-All three base images are pinned by their `@sha256` digest (build arguments `NODE_IMAGE_DIGEST` in `frontend/Dockerfile`, `PYTHON_IMAGE_DIGEST` in `backend/Dockerfile`, and `NGINX_IMAGE_DIGEST` in `nginx/Dockerfile`) to guard against supply-chain attacks and ensure reproducible builds (IA-163 / #220, IA-164 / #222). The digests are the single source of truth, so `release.yml` and `docker-compose.yml` inherit them without passing build arguments. Rotate a digest when its upstream image is rebuilt with a security fix:
+All three base images are pinned by their `@sha256` digest (build arguments `NODE_IMAGE_DIGEST` in `frontend/Dockerfile`, `PYTHON_IMAGE_DIGEST` in `backend/Dockerfile`, and `NGINX_IMAGE_DIGEST` in `nginx/Dockerfile`) to guard against supply-chain attacks and ensure reproducible builds (IA-163 / #220, IA-164 / #222). The digests are the single source of truth, so `release.yml` and `docker-compose.yml` inherit them without passing build arguments. The mutable image tags are parameterized via build arguments whose defaults come from single-source-of-truth files (IA-167 / #228): `frontend/.nvmrc` (`NODE_VERSION`), `backend/.python-version` (`PYTHON_VERSION`, suffixed with `-slim` for the image), and `nginx/.nginxrc` (`NGINX_VERSION`). `release.yml` reads these files and passes `--build-arg`, while `docker-compose.yml` passes them via `build.args` with the same defaults. Rotate a digest when its upstream image is rebuilt with a security fix:
 
 ```bash
 docker buildx imagetools inspect node:$(cat frontend/.nvmrc)-alpine   # frontend
-docker buildx imagetools inspect python:3.12-slim                              # backend
-docker buildx imagetools inspect nginx:1.27-alpine                              # nginx
+docker buildx imagetools inspect python:$(cat backend/.python-version)-slim   # backend
+docker buildx imagetools inspect nginx:$(cat nginx/.nginxrc)                    # nginx
 # use the value from the "Digest:" line (manifest list / index digest)
 ```
+
+To bump a base image version, edit only the corresponding single-source-of-truth file (and rotate its digest); the Dockerfile default, CI consistency checks, and `docker-compose.yml` follow automatically.
 
 GitHub Release notes are generated from `CHANGELOG.md`. The supported release artifacts are container images only; this repository does not publish a frontend npm package or a backend PyPI package.
 

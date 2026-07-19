@@ -34,6 +34,51 @@ jobs:
     with:
       working-directory: "backend"
 
+  nginx-version-consistency:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Verify NGINX_VERSION in Dockerfile matches .nginxrc
+        shell: bash
+        env:
+          NGINX_VERSION_FILE: nginx/.nginxrc
+          DOCKERFILE_PATH: nginx/Dockerfile
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f "$NGINX_VERSION_FILE" ]]; then
+            echo "::error::nginx version file not found at ${NGINX_VERSION_FILE}" >&2
+            exit 1
+          fi
+
+          nginxrc_version="$(head -1 "$NGINX_VERSION_FILE" | tr -d '\r\n ')"
+          if [[ -z "$nginxrc_version" ]]; then
+            echo "::error::${NGINX_VERSION_FILE} must not be empty" >&2
+            exit 1
+          fi
+
+          if [[ ! -f "$DOCKERFILE_PATH" ]]; then
+            echo "::error::Dockerfile not found at ${DOCKERFILE_PATH}" >&2
+            exit 1
+          fi
+
+          dockerfile_arg="$(grep -E '^ARG[[:space:]]+NGINX_VERSION=' "$DOCKERFILE_PATH" | head -1 | sed -E 's/^ARG[[:space:]]+NGINX_VERSION=//' | tr -d '\r\n ')" || true
+          if [[ -z "$dockerfile_arg" ]]; then
+            echo "::error::${DOCKERFILE_PATH} must define a default NGINX_VERSION via 'ARG NGINX_VERSION=...'" >&2
+            exit 1
+          fi
+
+          if [[ "$nginxrc_version" != "$dockerfile_arg" ]]; then
+            echo "::error::NGINX_VERSION default in ${DOCKERFILE_PATH} (${dockerfile_arg}) does not match ${NGINX_VERSION_FILE} (${nginxrc_version})" >&2
+            exit 1
+          fi
+
+          echo "NGINX_VERSION consistency verified: ${nginxrc_version} (${NGINX_VERSION_FILE} == ${DOCKERFILE_PATH})"
+
   frontend:
     needs: [version-consistency]
     if: github.actor != 'dependabot[bot]'
