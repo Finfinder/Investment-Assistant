@@ -14,7 +14,9 @@ def test_frontend_dockerfile_node_version_matches_nvmrc() -> None:
     assert nvmrc_path.exists(), "frontend/.nvmrc must exist as the single source of truth for the Node version"
     assert dockerfile_path.exists(), "frontend/Dockerfile must exist"
 
-    nvmrc_version = _normalize_node_version(nvmrc_path.read_text(encoding="utf-8").splitlines()[0])
+    nvmrc_lines = nvmrc_path.read_text(encoding="utf-8").splitlines()
+    assert nvmrc_lines, "frontend/.nvmrc must not be empty"
+    nvmrc_version = _normalize_node_version(nvmrc_lines[0])
     assert nvmrc_version, "frontend/.nvmrc must not be empty"
 
     dockerfile_text = dockerfile_path.read_text(encoding="utf-8")
