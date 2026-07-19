@@ -2,7 +2,7 @@
 ARG PYTHON_VERSION=3.12-slim
 # IA-167: wersja bazowego obrazu python z pliku single-source-of-truth backend/.python-version.
 ARG PYTHON_IMAGE_DIGEST="sha256:c3d81d25b3154142b0b42eb1e61300024426268edeb5b5a26dd7ddf64d9daf28"
-# IA-164: digest listy manifestów oficjalnego python:3.12-slim.
+# IA-164: digest listy manifestĂłw oficjalnego python:${PYTHON_VERSION}.
 # Rotacja: docker buildx imagetools inspect python:$(cat backend/.python-version)-slim (pole "Digest:").
 # Zmieniaj razem z backend/.python-version - digest jest autorytatywny (content-addressing), wiec tag
 # jest tylko wskazowka; bez rotacji digestu obraz pozostanie na starym Python mimo zmiany .python-version.
