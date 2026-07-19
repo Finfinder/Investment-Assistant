@@ -17,6 +17,8 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+      args:
+        NGINX_VERSION: ${NGINX_VERSION:-1.27-alpine}
     ports:
       - "80:80"
     volumes:
@@ -38,6 +40,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.12-slim}
     expose:
       - "8000"
     env_file:
