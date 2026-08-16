@@ -23,6 +23,8 @@ ENV/
 
 # Temporary files
 result_tmp.txt
+pytest_out.txt
+backend/json
 
 # Environment
 .env
