@@ -127,10 +127,13 @@ jobs:
           pip install --upgrade pip
           pip install ".[dev]" pip-audit
 
-      # CVE-2026-4539 and CVE-2026-3219 are ignored after review: both are
-      # transitive dev-only dependencies with no viable fixed release at audit
-      # time and no reachable production code path. Tracked for periodic
-      # re-evaluation (issue #200); remove the ignore once a patched version
-      # is available or the dependency is dropped.
+      # CVE-2026-4539 (pygments ReDoS, transitive dev-only) is ignored after
+      # review: no viable fixed release at audit time and no reachable
+      # production code path. Tracked for periodic re-evaluation (issue #200);
+      # remove the ignore once a patched version is available or the
+      # dependency is dropped.
+      # CVE-2026-3219 (pip) was previously ignored but is resolved by
+      # IA-187 (#267): pip is refreshed to >=26.1.2 in backend/Dockerfile and
+      # via `pip install --upgrade pip` here, so the ignore was removed.
       - name: Audit dependencies for known vulnerabilities
-        run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
+        run: pip-audit --skip-editable --ignore-vuln CVE-2026-4539

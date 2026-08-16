@@ -10,7 +10,8 @@ dependencies = [
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn[standard]>=0.32.0,<1.0.0",
     "pydantic>=2.10.0,<3.0.0",
-    "pydantic-settings>=2.7.0,<3.0.0",
+    # IA-187 (#267): bump do załatanej wersji (GHSA-4xgf-cpjx-pc3j).
+    "pydantic-settings>=2.14.2,<3.0.0",
     "sqlalchemy>=2.0.0,<3.0.0",
     "alembic>=1.14.0,<2.0.0",
     "pandas>=2.2.0,<3.0.0",
@@ -29,6 +30,17 @@ dependencies = [
     "pyjwt>=2.9.0,<3.0.0",
     "python-multipart>=0.0.18,<1.0.0",
     "pwdlib[argon2]>=0.2.0,<1.0.0",
+    # IA-187 (#267): jawne dolne piny wersji załatanych dla zależności transitive.
+    # Brak commitowanego lockfile'a Python sprawia, że GitHub Dependency Graph
+    # re-rozwiązuje zakresy przy każdym skanie; dolne piny wymuszają wersje
+    # powyżej zakresu podatnego i czynią fix trwałym.
+    "starlette>=1.3.1,<2.0.0",
+    "urllib3>=2.7.0,<3.0.0",
+    "idna>=3.15,<4.0.0",
+    "click>=8.3.3,<9.0.0",
+    "mako>=1.3.12,<2.0.0",
+    "msgpack>=1.2.1,<2.0.0",
+    "soupsieve>=2.8.4,<3.0.0",
 ]
 
 [project.optional-dependencies]
