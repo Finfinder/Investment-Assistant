@@ -9,6 +9,13 @@ from app.modules.fundamental_analysis.data_sources.cpi_fallback_source import Cp
 from app.modules.fundamental_analysis.data_sources.macro_observation import MacroObservation
 
 
+def _fresh_period() -> date:
+    """Returns the first day of last month, always inside the freshness window."""
+    today = date.today()
+    year, month = (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
+    return date(year, month, 1)
+
+
 @pytest.fixture
 def mock_fred():
     mock = MagicMock()
@@ -49,7 +56,7 @@ class TestCpiFallbackSource:
         source = CpiFallbackSource(fred=mock_fred, bls=mock_bls, statcan=mock_statcan, bfs=mock_bfs)
         mock_fred.fetch_indicator_observation.return_value = MacroObservation(
             value=2.2,
-            period=date(2026, 4, 1),
+            period=_fresh_period(),
             source="fred",
         )
 
@@ -72,7 +79,7 @@ class TestCpiFallbackSource:
             period=date(2025, 1, 1),
             source="fred",
         )
-        mock_bls.fetch_us_cpi_yoy.return_value = MacroObservation(value=2.9, period=date(2026, 4, 1), source="bls")
+        mock_bls.fetch_us_cpi_yoy.return_value = MacroObservation(value=2.9, period=_fresh_period(), source="bls")
 
         value = await source.fetch_indicator("cpi_us")
 
@@ -106,9 +113,9 @@ class TestCpiFallbackSource:
         source = CpiFallbackSource(fred=mock_fred, bls=mock_bls, statcan=mock_statcan, bfs=mock_bfs)
         mock_fred.fetch_indicator_observation.return_value = None
         mock_statcan.fetch_ca_cpi_yoy.return_value = MacroObservation(
-            value=2.1, period=date(2026, 4, 1), source="statcan"
+            value=2.1, period=_fresh_period(), source="statcan"
         )
-        mock_bfs.fetch_ch_cpi_yoy.return_value = MacroObservation(value=0.7, period=date(2026, 4, 1), source="bfs")
+        mock_bfs.fetch_ch_cpi_yoy.return_value = MacroObservation(value=0.7, period=_fresh_period(), source="bfs")
 
         ca_value = await source.fetch_indicator("cpi_ca")
         ch_value = await source.fetch_indicator("cpi_ch")
@@ -126,9 +133,9 @@ class TestCpiFallbackSource:
     ):
         source = CpiFallbackSource(fred=mock_fred, bls=mock_bls, statcan=mock_statcan, bfs=mock_bfs)
         mock_fred.fetch_indicator_observation.return_value = None
-        mock_bls.fetch_us_cpi_yoy.return_value = MacroObservation(value=2.5, period=date(2026, 4, 1), source="bls")
+        mock_bls.fetch_us_cpi_yoy.return_value = MacroObservation(value=2.5, period=_fresh_period(), source="bls")
         mock_statcan.fetch_ca_cpi_yoy.return_value = MacroObservation(
-            value=2.0, period=date(2026, 4, 1), source="statcan"
+            value=2.0, period=_fresh_period(), source="statcan"
         )
 
         result = await source.fetch_multiple(["cpi_us", "cpi_ca", "unknown"])
