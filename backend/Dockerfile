@@ -16,6 +16,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc build-essential && \
     rm -rf /var/lib/apt/lists/*
 
+# IA-187 (#267): odswiez pip do zalatanej wersji przed instalacja projektu.
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.1.2"
+
 COPY pyproject.toml .
 RUN pip install --no-cache-dir --prefix=/install .
 
@@ -27,6 +30,10 @@ WORKDIR /app
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 COPY --from=builder /install /usr/local
+
+# IA-187 (#267): odswiez pip do zalatanej wersji w obrazie runtime (jako root,
+# przed USER appuser) - GitHub Dependency Graph skanuje obraz runtime.
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.1.2"
 
 COPY alembic.ini .
 COPY alembic/ alembic/
